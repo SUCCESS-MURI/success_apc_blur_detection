@@ -1,4 +1,6 @@
-import tensorflow as tf
+#import tensorflow as tf
+#import tensorflow.compat.v1 as tf
+#tf.disable_v2_behavior()
 import tensorlayer as tl
 from tensorlayer.prepro import *
 from config import config, log_config
@@ -11,28 +13,27 @@ import math
 from tensorflow.python.ops import array_ops
 import random
 
-
+import imageio
 import scipy
 import numpy as np
 
 def get_imgs_RGB_fn(file_name, path):
     """ Input an image path and name, return an image array """
     # return scipy.misc.imread(path + file_name).astype(np.float)
-    return scipy.misc.imread(path + file_name, mode='RGB')
+    return imageio.imread(path + file_name)
 
 def get_imgs_GRAY_fn(file_name, path):
     """ Input an image path and name, return an image array """
     # return scipy.misc.imread(path + file_name).astype(np.float)
-    image = scipy.misc.imread(path + file_name, mode='P')/255
-    return np.expand_dims(np.asarray(image), 3)
+    # https://www.geeksforgeeks.org/python-pil-image-convert-method/
+    image = Image.open(path + file_name)
+    return np.array(image.convert("L"))[:,:,np.newaxis]/255
 
 def get_imgs_GRAY_fn_cv(file_name, path):
     """ Input an image path and name, return an image array """
     # return scipy.misc.imread(path + file_name).astype(np.float)
     image = cv2.imread(path + file_name, cv2.IMREAD_GRAYSCALE)
     return np.expand_dims(np.asarray(image), 3)
-
-
 
 def crop_sub_img_and_classification_fn_aug(data):
 

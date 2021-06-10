@@ -2,9 +2,12 @@
 # -*- coding: utf8 -*-
 
 import tensorflow as tf
+# import tensorflow.compat.v1 as tf
+# tf.disable_v2_behavior()
 import tensorlayer as tl
 import numpy as np
 from tensorlayer.layers import *
+#from tf.keras.layers import *
 
 
 
@@ -205,7 +208,7 @@ def VGG19_pretrained(t_image,reuse = False,scope="VGG"):
     with tf.variable_scope(scope, reuse=reuse) as vs:
 
         # input layer
-        net_in = InputLayer(bgr, name='input')
+        net_in = InputLayer(bgr, name='input') #tf.keras.layers.InputLayer(bgr, name='input')
         # conv1
         network = Conv2d(net_in, n_filter=64, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME',name='conv1_1')
         network = Conv2d(network, n_filter=64, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', name='conv1_2')
@@ -321,16 +324,13 @@ def VGG19_finetuning(t_image,reuse = False,scope="VGG"):
 
     return n, f0, f0_1,f1_2,f2_3 ,hrg,wrg
 
-
-
-
-
-
-
-
-
 def Decoder_Network_classification(n,f0,f1_2,f2_3,f3_4,hrg,wrg, reuse=False, scope = "UNet"):
+    # xavier_initializer was discontinued
     w_init1 = tf.contrib.layers.xavier_initializer()
+    # w_init1 = tf.truncated_normal_initializer()
+    # w_init2 = tf.truncated_normal_initializer()
+    # w_init3 = tf.truncated_normal_initializer()
+    # w_init4 = tf.truncated_normal_initializer()
     w_init2 = tf.contrib.layers.xavier_initializer()
     w_init3 = tf.contrib.layers.xavier_initializer()
     w_init4 = tf.contrib.layers.xavier_initializer()

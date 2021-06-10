@@ -14,16 +14,16 @@ config.TRAIN.beta1 = 0.9
 config.TRAIN.n_epoch_init = 1000
 
 ## adversarial learning (SRGAN)
-config.TRAIN.n_epoch =6000
-config.TRAIN.lr_decay = 0.8
-config.TRAIN.decay_every = 6000
+config.TRAIN.n_epoch = 6000
+config.TRAIN.lr_decay = 0.1
+config.TRAIN.decay_every = 3000
 
 ## train set location
-config.TRAIN.CUHK_blur_path = '/Dataset/BlurDetection/CUHK/imgs/'
-config.TRAIN.CUHK_gt_path = '/Dataset/BlurDetection/CUHK/GT/'
+config.TRAIN.CUHK_blur_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/image/'
+config.TRAIN.CUHK_gt_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/gt/'
+# TODO edit this to my path files
 config.TRAIN.synthetic_blur_path = '/Dataset/BlurDetection/Synthetic_hybrid/imgs/'
-config.TRAIN.synyheyic_gt_path = '/Dataset/BlurDetection/Synthetic_hybrid/GT/'
-
+config.TRAIN.synthetic_gt_path = '/Dataset/BlurDetection/Synthetic_hybrid/GT/'
 
 ## train image size
 config.TRAIN.height = 256#192->144 ->288
