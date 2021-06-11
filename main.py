@@ -1,6 +1,7 @@
 # coding=utf-8
 import tensorflow as tf
-#tf.disable_v2_behavior()
+# import tensorflow.compat.v1 as tf
+# tf.disable_v2_behavior()
 import tensorlayer as tl
 import numpy as np
 import math
@@ -12,8 +13,8 @@ import datetime
 import time
 import cv2
 import argparse
-#import tensorflow as tf
 import os
+tf.compat.v1.disable_eager_execution()
 
 batch_size = config.TRAIN.batch_size
 #batch_size = 78
@@ -89,7 +90,7 @@ def blurmap_3classes(index):
                 test_image = sharp_image[0: image_h-(image_h%16), 0: 0 + image_w-(image_w%16), :]/(255.)
 
                 # Model
-                patches_blurred = tf.placeholder('float32', [1, test_image.shape[0], test_image.shape[1], 3], name='input_patches')
+                patches_blurred = tf.compat.v1.placeholder('float32', [1, test_image.shape[0], test_image.shape[1], 3], name='input_patches')
                 if flag==0:
                     reuse =False
                 else:
@@ -97,12 +98,12 @@ def blurmap_3classes(index):
 
                 start_time = time.time()
 
-                with tf.variable_scope('Unified') as scope:
-                    with tf.variable_scope('VGG') as scope3:
+                with tf.compat.v1.variable_scope('Unified') as scope:
+                    with tf.compat.v1.variable_scope('VGG') as scope3:
                         n, f0, f0_1, f1_2, f2_3, hrg, wrg = VGG19_pretrained(patches_blurred, reuse=reuse,scope=scope3)
                         #tl.visualize.draw_weights(n.all_params[0].eval(), second=10, saveable=True, name='weight_of_1st_layer', fig_idx=2012)
 
-                    with tf.variable_scope('UNet') as scope1:
+                    with tf.compat.v1.variable_scope('UNet') as scope1:
                         output,m1,m2,m3= Decoder_Network_classification(n, f0, f0_1, f1_2, f2_3 ,hrg,wrg, reuse = reuse, scope = scope1)
                    
                     output_map = tf.nn.softmax(output.outputs)
@@ -112,8 +113,8 @@ def blurmap_3classes(index):
 
                 #a_vars = tl.layers.get_variables_with_name('Unified', False, True)
 
-                saver = tf.train.Saver()
-                sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False))
+                saver = tf.compat.v1.train.Saver()
+                sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False))
                 tl.layers.initialize_global_variables(sess)
 
                 # Load checkpoint
@@ -199,24 +200,25 @@ def train_with_CUHK():
         index =index +1
 
     ### DEFINE MODEL ###
-    patches_blurred = tf.placeholder('float32', [batch_size, h, w, 3], name = 'input_patches')
-    labels_sigma = tf.placeholder('float32', [batch_size,h,w, 1], name = 'lables')
-    classification_map= tf.placeholder('int32', [batch_size, h, w,1], name='labels')
-    with tf.variable_scope('Unified'):
-        with tf.variable_scope('VGG') as scope1:
+    patches_blurred = tf.compat.v1.placeholder('float32', [batch_size, h, w, 3], name = 'input_patches')
+    labels_sigma = tf.compat.v1.placeholder('float32', [batch_size,h,w, 1], name = 'lables')
+    classification_map= tf.compat.v1.placeholder('int32', [batch_size, h, w,1], name='labels')
+    with tf.compat.v1.variable_scope('Unified'):
+        with tf.compat.v1.variable_scope('VGG') as scope1:
             n, f0, f0_1, f1_2, f2_3 ,hrg,wrg= VGG19_pretrained(patches_blurred,reuse=False, scope=scope1)
-        with tf.variable_scope('UNet') as scope2:
-            net_regression,m1,m2,m3= Decoder_Network_classification(n, f0, f0_1, f1_2, f2_3 ,hrg,wrg, reuse = False, scope = scope2)
+        with tf.compat.v1.variable_scope('UNet') as scope2:
+            net_regression,m1,m2,m3= Decoder_Network_classification(n.outputs, f0.outputs, f0_1.outputs, f1_2.outputs,
+                                                                    f2_3.outputs,hrg,wrg,reuse = False, scope = scope2)
 
     ### DEFINE LOSS ###
     loss1 = tl.cost.cross_entropy((net_regression.outputs),  tf.squeeze( classification_map), name='loss1')
-    loss2 = tl.cost.cross_entropy((m1.outputs),   tf.squeeze( tf.image.resize_images(classification_map, [128,128],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name ='loss2')
-    loss3 = tl.cost.cross_entropy((m2.outputs),   tf.squeeze( tf.image.resize_images(classification_map, [64,64],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR) ),name='loss3')
-    loss4 = tl.cost.cross_entropy((m3.outputs), tf.squeeze( tf.image.resize_images(classification_map, [32,32],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name='loss4')
+    loss2 = tl.cost.cross_entropy((m1.outputs),   tf.squeeze( tf.image.resize(classification_map, [128,128],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name ='loss2')
+    loss3 = tl.cost.cross_entropy((m2.outputs),   tf.squeeze( tf.image.resize(classification_map, [64,64],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR) ),name='loss3')
+    loss4 = tl.cost.cross_entropy((m3.outputs), tf.squeeze( tf.image.resize(classification_map, [32,32],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name='loss4')
     out =(net_regression.outputs)
     loss = loss1 + loss2 + loss3 +loss4
 
-    with tf.variable_scope('learning_rate'):
+    with tf.compat.v1.variable_scope('learning_rate'):
         lr_v = tf.Variable(lr_init, trainable = False)
 
     ### DEFINE OPTIMIZER ###
@@ -225,26 +227,27 @@ def train_with_CUHK():
     a_vars = tl.layers.get_variables_with_name('Unified', False, True)  #
     var_list1 = vgg_vars
     var_list2 = t_vars
-    opt1 = tf.train.AdamOptimizer(lr_v)# *0.1*0.1
-    opt2 = tf.train.AdamOptimizer(lr_v*0.1)
-    grads = tf.gradients(loss, var_list1 + var_list2)
+    opt1 = tf.compat.v1.train.AdamOptimizer(lr_v)# *0.1*0.1
+    opt2 = tf.compat.v1.train.AdamOptimizer(lr_v*0.1)
+    grads = tf.gradients(ys=loss, xs=var_list1 + var_list2)
     grads1 = grads[:len(var_list1)]
     grads2 = grads[len(var_list1):]
     train_op1 = opt1.apply_gradients(zip(grads1, var_list1))
     train_op2 = opt2.apply_gradients(zip(grads2, var_list2))
     train_op = tf.group(train_op1, train_op2)
     # gpu alocation
-    configTf = tf.ConfigProto(allow_soft_placement = True, log_device_placement = False)
+    configTf = tf.compat.v1.ConfigProto(allow_soft_placement = True, log_device_placement = False)
     configTf.gpu_options.allow_growth = True
-    sess = tf.Session(config=configTf)
+    sess = tf.compat.v1.Session(config=configTf)
     print("initializing global variable...")
+    #sess.run(tf.global_variables_initializer())
     tl.layers.initialize_global_variables(sess)
     print("initializing global variable...DONE")
 
     ### LOAD VGG ###
-    vgg19_npy_path = "largeFiles/vgg19.npy"
+    vgg19_npy_path = "vgg19.npy"
     if not os.path.isfile(vgg19_npy_path):
-        print("Please download vgg19.npz from : https://github.com/machrisaa/tensorflow-vgg")
+        print("Please download vgg19.npy from : https://github.com/machrisaa/tensorflow-vgg")
         exit()
     npz = np.load(vgg19_npy_path, encoding='latin1',allow_pickle=True).item()
     #
@@ -258,10 +261,11 @@ def train_with_CUHK():
             params.extend([W, b])
         count_layers += 1
 
-    tl.files.assign_params(sess, params, n)
+    #tl.files.assign_params(sess, params, n)
+    sess.run(tl.files.assign_weights(params, n))
 
     ### START TRAINING ###
-    sess.run(tf.assign(lr_v, lr_init))
+    sess.run(tf.compat.v1.assign(lr_v, lr_init))
     global_step = 0
     new_lr_decay=1
     for epoch in range(0, n_epoch + 1):
@@ -269,11 +273,11 @@ def train_with_CUHK():
         if epoch !=0 and (epoch % decay_every == 0):
             new_lr_decay = lr_decay ** (epoch // decay_every)
             #new_lr_decay = new_lr_decay * lr_decay
-            sess.run(tf.assign(lr_v, lr_init * new_lr_decay))
+            sess.run(tf.compat.v1.assign(lr_v, lr_init * new_lr_decay))
             # log = " ** new learning rate: %f" % (lr_init * new_lr_decay)
             # print(log)
         elif epoch == 0:
-            sess.run(tf.assign(lr_v, lr_init))
+            sess.run(tf.compat.v1.assign(lr_v, lr_init))
             # log = " ** init lr: %f  decay_every_init: %d, lr_decay: %f" % (lr_init, decay_every, lr_decay)
             # print(log)
 
@@ -325,6 +329,9 @@ def train_with_CUHK():
             #     scipy.misc.imsave(save_dir_sample + '/im1.png', outmap2)
             #     scipy.misc.imsave(save_dir_sample + '/im2.png', outmap3)
             # https://matthew-brett.github.io/teaching/string_formatting.html
+            print(
+                "Epoch [%2d/%2d] %4d time: %4.4fs, err: %.6f, loss1: %.6f,loss2: %.6f,loss3: %.6f,loss4: %.6f" % (
+                epoch, n_epoch, n_iter, time.time() - step_time, err, l1, l2, l3, l4))
             metrics_file.write("Epoch [%2d/%2d] %4d time: %4.4fs, err: %.6f, loss1: %.6f,loss2: %.6f,loss3: %.6f,loss4: %.6f" % (epoch, n_epoch, n_iter, time.time() - step_time, err,l1,l2,l3,l4))
             total_loss += err
             n_iter += 1
@@ -425,28 +432,28 @@ def train_with_synthetic():
     print(len(train_blur_imgs), len(train_mask_imgs))
 
     ### DEFINE MODEL ###
-    patches_blurred = tf.placeholder('float32', [batch_size, h, w, 3], name = 'input_patches')
-    labels_sigma = tf.placeholder('float32', [batch_size,h,w, 1], name = 'lables')
-    classification_map= tf.placeholder('int32', [batch_size, h, w,1], name='labels')
+    patches_blurred = tf.compat.v1.placeholder('float32', [batch_size, h, w, 3], name = 'input_patches')
+    labels_sigma = tf.compat.v1.placeholder('float32', [batch_size,h,w, 1], name = 'lables')
+    classification_map= tf.compat.v1.placeholder('int32', [batch_size, h, w,1], name='labels')
     #class_map = tf.placeholder('int32', [batch_size, h, w], name='classes')
     #attention_edge = tf.placeholder('float32', [batch_size, h, w, 1], name='attention')
-    with tf.variable_scope('Unified'):
-        with tf.variable_scope('VGG') as scope1:
+    with tf.compat.v1.variable_scope('Unified'):
+        with tf.compat.v1.variable_scope('VGG') as scope1:
             n, f0, f0_1, f1_2, f2_3 ,hrg,wrg= VGG19_pretrained(patches_blurred,reuse=False, scope=scope1)
-        with tf.variable_scope('UNet') as scope2:
+        with tf.compat.v1.variable_scope('UNet') as scope2:
             net_regression,m1,m2,m3= Decoder_Network_classification(n, f0, f0_1, f1_2, f2_3 ,hrg,wrg, reuse = False, scope = scope2)
 
     ### DEFINE LOSS ###
     loss1 = tl.cost.cross_entropy((net_regression.outputs),  tf.squeeze( classification_map), name='loss1')
-    loss2 = tl.cost.cross_entropy((m1.outputs),   tf.squeeze( tf.image.resize_images(classification_map, [128,128],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name ='loss2')
-    loss3 = tl.cost.cross_entropy((m2.outputs),   tf.squeeze( tf.image.resize_images(classification_map, [64,64],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR) ),name='loss3')
-    loss4 = tl.cost.cross_entropy((m3.outputs), tf.squeeze( tf.image.resize_images(classification_map, [32,32],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name='loss4')
+    loss2 = tl.cost.cross_entropy((m1.outputs),   tf.squeeze( tf.image.resize(classification_map, [128,128],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name ='loss2')
+    loss3 = tl.cost.cross_entropy((m2.outputs),   tf.squeeze( tf.image.resize(classification_map, [64,64],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR) ),name='loss3')
+    loss4 = tl.cost.cross_entropy((m3.outputs), tf.squeeze( tf.image.resize(classification_map, [32,32],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name='loss4')
     out =(net_regression.outputs)
     loss = loss1 + loss2 +loss3 +loss4 
 
     #loss = tf.reduce_mean(tf.abs((net_regression.outputs + 1) - labels_sigma))
 
-    with tf.variable_scope('learning_rate'):
+    with tf.compat.v1.variable_scope('learning_rate'):
         lr_v = tf.Variable(lr_init, trainable = False)
 
     ### DEFINE OPTIMIZER ###
@@ -455,16 +462,16 @@ def train_with_synthetic():
     a_vars = tl.layers.get_variables_with_name('Unified', False, True)  #
     var_list1 = vgg_vars
     var_list2 = t_vars
-    opt1 = tf.train.AdamOptimizer(lr_v*0.1*0.1)
-    opt2 = tf.train.AdamOptimizer(lr_v*0.1)
-    grads = tf.gradients(loss, var_list1 + var_list2)
+    opt1 = tf.compat.v1.train.AdamOptimizer(lr_v*0.1*0.1)
+    opt2 = tf.compat.v1.train.AdamOptimizer(lr_v*0.1)
+    grads = tf.gradients(ys=loss, xs=var_list1 + var_list2)
     grads1 = grads[:len(var_list1)]
     grads2 = grads[len(var_list1):]
     train_op1 = opt1.apply_gradients(zip(grads1, var_list1))
     train_op2 = opt2.apply_gradients(zip(grads2, var_list2))
     train_op = tf.group(train_op1, train_op2)
 
-    sess = tf.Session(config=tf.ConfigProto(allow_soft_placement = True, log_device_placement = False,
+    sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement = True, log_device_placement = False,
                                             allow_growth = True))
     print("initializing global variable...")
     tl.layers.initialize_global_variables(sess)
@@ -475,7 +482,7 @@ def train_with_synthetic():
     tl.files.load_ckpt(sess=sess, mode_name='SA_net_PG_CUHK.ckpt', save_dir=checkpoint_dir, var_list=a_vars, is_latest=True)
 
     ### START TRAINING ###
-    sess.run(tf.assign(lr_v, lr_init))
+    sess.run(tf.compat.v1.assign(lr_v, lr_init))
     global_step = 0
     new_lr_decay=1
     prev_train_blur_imgs =train_blur_imgs
@@ -485,11 +492,11 @@ def train_with_synthetic():
         if epoch !=0 and (epoch % decay_every == 0):
             new_lr_decay = lr_decay ** (epoch // decay_every)
             #new_lr_decay = new_lr_decay * lr_decay
-            sess.run(tf.assign(lr_v, lr_init * new_lr_decay))
+            sess.run(tf.compat.v1.assign(lr_v, lr_init * new_lr_decay))
             # log = " ** new learning rate: %f" % (lr_init * new_lr_decay)
             # print(log)
         elif epoch == 0:
-            sess.run(tf.assign(lr_v, lr_init))
+            sess.run(tf.compat.v1.assign(lr_v, lr_init))
             # log = " ** init lr: %f  decay_every_init: %d, lr_decay: %f" % (lr_init, decay_every, lr_decay)
             # print(log)
 

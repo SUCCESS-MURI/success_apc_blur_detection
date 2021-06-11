@@ -130,3 +130,7 @@ dmypy.json
 
 # ide PyCharm
 .idea/
+
+*.npy
+test_checkpoint/
+report.txt
