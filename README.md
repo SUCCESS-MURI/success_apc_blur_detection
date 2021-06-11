@@ -1,3 +1,6 @@
+## NEED TO UPDATE THIS 
+previous project's readme 
+
 # deep_blur_detection_and_classification
 
 Tensorflow implementation of "Defocus and Motion Blur Detection with Deep Contextual Features"
