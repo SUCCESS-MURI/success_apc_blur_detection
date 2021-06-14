@@ -48,7 +48,7 @@ def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
 
 def blurmap_3classes(index):
     print("Blurmap Generation")
-    
+
     date = datetime.datetime.now().strftime("%y.%m.%d")
     save_dir_sample = 'output_origonalResultswithnewDatasetwith256image'
     tl.files.exists_or_mkdir(save_dir_sample)
@@ -71,7 +71,7 @@ def blurmap_3classes(index):
                 sharp_image.load()
 
                 sharp_image = np.asarray(sharp_image, dtype="float32")
-               
+
                 if(len(sharp_image.shape)<3):
                     sharp_image= np.expand_dims(np.asarray(sharp_image), 3)
                     sharp_image=np.concatenate([sharp_image, sharp_image, sharp_image],axis=2)
@@ -106,7 +106,7 @@ def blurmap_3classes(index):
 
                     with tf.compat.v1.variable_scope('UNet') as scope1:
                         output,m1,m2,m3= Decoder_Network_classification(n, f0, f0_1, f1_2, f2_3 ,hrg,wrg, reuse = reuse, scope = scope1)
-                   
+
                     output_map = tf.nn.softmax(output.outputs)
                     output_map1 = tf.nn.softmax(m1.outputs)
                     output_map2 = tf.nn.softmax(m2.outputs)
@@ -188,12 +188,12 @@ def train_with_CUHK():
         if(index<236):
             tmp_class = img
             tmp_classification = np.concatenate((img,img,img),axis = 2)
-            tmp_class[np.where(tmp_classification[:,:,0]==0)] =0 #sharp 
+            tmp_class[np.where(tmp_classification[:,:,0]==0)] =0 #sharp
             tmp_class[np.where(tmp_classification[:,:,0]>0)] =1 #defocus blur
         else:
             tmp_class = img
             tmp_classification = np.concatenate((img, img, img), axis=2)
-            tmp_class[np.where(tmp_classification[:,:,0]==0)] =0 #sharp 
+            tmp_class[np.where(tmp_classification[:,:,0]==0)] =0 #sharp
             tmp_class[np.where(tmp_classification[:,:,0]>0)] =2 #defocus blur
 
         train_classification_mask.append(tmp_class)
@@ -242,10 +242,13 @@ def train_with_CUHK():
     configTf = tf.compat.v1.ConfigProto(allow_soft_placement = True, log_device_placement = False)
     configTf.gpu_options.allow_growth = True
     sess = tf.compat.v1.Session(config=configTf)
+
     print("initializing global variable...")
     #sess.run(tf.global_variables_initializer())
     tl.layers.initialize_global_variables(sess)
     print("initializing global variable...DONE")
+    # logs_path = "./logs/visualize_graph"
+    #train_writer = tf.compat.v1.summary.FileWriter(logs_path, sess.graph)
 
     ### LOAD VGG ###
     vgg19_npy_path = "vgg19.npy"
@@ -318,7 +321,7 @@ def train_with_CUHK():
             elif (augmentation==1):
                 images_and_score = tl.prepro.threading_data([_ for _ in zip(train_blur_imgs[idx: idx + new_batch_size],
                        train_classification_mask[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn_aug)
-                
+
             #print images_and_score.shape
             imlist, clist= images_and_score.transpose((1,0,2,3,4))
             #print clist.shape
@@ -327,7 +330,7 @@ def train_with_CUHK():
             clist = np.expand_dims(clist, axis=3)
 
             #print imlist.shape, clist.shape
-            err,l1,l2,l3,l4, _ ,outmap= sess.run([loss,loss1,loss2,loss3,loss4, train_op,out], {patches_blurred: imlist,
+            err,l1,l2,l3,l4, _ ,outmap= sess.run([loss,loss1,loss2,loss3,loss4, train_op, out], {patches_blurred: imlist,
                                                                                         classification_map: clist})
 
             # outmap1 = np.squeeze(outmap[1,:,:,0])
@@ -368,7 +371,7 @@ def train_with_synthetic():
 
     save_dir_sample = "samples/{}".format(tl.global_flag['mode'])
     tl.files.exists_or_mkdir(save_dir_sample)
-    input_path = config.TRAIN.synthetic_blur_path  
+    input_path = config.TRAIN.synthetic_blur_path
     train_blur_img_list = sorted(tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(jpg|JPG)',
                                                          printable=False))
     train_mask_img_list=[]
@@ -391,18 +394,18 @@ def train_with_synthetic():
     #print train_mask_imgs
     #img_n = 0
     for img in train_mask_imgs:
-        
+
         tmp_class = img
         tmp_classification = np.concatenate((img,img,img),axis = 2)
 
-        tmp_class[np.where(tmp_classification[:,:,0]==0)] =0 #sharp 
+        tmp_class[np.where(tmp_classification[:,:,0]==0)] =0 #sharp
         tmp_class[np.where(tmp_classification[:,:,0]==100)] =1 #motion blur
         tmp_class[np.where(tmp_classification[:,:,0]==200)] =2 #defocus blur
-    
+
         train_classification_mask.append(tmp_class)
         index =index +1
 
-    input_path2 = config.TRAIN.CUHK_blur_path  
+    input_path2 = config.TRAIN.CUHK_blur_path
     ori_train_blur_img_list = sorted(tl.files.load_file_list(path=input_path2, regx='(out_of_focus|motion).*.(jpg|JPG)',
                                                              printable=False))
     ori_train_mask_img_list=[]
@@ -429,12 +432,12 @@ def train_with_synthetic():
             tmp_class = img
             tmp_classification   = np.concatenate((img,img,img),axis = 2)
 
-            tmp_class[np.where(tmp_classification[:,:,0]==0)] =0 #sharp 
+            tmp_class[np.where(tmp_classification[:,:,0]==0)] =0 #sharp
             tmp_class[np.where(tmp_classification[:,:,0]>0)] =1 #defocus blur
         else:
             tmp_class = img
             tmp_classification = np.concatenate((img, img, img), axis=2)
-            tmp_class[np.where(tmp_classification[:,:,0]==0)] =0 #sharp 
+            tmp_class[np.where(tmp_classification[:,:,0]==0)] =0 #sharp
             tmp_class[np.where(tmp_classification[:,:,0]>0)] =2 #defocus blur
 
         ori_train_classification_mask.append(tmp_class)
@@ -468,7 +471,7 @@ def train_with_synthetic():
     loss4 = tl.cost.cross_entropy((m3.outputs), tf.squeeze( tf.image.resize(classification_map, [32,32],
                                                     method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name='loss4')
     out =(net_regression.outputs)
-    loss = loss1 + loss2 +loss3 +loss4 
+    loss = loss1 + loss2 +loss3 +loss4
 
     #loss = tf.reduce_mean(tf.abs((net_regression.outputs + 1) - labels_sigma))
 
@@ -535,7 +538,7 @@ def train_with_synthetic():
         np.random.shuffle(suffle_index)
         #print(len(train_blur_imgs))
         #print suffle_index
-        
+
         train_blur_imgs = []
         train_classification_mask =[]
         for i in range(0,len(suffle_index),1):
@@ -553,7 +556,7 @@ def train_with_synthetic():
             elif (augmentation==1):
                 images_and_score = tl.prepro.threading_data([_ for _ in zip(train_blur_imgs[idx: idx + new_batch_size],
                     train_classification_mask[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn_aug)
-                
+
             #print images_and_score.shape
             imlist, clist= images_and_score.transpose((1,0,2,3,4))
             #print clist.shape
@@ -617,6 +620,6 @@ if __name__ == '__main__':
     if tl.global_flag['is_train']:
         train_with_CUHK()
         #train_with_synthetic() # train with the CUHK dataset first and then finetune with the synthetic dataset
-    else:       
+    else:
         blurmap_3classes(args.index) #pg test
-       
+
