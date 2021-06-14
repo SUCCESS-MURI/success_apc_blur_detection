@@ -4,7 +4,6 @@ import argparse
 import os
 import random
 import shutil
-
 import numpy as np
 num_of_motion = 60
 num_of_defocus = 140
@@ -50,7 +49,7 @@ def split_dataset(args):
             shutil.move(input_gt_file_path + "/"+gt, output_training_gt_path + "/"+gt)
 
 def split_dataset_using_list(args):
-    test_list_file = '/home/mary/code/deep_blur_detection_and_classification/dataset/test_list.txt'
+    test_list_file = '/dataset/test_list.txt'
     # now create folders for correct data vs incorectly labeled data
     path_for_training = os.path.join(args.file_output_path, "Training")
     path_for_testing = os.path.join(args.file_output_path, "Testing")

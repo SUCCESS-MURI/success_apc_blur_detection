@@ -152,6 +152,7 @@ def blurmap_3classes(index):
         i = i + 1
     return 0
 
+# training with the original CHUK images
 def train_with_CUHK():
     checkpoint_dir ="test_checkpoint/{}".format(tl.global_flag['mode'])  # checkpoint_resize_conv
     tl.files.exists_or_mkdir(checkpoint_dir)
@@ -160,12 +161,9 @@ def train_with_CUHK():
     save_dir_sample = "samples/{}".format(tl.global_flag['mode'])
     tl.files.exists_or_mkdir(save_dir_sample)
     input_path = config.TRAIN.CUHK_blur_path  #for comparison with neurocomputing
-    train_blur_img_list = sorted(tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(jpg|JPG)', printable=False))
+    train_blur_img_list = sorted(tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(jpg|JPG)',
+                                                         printable=False))
     train_mask_img_list=[]
-
-    # https://www.geeksforgeeks.org/reading-writing-text-files-python/
-    #sys.stdout = open(checkpoint_dir+"/training_CHUK_metrics.log", "wt")
-    #metrics_file = open(checkpoint_dir+"/training_CHUK_metrics.log", "wt")
 
     for str in train_blur_img_list:
         if ".jpg" in str:
@@ -214,9 +212,12 @@ def train_with_CUHK():
 
     ### DEFINE LOSS ###
     loss1 = tl.cost.cross_entropy((net_regression.outputs),  tf.squeeze( classification_map), name='loss1')
-    loss2 = tl.cost.cross_entropy((m1.outputs),   tf.squeeze( tf.image.resize(classification_map, [128,128],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name ='loss2')
-    loss3 = tl.cost.cross_entropy((m2.outputs),   tf.squeeze( tf.image.resize(classification_map, [64,64],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR) ),name='loss3')
-    loss4 = tl.cost.cross_entropy((m3.outputs), tf.squeeze( tf.image.resize(classification_map, [32,32],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name='loss4')
+    loss2 = tl.cost.cross_entropy((m1.outputs), tf.squeeze( tf.image.resize(classification_map, [int(h/2), int(w/2)],
+                                                    method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name ='loss2')
+    loss3 = tl.cost.cross_entropy((m2.outputs), tf.squeeze( tf.image.resize(classification_map, [int(h/4), int(w/4)],
+                                                    method = tf.image.ResizeMethod.NEAREST_NEIGHBOR) ),name='loss3')
+    loss4 = tl.cost.cross_entropy((m3.outputs), tf.squeeze( tf.image.resize(classification_map, [int(h/8), int(w/8)],
+                                                    method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name='loss4')
     out =(net_regression.outputs)
     loss = loss1 + loss2 + loss3 +loss4
 
@@ -276,12 +277,18 @@ def train_with_CUHK():
             new_lr_decay = lr_decay ** (epoch // decay_every)
             #new_lr_decay = new_lr_decay * lr_decay
             sess.run(tf.compat.v1.assign(lr_v, lr_init * new_lr_decay))
-            # log = " ** new learning rate: %f" % (lr_init * new_lr_decay)
+            log = " ** new learning rate: %f" % (lr_init * new_lr_decay)
             # print(log)
+            with open(checkpoint_dir + "/training_CHUK_metrics.log", "a") as f:
+                # perform file operations
+                f.write(log)
         elif epoch == 0:
             sess.run(tf.compat.v1.assign(lr_v, lr_init))
-            # log = " ** init lr: %f  decay_every_init: %d, lr_decay: %f" % (lr_init, decay_every, lr_decay)
+            log = " ** init lr: %f  decay_every_init: %d, lr_decay: %f" % (lr_init, decay_every, lr_decay)
             # print(log)
+            with open(checkpoint_dir + "/training_CHUK_metrics.log", "a") as f:
+                # perform file operations
+                f.write(log)
 
         epoch_time = time.time()
         total_loss, n_iter = 0, 0
@@ -306,9 +313,11 @@ def train_with_CUHK():
             augmentation_list = [0,1]
             augmentation= random.choice(augmentation_list)
             if(augmentation ==0):
-                images_and_score = tl.prepro.threading_data([_ for _ in zip(train_blur_imgs[idx: idx + new_batch_size],train_classification_mask[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn)                
+                images_and_score = tl.prepro.threading_data([_ for _ in zip(train_blur_imgs[idx: idx + new_batch_size],
+                           train_classification_mask[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn)
             elif (augmentation==1):
-                images_and_score = tl.prepro.threading_data([_ for _ in zip(train_blur_imgs[idx: idx + new_batch_size],train_classification_mask[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn_aug)
+                images_and_score = tl.prepro.threading_data([_ for _ in zip(train_blur_imgs[idx: idx + new_batch_size],
+                       train_classification_mask[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn_aug)
                 
             #print images_and_score.shape
             imlist, clist= images_and_score.transpose((1,0,2,3,4))
@@ -318,7 +327,8 @@ def train_with_CUHK():
             clist = np.expand_dims(clist, axis=3)
 
             #print imlist.shape, clist.shape
-            err,l1,l2,l3,l4, _ ,outmap= sess.run([loss,loss1,loss2,loss3,loss4, train_op,out], {patches_blurred: imlist, classification_map: clist})
+            err,l1,l2,l3,l4, _ ,outmap= sess.run([loss,loss1,loss2,loss3,loss4, train_op,out], {patches_blurred: imlist,
+                                                                                        classification_map: clist})
 
             # outmap1 = np.squeeze(outmap[1,:,:,0])
             # outmap2 = np.squeeze(outmap[1, :, :, 1])
@@ -334,21 +344,22 @@ def train_with_CUHK():
             #print(
            #     "Epoch [%2d/%2d] %4d time: %4.4fs, err: %.6f, loss1: %.6f,loss2: %.6f,loss3: %.6f,loss4: %.6f" % (
            #     epoch, n_epoch, n_iter, time.time() - step_time, err, l1, l2, l3, l4))
-           # metrics_file.write("Epoch [%2d/%2d] %4d time: %4.4fs, err: %.6f, loss1: %.6f,loss2: %.6f,loss3: %.6f,loss4: %.6f" % (epoch, n_epoch, n_iter, time.time() - step_time, err,l1,l2,l3,l4))
+           # metrics_file.write("Epoch [%2d/%2d] %4d time: %4.4fs, err: %.6f, loss1: %.6f,loss2: %.6f,loss3: %.6f,loss4:
+            # %.6f" % (epoch, n_epoch, n_iter, time.time() - step_time, err,l1,l2,l3,l4))
             total_loss += err
             n_iter += 1
             global_step += 1
 
-        log = "[*] Epoch: [%2d/%2d] time: %4.4fs, total_err: %.8f \n" % (epoch, n_epoch, time.time() - epoch_time, total_loss/n_iter)
-        #metrics_file.write(log)
+        log = "[*] Epoch: [%2d/%2d] time: %4.4fs, total_err: %.8f \n" % (epoch, n_epoch, time.time() - epoch_time,
+                                                                         total_loss/n_iter)
+        #only way to write to log file while running
         with open(checkpoint_dir+"/training_CHUK_metrics.log", "a") as f:
             # perform file operations
             f.write(log)
         ## save model
         if epoch % 200 == 0:
-            tl.files.save_ckpt(sess=sess,mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']), save_dir = checkpoint_dir, var_list = a_vars, global_step = global_step, printable = False)
-    # close text file
-    #metrics_file.close()
+            tl.files.save_ckpt(sess=sess,mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
+                            save_dir = checkpoint_dir, var_list = a_vars, global_step = global_step, printable = False)
 
 def train_with_synthetic():
     checkpoint_dir ="test_checkpoint/{}".format(tl.global_flag['mode'])  # checkpoint_resize_conv
@@ -358,13 +369,11 @@ def train_with_synthetic():
     save_dir_sample = "samples/{}".format(tl.global_flag['mode'])
     tl.files.exists_or_mkdir(save_dir_sample)
     input_path = config.TRAIN.synthetic_blur_path  
-    train_blur_img_list = sorted(tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(jpg|JPG)', printable=False))
+    train_blur_img_list = sorted(tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(jpg|JPG)',
+                                                         printable=False))
     train_mask_img_list=[]
-    # https://www.geeksforgeeks.org/reading-writing-text-files-python/
-    metrics_file = open(checkpoint_dir + "/training_Synthetic_data.txt", "w")
 
     for str in train_blur_img_list:
-
         if ".jpg" in str:
             train_mask_img_list.append(str.replace(".jpg",".png"))
         else:
@@ -394,7 +403,8 @@ def train_with_synthetic():
         index =index +1
 
     input_path2 = config.TRAIN.CUHK_blur_path  
-    ori_train_blur_img_list = sorted(tl.files.load_file_list(path=input_path2, regx='(out_of_focus|motion).*.(jpg|JPG)', printable=False))
+    ori_train_blur_img_list = sorted(tl.files.load_file_list(path=input_path2, regx='(out_of_focus|motion).*.(jpg|JPG)',
+                                                             printable=False))
     ori_train_mask_img_list=[]
 
     for str in ori_train_blur_img_list:
@@ -446,13 +456,17 @@ def train_with_synthetic():
         with tf.compat.v1.variable_scope('VGG') as scope1:
             n, f0, f0_1, f1_2, f2_3 ,hrg,wrg= VGG19_pretrained(patches_blurred,reuse=False, scope=scope1)
         with tf.compat.v1.variable_scope('UNet') as scope2:
-            net_regression,m1,m2,m3= Decoder_Network_classification(n, f0, f0_1, f1_2, f2_3 ,hrg,wrg, reuse = False, scope = scope2)
+            net_regression,m1,m2,m3= Decoder_Network_classification(n, f0, f0_1, f1_2, f2_3 ,hrg,wrg, reuse = False,
+                                                                    scope = scope2)
 
     ### DEFINE LOSS ###
     loss1 = tl.cost.cross_entropy((net_regression.outputs),  tf.squeeze( classification_map), name='loss1')
-    loss2 = tl.cost.cross_entropy((m1.outputs),   tf.squeeze( tf.image.resize(classification_map, [128,128],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name ='loss2')
-    loss3 = tl.cost.cross_entropy((m2.outputs),   tf.squeeze( tf.image.resize(classification_map, [64,64],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR) ),name='loss3')
-    loss4 = tl.cost.cross_entropy((m3.outputs), tf.squeeze( tf.image.resize(classification_map, [32,32],method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name='loss4')
+    loss2 = tl.cost.cross_entropy((m1.outputs),   tf.squeeze( tf.image.resize(classification_map, [128,128],
+                                                    method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name ='loss2')
+    loss3 = tl.cost.cross_entropy((m2.outputs),   tf.squeeze( tf.image.resize(classification_map, [64,64],
+                                                    method = tf.image.ResizeMethod.NEAREST_NEIGHBOR) ),name='loss3')
+    loss4 = tl.cost.cross_entropy((m3.outputs), tf.squeeze( tf.image.resize(classification_map, [32,32],
+                                                    method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name='loss4')
     out =(net_regression.outputs)
     loss = loss1 + loss2 +loss3 +loss4 
 
@@ -467,7 +481,7 @@ def train_with_synthetic():
     a_vars = tl.layers.get_variables_with_name('Unified', False, True)  #
     var_list1 = vgg_vars
     var_list2 = t_vars
-    opt1 = tf.compat.v1.train.AdamOptimizer(lr_v*0.1*0.1)
+    opt1 = tf.compat.v1.train.AdamOptimizer(lr_v)#*0.1*0.1
     opt2 = tf.compat.v1.train.AdamOptimizer(lr_v*0.1)
     grads = tf.gradients(ys=loss, xs=var_list1 + var_list2)
     grads1 = grads[:len(var_list1)]
@@ -484,12 +498,13 @@ def train_with_synthetic():
 
     ### initial checkpoint ###
     #checkpoint_dir2 = "test_checkpoint/PG_CUHK/"
-    tl.files.load_ckpt(sess=sess, mode_name='SA_net_PG_CUHK.ckpt', save_dir=checkpoint_dir, var_list=a_vars, is_latest=True)
+    # TODO figure out if this works
+    tl.files.load_ckpt(sess=sess, mode_name='SA_net_PG_CUHK.ckpt', save_dir=checkpoint_dir, var_list=a_vars,
+                       is_latest=True)
 
     ### START TRAINING ###
     sess.run(tf.compat.v1.assign(lr_v, lr_init))
     global_step = 0
-    new_lr_decay=1
     prev_train_blur_imgs =train_blur_imgs
     prev_train_classification_mask =train_mask_imgs
     for epoch in range(0, n_epoch + 1):
@@ -498,12 +513,18 @@ def train_with_synthetic():
             new_lr_decay = lr_decay ** (epoch // decay_every)
             #new_lr_decay = new_lr_decay * lr_decay
             sess.run(tf.compat.v1.assign(lr_v, lr_init * new_lr_decay))
-            # log = " ** new learning rate: %f" % (lr_init * new_lr_decay)
+            log = " ** new learning rate: %f" % (lr_init * new_lr_decay)
             # print(log)
+            with open(checkpoint_dir + "/training_synthetic_metrics.log", "a") as f:
+                # perform file operations
+                f.write(log)
         elif epoch == 0:
             sess.run(tf.compat.v1.assign(lr_v, lr_init))
-            # log = " ** init lr: %f  decay_every_init: %d, lr_decay: %f" % (lr_init, decay_every, lr_decay)
+            log = " ** init lr: %f  decay_every_init: %d, lr_decay: %f" % (lr_init, decay_every, lr_decay)
             # print(log)
+            with open(checkpoint_dir + "/training_synthetic_metrics.log", "a") as f:
+                # perform file operations
+                f.write(log)
 
         epoch_time = time.time()
         total_loss, n_iter = 0, 0
@@ -527,9 +548,11 @@ def train_with_synthetic():
             augmentation_list = [0,1]
             augmentation= random.choice(augmentation_list)
             if(augmentation ==0):
-                images_and_score = tl.prepro.threading_data([_ for _ in zip(train_blur_imgs[idx: idx + new_batch_size],train_classification_mask[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn)                
+                images_and_score = tl.prepro.threading_data([_ for _ in zip(train_blur_imgs[idx: idx + new_batch_size],
+                        train_classification_mask[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn)
             elif (augmentation==1):
-                images_and_score = tl.prepro.threading_data([_ for _ in zip(train_blur_imgs[idx: idx + new_batch_size],train_classification_mask[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn_aug)
+                images_and_score = tl.prepro.threading_data([_ for _ in zip(train_blur_imgs[idx: idx + new_batch_size],
+                    train_classification_mask[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn_aug)
                 
             #print images_and_score.shape
             imlist, clist= images_and_score.transpose((1,0,2,3,4))
@@ -539,7 +562,8 @@ def train_with_synthetic():
             clist = np.expand_dims(clist, axis=3)
 
             #print imlist.shape, clist.shape
-            err,l1,l2,l3,l4, _ ,outmap= sess.run([loss,loss1,loss2,loss3,loss4, train_op,out], {patches_blurred: imlist, classification_map: clist})
+            err,l1,l2,l3,l4, _ ,outmap= sess.run([loss,loss1,loss2,loss3,loss4, train_op,out], {patches_blurred: imlist,
+                                                                                            classification_map: clist})
 
             # outmap1 = np.squeeze(outmap[1,:,:,0])
             # outmap2 = np.squeeze(outmap[1, :, :, 1])
@@ -552,19 +576,22 @@ def train_with_synthetic():
             #     scipy.misc.imsave(save_dir_sample + '/im1.png', outmap2)
             #     scipy.misc.imsave(save_dir_sample + '/im2.png', outmap3)
 
-            metrics_file.write("Epoch [%2d/%2d] %4d time: %4.4fs, err: %.6f, loss1: %.6f,loss2: %.6f,loss3: %.6f,loss4: %.6f" % (epoch, n_epoch, n_iter, time.time() - step_time, err,l1,l2,l3,l4))
+            #metrics_file.write("Epoch [%2d/%2d] %4d time: %4.4fs, err: %.6f, loss1: %.6f,loss2: %.6f,loss3:
+            # %.6f,loss4: %.6f" % (epoch, n_epoch, n_iter, time.time() - step_time, err,l1,l2,l3,l4))
             total_loss += err
             n_iter += 1
             global_step += 1
 
         log = "[*] Epoch: [%2d/%2d] time: %4.4fs, total_err: %.8f" % (epoch, n_epoch, time.time() - epoch_time, total_loss/n_iter)
-        metrics_file.write(log)
+        # only way to write to log file while running
+        with open(checkpoint_dir + "/training_synthetic_metrics.log", "a") as f:
+            # perform file operations
+            f.write(log)
 
         ## save model
         if epoch % 10== 0:
-            tl.files.save_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']), save_dir = checkpoint_dir, var_list = a_vars, global_step = global_step, printable = False)
-    # close text file
-    metrics_file.close()
+            tl.files.save_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
+                            save_dir = checkpoint_dir, var_list = a_vars, global_step = global_step, printable = False)
 
 # https://intellipaat.com/community/4920/parsing-boolean-values-with-argparse
 def t_or_f(arg):
