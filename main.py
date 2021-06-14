@@ -15,6 +15,7 @@ import cv2
 import argparse
 import os
 tf.compat.v1.disable_eager_execution()
+import sys
 
 batch_size = config.TRAIN.batch_size
 #batch_size = 78
@@ -163,7 +164,8 @@ def train_with_CUHK():
     train_mask_img_list=[]
 
     # https://www.geeksforgeeks.org/reading-writing-text-files-python/
-    metrics_file = open(checkpoint_dir+"/training_CHUK_metrics.txt", "w")
+    #sys.stdout = open(checkpoint_dir+"/training_CHUK_metrics.log", "wt")
+    #metrics_file = open(checkpoint_dir+"/training_CHUK_metrics.log", "wt")
 
     for str in train_blur_img_list:
         if ".jpg" in str:
@@ -329,21 +331,24 @@ def train_with_CUHK():
             #     scipy.misc.imsave(save_dir_sample + '/im1.png', outmap2)
             #     scipy.misc.imsave(save_dir_sample + '/im2.png', outmap3)
             # https://matthew-brett.github.io/teaching/string_formatting.html
-            print(
-                "Epoch [%2d/%2d] %4d time: %4.4fs, err: %.6f, loss1: %.6f,loss2: %.6f,loss3: %.6f,loss4: %.6f" % (
-                epoch, n_epoch, n_iter, time.time() - step_time, err, l1, l2, l3, l4))
-            metrics_file.write("Epoch [%2d/%2d] %4d time: %4.4fs, err: %.6f, loss1: %.6f,loss2: %.6f,loss3: %.6f,loss4: %.6f" % (epoch, n_epoch, n_iter, time.time() - step_time, err,l1,l2,l3,l4))
+            #print(
+           #     "Epoch [%2d/%2d] %4d time: %4.4fs, err: %.6f, loss1: %.6f,loss2: %.6f,loss3: %.6f,loss4: %.6f" % (
+           #     epoch, n_epoch, n_iter, time.time() - step_time, err, l1, l2, l3, l4))
+           # metrics_file.write("Epoch [%2d/%2d] %4d time: %4.4fs, err: %.6f, loss1: %.6f,loss2: %.6f,loss3: %.6f,loss4: %.6f" % (epoch, n_epoch, n_iter, time.time() - step_time, err,l1,l2,l3,l4))
             total_loss += err
             n_iter += 1
             global_step += 1
 
-        log = "[*] Epoch: [%2d/%2d] time: %4.4fs, total_err: %.8f" % (epoch, n_epoch, time.time() - epoch_time, total_loss/n_iter)
-        metrics_file.write(log)
+        log = "[*] Epoch: [%2d/%2d] time: %4.4fs, total_err: %.8f \n" % (epoch, n_epoch, time.time() - epoch_time, total_loss/n_iter)
+        #metrics_file.write(log)
+        with open(checkpoint_dir+"/training_CHUK_metrics.log", "a") as f:
+            # perform file operations
+            f.write(log)
         ## save model
         if epoch % 200 == 0:
-            tl.files.save_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']), save_dir = checkpoint_dir, var_list = a_vars, global_step = global_step, printable = False)
+            tl.files.save_ckpt(sess=sess,mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']), save_dir = checkpoint_dir, var_list = a_vars, global_step = global_step, printable = False)
     # close text file
-    metrics_file.close()
+    #metrics_file.close()
 
 def train_with_synthetic():
     checkpoint_dir ="test_checkpoint/{}".format(tl.global_flag['mode'])  # checkpoint_resize_conv
