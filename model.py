@@ -257,7 +257,7 @@ def VGG19_pretrained(t_image,reuse = False,scope="VGG"):
                          name='conv5_3')(network)
         n = Conv2d(n_filter=512, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME',
                    name='conv5_4')(network)
-        n = Model(inputs=net_in,outputs=n,name='encoder')
+        n = Model(inputs=net_in,outputs=n,name=scope)
 
     return n, f0, f0_1,f1_2,f2_3 ,hrg,wrg
 
@@ -449,7 +449,7 @@ def Decoder_Network_classification(ninput,f0,f1_2,f2_3,f3_4,hrg,wrg, reuse=False
         #n2 = n
 
         # n2 = InputLayer(tf.nn.sigmoid(n.outputs), name='sigmoid')
-        n = Model(inputs=ninput,outputs=n,name='decoder')
+        n = Model(inputs=ninput,outputs=n,name=scope)
 
     return n, n_m1, n_m2, n_m3
 '''

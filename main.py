@@ -225,11 +225,9 @@ def train_with_CUHK():
         lr_v = tf.Variable(lr_init, trainable = False)
 
     ### DEFINE OPTIMIZER ###
-    vgg_vars = tl.layers.get_variables_with_name('VGG', True, True)  # ?
-    t_vars = tl.layers.get_variables_with_name('UNet', True, True) #?
     a_vars = tl.layers.get_variables_with_name('Unified', False, True)  #
-    var_list1 = vgg_vars
-    var_list2 = t_vars
+    var_list1 = tl.layers.get_variables_with_name('VGG', True, True)  # ?
+    var_list2 = tl.layers.get_variables_with_name('UNet', True, True) #?
     opt1 = tf.compat.v1.train.AdamOptimizer(lr_v)# *0.1*0.1
     opt2 = tf.compat.v1.train.AdamOptimizer(lr_v*0.1)
     grads = tf.gradients(ys=loss, xs=var_list1 + var_list2)
@@ -364,6 +362,7 @@ def train_with_CUHK():
             tl.files.save_ckpt(sess=sess,mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
                             save_dir = checkpoint_dir, var_list = a_vars, global_step = global_step, printable = False)
 
+# train with synthetic images
 def train_with_synthetic():
     checkpoint_dir ="test_checkpoint/{}".format(tl.global_flag['mode'])  # checkpoint_resize_conv
     tl.files.exists_or_mkdir(checkpoint_dir)
@@ -386,8 +385,8 @@ def train_with_synthetic():
     gt_path =config.TRAIN.synthetic_gt_path
     print(train_mask_img_list)
 
-    train_blur_imgs = read_all_imgs(train_blur_img_list, path=input_path, n_threads=100 ,mode='RGB')
-    train_mask_imgs = read_all_imgs(train_mask_img_list, path=gt_path, n_threads=100,mode='GRAY_cv')
+    train_blur_imgs = read_all_imgs(train_blur_img_list, path=input_path, n_threads=100, mode='RGB')
+    train_mask_imgs = read_all_imgs(train_mask_img_list, path=gt_path, n_threads=100, mode='GRAY')
 
     index= 0
     train_classification_mask= []
@@ -448,10 +447,13 @@ def train_with_synthetic():
         train_mask_imgs = train_mask_imgs + ori_train_classification_mask;
 
     print(len(train_blur_imgs), len(train_mask_imgs))
-
+    ori_train_classification_mask = None
+    tmp_class = None
+    tmp_classification = None
+    ori_train_blur_imgs = None
     ### DEFINE MODEL ###
     patches_blurred = tf.compat.v1.placeholder('float32', [batch_size, h, w, 3], name = 'input_patches')
-    labels_sigma = tf.compat.v1.placeholder('float32', [batch_size,h,w, 1], name = 'lables')
+    #labels_sigma = tf.compat.v1.placeholder('float32', [batch_size,h,w, 1], name = 'lables')
     classification_map= tf.compat.v1.placeholder('int32', [batch_size, h, w,1], name='labels')
     #class_map = tf.placeholder('int32', [batch_size, h, w], name='classes')
     #attention_edge = tf.placeholder('float32', [batch_size, h, w, 1], name='attention')
@@ -459,16 +461,15 @@ def train_with_synthetic():
         with tf.compat.v1.variable_scope('VGG') as scope1:
             n, f0, f0_1, f1_2, f2_3 ,hrg,wrg= VGG19_pretrained(patches_blurred,reuse=False, scope=scope1)
         with tf.compat.v1.variable_scope('UNet') as scope2:
-            net_regression,m1,m2,m3= Decoder_Network_classification(n, f0, f0_1, f1_2, f2_3 ,hrg,wrg, reuse = False,
-                                                                    scope = scope2)
-
+            net_regression,m1,m2,m3= Decoder_Network_classification(n.outputs, f0.outputs, f0_1.outputs, f1_2.outputs,
+                                                                    f2_3.outputs,hrg,wrg, reuse = False,scope = scope2)
     ### DEFINE LOSS ###
     loss1 = tl.cost.cross_entropy((net_regression.outputs),  tf.squeeze( classification_map), name='loss1')
-    loss2 = tl.cost.cross_entropy((m1.outputs),   tf.squeeze( tf.image.resize(classification_map, [128,128],
+    loss2 = tl.cost.cross_entropy((m1.outputs),   tf.squeeze( tf.image.resize(classification_map, [int(h/2), int(w/2)],
                                                     method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name ='loss2')
-    loss3 = tl.cost.cross_entropy((m2.outputs),   tf.squeeze( tf.image.resize(classification_map, [64,64],
+    loss3 = tl.cost.cross_entropy((m2.outputs),   tf.squeeze( tf.image.resize(classification_map, [int(h/4), int(w/4)],
                                                     method = tf.image.ResizeMethod.NEAREST_NEIGHBOR) ),name='loss3')
-    loss4 = tl.cost.cross_entropy((m3.outputs), tf.squeeze( tf.image.resize(classification_map, [32,32],
+    loss4 = tl.cost.cross_entropy((m3.outputs), tf.squeeze( tf.image.resize(classification_map, [int(h/8), int(w/8)],
                                                     method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name='loss4')
     out =(net_regression.outputs)
     loss = loss1 + loss2 +loss3 +loss4
@@ -477,13 +478,11 @@ def train_with_synthetic():
 
     with tf.compat.v1.variable_scope('learning_rate'):
         lr_v = tf.Variable(lr_init, trainable = False)
-
-    ### DEFINE OPTIMIZER ###
-    vgg_vars = tl.layers.get_variables_with_name('VGG', True, True)  # ?
-    t_vars = tl.layers.get_variables_with_name('UNet', True, True) #?
+    #
+    # ### DEFINE OPTIMIZER ###
     a_vars = tl.layers.get_variables_with_name('Unified', False, True)  #
-    var_list1 = vgg_vars
-    var_list2 = t_vars
+    var_list1 = tl.layers.get_variables_with_name('VGG', True, True)  # ?
+    var_list2 = tl.layers.get_variables_with_name('UNet', True, True) #?t_vars
     opt1 = tf.compat.v1.train.AdamOptimizer(lr_v)#*0.1*0.1
     opt2 = tf.compat.v1.train.AdamOptimizer(lr_v*0.1)
     grads = tf.gradients(ys=loss, xs=var_list1 + var_list2)
@@ -492,18 +491,17 @@ def train_with_synthetic():
     train_op1 = opt1.apply_gradients(zip(grads1, var_list1))
     train_op2 = opt2.apply_gradients(zip(grads2, var_list2))
     train_op = tf.group(train_op1, train_op2)
-
-    sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement = True, log_device_placement = False,
-                                            allow_growth = True))
+    configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+    configTf.gpu_options.allow_growth = True
+    sess = tf.compat.v1.Session(config=configTf)
     print("initializing global variable...")
     tl.layers.initialize_global_variables(sess)
     print("initializing global variable...DONE")
 
     ### initial checkpoint ###
     #checkpoint_dir2 = "test_checkpoint/PG_CUHK/"
-    # TODO figure out if this works
-    tl.files.load_ckpt(sess=sess, mode_name='SA_net_PG_CUHK.ckpt', save_dir=checkpoint_dir, var_list=a_vars,
-                       is_latest=True)
+    tl.files.load_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']), save_dir=checkpoint_dir,
+                       var_list=a_vars,is_latest=True)
 
     ### START TRAINING ###
     sess.run(tf.compat.v1.assign(lr_v, lr_init))
@@ -585,7 +583,8 @@ def train_with_synthetic():
             n_iter += 1
             global_step += 1
 
-        log = "[*] Epoch: [%2d/%2d] time: %4.4fs, total_err: %.8f" % (epoch, n_epoch, time.time() - epoch_time, total_loss/n_iter)
+        log = "[*] Epoch: [%2d/%2d] time: %4.4fs, total_err: %.8f" % (epoch, n_epoch, time.time() - epoch_time,
+                                                                      total_loss/n_iter)
         # only way to write to log file while running
         with open(checkpoint_dir + "/training_synthetic_metrics.log", "a") as f:
             # perform file operations
@@ -593,7 +592,7 @@ def train_with_synthetic():
 
         ## save model
         if epoch % 10== 0:
-            tl.files.save_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
+            tl.files.save_ckpt(sess=sess, mode_name='final_SA_net_{}.ckpt'.format(tl.global_flag['mode']),
                             save_dir = checkpoint_dir, var_list = a_vars, global_step = global_step, printable = False)
 
 # https://intellipaat.com/community/4920/parsing-boolean-values-with-argparse
@@ -611,15 +610,19 @@ if __name__ == '__main__':
 
     parser.add_argument('--mode', type=str, default='PG_CUHK', help='model name')
     parser.add_argument('--is_train', type=str , default='false', help='whether train or not')
+    parser.add_argument('--is_synthetic', type=str, default='false', help='whether synthetic train or not')
     parser.add_argument('--index', type=int, default='0', help='index range 50')
     args = parser.parse_args()
 
     tl.global_flag['mode'] = args.mode
     tl.global_flag['is_train'] = t_or_f(args.is_train)
+    tl.global_flag['is_synthetic'] = t_or_f(args.is_synthetic)
 
     if tl.global_flag['is_train']:
-        train_with_CUHK()
-        #train_with_synthetic() # train with the CUHK dataset first and then finetune with the synthetic dataset
+        if tl.global_flag['is_synthetic']:
+            train_with_synthetic() # train with the CUHK dataset first and then finetune with the synthetic dataset
+        else:
+            train_with_CUHK()
     else:
         blurmap_3classes(args.index) #pg test
 
