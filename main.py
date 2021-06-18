@@ -1,4 +1,6 @@
 # coding=utf-8
+import copy
+
 import tensorflow as tf
 # import tensorflow.compat.v1 as tf
 # tf.disable_v2_behavior()
@@ -18,7 +20,6 @@ tf.compat.v1.disable_eager_execution()
 import sys
 
 batch_size = config.TRAIN.batch_size
-#batch_size = 78
 lr_init = config.TRAIN.lr_init
 beta1 = config.TRAIN.beta1
 
@@ -152,6 +153,11 @@ def blurmap_3classes(index):
         i = i + 1
     return 0
 
+# https://izziswift.com/better-way-to-shuffle-two-numpy-arrays-in-unison/
+def unison_shuffled_copies(a, b):
+    p = np.random.permutation(len(a))
+    return a[p], b[p]
+
 # training with the original CHUK images
 def train_with_CUHK():
     checkpoint_dir ="test_checkpoint/{}".format(tl.global_flag['mode'])  # checkpoint_resize_conv
@@ -236,56 +242,58 @@ def train_with_CUHK():
     train_op1 = opt1.apply_gradients(zip(grads1, var_list1))
     train_op2 = opt2.apply_gradients(zip(grads2, var_list2))
     train_op = tf.group(train_op1, train_op2)
-    # gpu alocation
+    # gpu allocation
     configTf = tf.compat.v1.ConfigProto(allow_soft_placement = True, log_device_placement = False)
     configTf.gpu_options.allow_growth = True
     sess = tf.compat.v1.Session(config=configTf)
 
     print("initializing global variable...")
-    #sess.run(tf.global_variables_initializer())
     tl.layers.initialize_global_variables(sess)
     print("initializing global variable...DONE")
-    # logs_path = "./logs/visualize_graph"
-    #train_writer = tf.compat.v1.summary.FileWriter(logs_path, sess.graph)
 
-    ### LOAD VGG ###
-    vgg19_npy_path = "vgg19.npy"
-    if not os.path.isfile(vgg19_npy_path):
-        print("Please download vgg19.npy from : https://github.com/machrisaa/tensorflow-vgg")
-        exit()
-    npz = np.load(vgg19_npy_path, encoding='latin1',allow_pickle=True).item()
-    #
-    params = []
-    count_layers = 0
-    for val in sorted(npz.items()):
-        if (count_layers < 16):
-            W = np.asarray(val[1][0])
-            b = np.asarray(val[1][1])
-            print("  Loading %s: %s, %s" % (val[0], W.shape, b.shape))
-            params.extend([W, b])
-        count_layers += 1
+    ### initalize weights ###
+    # initialize weights from previous run if indicated
+    if tl.global_flag['start_from'] != 0:
+        tl.files.load_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
+                           save_dir=checkpoint_dir, var_list=a_vars, is_latest=True)
+    else:
+        ### LOAD VGG ###
+        vgg19_npy_path = "vgg19.npy"
+        if not os.path.isfile(vgg19_npy_path):
+            print("Please download vgg19.npy from : https://github.com/machrisaa/tensorflow-vgg")
+            exit()
+        npz = np.load(vgg19_npy_path, encoding='latin1',allow_pickle=True).item()
+        #
+        params = []
+        count_layers = 0
+        for val in sorted(npz.items()):
+            if (count_layers < 16):
+                W = np.asarray(val[1][0])
+                b = np.asarray(val[1][1])
+                print("  Loading %s: %s, %s" % (val[0], W.shape, b.shape))
+                params.extend([W, b])
+            count_layers += 1
 
-    #tl.files.assign_params(sess, params, n)
-    sess.run(tl.files.assign_weights(params, n))
+        sess.run(tl.files.assign_weights(params, n))
 
     ### START TRAINING ###
     sess.run(tf.compat.v1.assign(lr_v, lr_init))
-    global_step = 0
-    new_lr_decay=1
-    for epoch in range(0, n_epoch + 1):
+    train_blur_imgs = np.array(train_blur_imgs,dtype=object)
+    train_classification_mask = np.array(train_classification_mask,dtype=object)
+    for epoch in range(tl.global_flag['start_from'], n_epoch + 1):
         ## update learning rate
         if epoch !=0 and (epoch % decay_every == 0):
             new_lr_decay = lr_decay ** (epoch // decay_every)
             #new_lr_decay = new_lr_decay * lr_decay
             sess.run(tf.compat.v1.assign(lr_v, lr_init * new_lr_decay))
-            log = " ** new learning rate: %f" % (lr_init * new_lr_decay)
+            log = " ** new learning rate: %f\n" % (lr_init * new_lr_decay)
             # print(log)
             with open(checkpoint_dir + "/training_CHUK_metrics.log", "a") as f:
                 # perform file operations
                 f.write(log)
-        elif epoch == 0:
+        elif epoch == tl.global_flag['start_from']:
             sess.run(tf.compat.v1.assign(lr_v, lr_init))
-            log = " ** init lr: %f  decay_every_init: %d, lr_decay: %f" % (lr_init, decay_every, lr_decay)
+            log = " ** init lr: %f  decay_every_init: %d, lr_decay: %f\n" % (lr_init, decay_every, lr_decay)
             # print(log)
             with open(checkpoint_dir + "/training_CHUK_metrics.log", "a") as f:
                 # perform file operations
@@ -296,17 +304,18 @@ def train_with_CUHK():
         new_batch_size = batch_size  #batchsize 50->40 + 10(augmented)
 
         #data suffle***
-        suffle_index = np.arange(len(train_blur_imgs))
-        np.random.shuffle(suffle_index)
-        #print len(train_blur_imgs)
-        #print suffle_index
-        prev_train_blur_imgs =train_blur_imgs
-        prev_train_classification_mask =train_classification_mask
-        train_blur_imgs = []
-        train_classification_mask =[]
-        for i in range(0,len(suffle_index),1):
-            train_blur_imgs.append(prev_train_blur_imgs[suffle_index[i]] )
-            train_classification_mask.append(prev_train_classification_mask[suffle_index[i]] )
+        # suffle_index = copy.deepcopy(main_index)
+        # np.random.shuffle(suffle_index)
+        # #print len(train_blur_imgs)
+        # #print suffle_index
+        # prev_train_blur_imgs =train_blur_imgs
+        # prev_train_classification_mask =train_classification_mask
+        # train_blur_imgs = []
+        # train_classification_mask =[]
+        # for i in range(0,len(suffle_index),1):
+        #     train_blur_imgs.append(prev_train_blur_imgs[suffle_index[i]] )
+        #     train_classification_mask.append(prev_train_classification_mask[suffle_index[i]] )
+        train_blur_imgs, train_classification_mask = unison_shuffled_copies(train_blur_imgs,train_classification_mask)
 
         for idx in range(0, len(train_blur_imgs), new_batch_size):
             step_time = time.time()
@@ -328,7 +337,7 @@ def train_with_CUHK():
             clist = np.expand_dims(clist, axis=3)
 
             #print imlist.shape, clist.shape
-            err,l1,l2,l3,l4, _ ,outmap= sess.run([loss,loss1,loss2,loss3,loss4, train_op, out], {patches_blurred: imlist,
+            err,l1,l2,l3,l4, _ ,_= sess.run([loss,loss1,loss2,loss3,loss4, train_op, out], {patches_blurred: imlist,
                                                                                         classification_map: clist})
 
             # outmap1 = np.squeeze(outmap[1,:,:,0])
@@ -349,7 +358,6 @@ def train_with_CUHK():
             # %.6f" % (epoch, n_epoch, n_iter, time.time() - step_time, err,l1,l2,l3,l4))
             total_loss += err
             n_iter += 1
-            global_step += 1
 
         log = "[*] Epoch: [%2d/%2d] time: %4.4fs, total_err: %.8f \n" % (epoch, n_epoch, time.time() - epoch_time,
                                                                          total_loss/n_iter)
@@ -358,9 +366,9 @@ def train_with_CUHK():
             # perform file operations
             f.write(log)
         ## save model
-        if epoch % 200 == 0:
+        if epoch % 10 == 0:
             tl.files.save_ckpt(sess=sess,mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
-                            save_dir = checkpoint_dir, var_list = a_vars, global_step = global_step, printable = False)
+                            save_dir = checkpoint_dir, var_list = a_vars, global_step = epoch, printable = False)
 
 # train with synthetic images
 def train_with_synthetic():
@@ -472,9 +480,7 @@ def train_with_synthetic():
     loss4 = tl.cost.cross_entropy((m3.outputs), tf.squeeze( tf.image.resize(classification_map, [int(h/8), int(w/8)],
                                                     method = tf.image.ResizeMethod.NEAREST_NEIGHBOR )),name='loss4')
     out =(net_regression.outputs)
-    loss = loss1 + loss2 +loss3 +loss4
-
-    #loss = tf.reduce_mean(tf.abs((net_regression.outputs + 1) - labels_sigma))
+    loss = loss1 + loss2 + loss3 + loss4
 
     with tf.compat.v1.variable_scope('learning_rate'):
         lr_v = tf.Variable(lr_init, trainable = False)
@@ -499,16 +505,18 @@ def train_with_synthetic():
     print("initializing global variable...DONE")
 
     ### initial checkpoint ###
-    #checkpoint_dir2 = "test_checkpoint/PG_CUHK/"
-    tl.files.load_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']), save_dir=checkpoint_dir,
-                       var_list=a_vars,is_latest=True)
+    if tl.global_flag['start_from'] != 0:
+        tl.files.load_ckpt(sess=sess, mode_name='final_SA_net_{}.ckpt'.format(tl.global_flag['mode']),
+                           save_dir=checkpoint_dir,var_list=a_vars, is_latest=True)
+    else:
+        tl.files.load_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
+                           save_dir=checkpoint_dir,var_list=a_vars,is_latest=True)
 
     ### START TRAINING ###
     sess.run(tf.compat.v1.assign(lr_v, lr_init))
-    global_step = 0
-    prev_train_blur_imgs =train_blur_imgs
-    prev_train_classification_mask =train_mask_imgs
-    for epoch in range(0, n_epoch + 1):
+    train_blur_imgs = np.array(train_blur_imgs,dtype=object)
+    train_classification_mask = np.array(train_classification_mask,dtype=object)
+    for epoch in range(tl.global_flag['start_from'], n_epoch + 1):
         ## update learning rate
         if epoch !=0 and (epoch % decay_every == 0):
             new_lr_decay = lr_decay ** (epoch // decay_every)
@@ -519,7 +527,7 @@ def train_with_synthetic():
             with open(checkpoint_dir + "/training_synthetic_metrics.log", "a") as f:
                 # perform file operations
                 f.write(log)
-        elif epoch == 0:
+        elif epoch == tl.global_flag['start_from']:
             sess.run(tf.compat.v1.assign(lr_v, lr_init))
             log = " ** init lr: %f  decay_every_init: %d, lr_decay: %f" % (lr_init, decay_every, lr_decay)
             # print(log)
@@ -532,16 +540,18 @@ def train_with_synthetic():
         new_batch_size = batch_size  #batchsize 50->40 + 10(augmented)
 
         #data suffle***
-        suffle_index = np.arange(len(prev_train_blur_imgs))
-        np.random.shuffle(suffle_index)
-        #print(len(train_blur_imgs))
-        #print suffle_index
-
-        train_blur_imgs = []
-        train_classification_mask =[]
-        for i in range(0,len(suffle_index),1):
-            train_blur_imgs.append(prev_train_blur_imgs[suffle_index[i]] )
-            train_classification_mask.append(prev_train_classification_mask[suffle_index[i]] )
+        ## OLD CODE
+        # suffle_index = np.arange(len(prev_train_blur_imgs))
+        # np.random.shuffle(suffle_index)
+        # #print(len(train_blur_imgs))
+        # #print suffle_index
+        #
+        # train_blur_imgs = []
+        # train_classification_mask =[]
+        # for i in range(0,len(suffle_index),1):
+        #     train_blur_imgs.append(prev_train_blur_imgs[suffle_index[i]] )
+        #     train_classification_mask.append(prev_train_classification_mask[suffle_index[i]] )
+        train_blur_imgs, train_classification_mask = unison_shuffled_copies(train_blur_imgs, train_classification_mask)
 
         for idx in range(0, len(train_blur_imgs) , new_batch_size):
             step_time = time.time()
@@ -563,7 +573,7 @@ def train_with_synthetic():
             clist = np.expand_dims(clist, axis=3)
 
             #print imlist.shape, clist.shape
-            err,l1,l2,l3,l4, _ ,outmap= sess.run([loss,loss1,loss2,loss3,loss4, train_op,out], {patches_blurred: imlist,
+            err,l1,l2,l3,l4, _ ,_= sess.run([loss,loss1,loss2,loss3,loss4, train_op,out], {patches_blurred: imlist,
                                                                                             classification_map: clist})
 
             # outmap1 = np.squeeze(outmap[1,:,:,0])
@@ -581,7 +591,6 @@ def train_with_synthetic():
             # %.6f,loss4: %.6f" % (epoch, n_epoch, n_iter, time.time() - step_time, err,l1,l2,l3,l4))
             total_loss += err
             n_iter += 1
-            global_step += 1
 
         log = "[*] Epoch: [%2d/%2d] time: %4.4fs, total_err: %.8f" % (epoch, n_epoch, time.time() - epoch_time,
                                                                       total_loss/n_iter)
@@ -591,9 +600,9 @@ def train_with_synthetic():
             f.write(log)
 
         ## save model
-        if epoch % 10== 0:
+        if epoch % 10 == 0:
             tl.files.save_ckpt(sess=sess, mode_name='final_SA_net_{}.ckpt'.format(tl.global_flag['mode']),
-                            save_dir = checkpoint_dir, var_list = a_vars, global_step = global_step, printable = False)
+                            save_dir = checkpoint_dir, var_list = a_vars, global_step = epoch, printable = False)
 
 # https://intellipaat.com/community/4920/parsing-boolean-values-with-argparse
 def t_or_f(arg):
@@ -612,11 +621,13 @@ if __name__ == '__main__':
     parser.add_argument('--is_train', type=str , default='false', help='whether train or not')
     parser.add_argument('--is_synthetic', type=str, default='false', help='whether synthetic train or not')
     parser.add_argument('--index', type=int, default='0', help='index range 50')
+    parser.add_argument('--start_from', type=int, default='0', help='start from')
     args = parser.parse_args()
 
     tl.global_flag['mode'] = args.mode
     tl.global_flag['is_train'] = t_or_f(args.is_train)
     tl.global_flag['is_synthetic'] = t_or_f(args.is_synthetic)
+    tl.global_flag['start_from'] = int(args.start_from)
 
     if tl.global_flag['is_train']:
         if tl.global_flag['is_synthetic']:

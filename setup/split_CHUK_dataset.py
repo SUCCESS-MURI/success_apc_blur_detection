@@ -49,7 +49,7 @@ def split_dataset(args):
             shutil.move(input_gt_file_path + "/"+gt, output_training_gt_path + "/"+gt)
 
 def split_dataset_using_list(args):
-    test_list_file = '/dataset/test_list.txt'
+    test_list_file = 'dataset/test_list.txt'
     # now create folders for correct data vs incorectly labeled data
     path_for_training = os.path.join(args.file_output_path, "Training")
     path_for_testing = os.path.join(args.file_output_path, "Testing")
@@ -88,7 +88,7 @@ def split_dataset_using_list(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--file_input_path', type=str,
-                        default='/home/mary/code/local_success_dataset/CUHK_Blur_Detection_Dataset',
+                        default='/home/mary/code/local_success_dataset/OrigBlurDataset',
                         help='Path to the CUHK dataset')
     parser.add_argument('--file_output_path', type=str,
                         default='/home/mary/code/local_success_dataset/CUHK_Split_Dataset',

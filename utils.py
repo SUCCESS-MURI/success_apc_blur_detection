@@ -43,7 +43,7 @@ def crop_sub_img_and_classification_fn_aug(data):
     #print "image shape", image.shape
     #print "mask shape", mask.shape
 
-    image_h, image_w = np.asarray(image).shape[0:2]
+    image_h, image_w = image.shape[0:2]
     # checks if the image is the same size
     if image_w != dx and dy != image_h:
         x = np.random.randint(0, image_w - dx - 1)
@@ -78,7 +78,7 @@ def crop_sub_img_and_classification_fn(data):
     image, mask = data
     #print "image shape", image.shape
     #print "mask shape", mask.shape
-    image_h, image_w = np.asarray(image).shape[0:2]
+    image_h, image_w = image.shape[0:2]
     # checks if the image is the same size
     if image_w != dx and dy != image_h:
         x = np.random.randint(0, image_w - dx - 1)
