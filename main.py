@@ -373,7 +373,7 @@ def train_with_CUHK():
             total_loss += err
             n_iter += 1
 
-        log = "[*] Epoch: [%2d/%2d] time: %4.4fs, total_err: %.8f \n" % (epoch, n_epoch, time.time() - epoch_time,
+        log = "[*] Epoch: [%2d/%2d] time: %4.4fs, total_err: %.8f\n" % (epoch, n_epoch, time.time() - epoch_time,
                                                                          total_loss/n_iter)
         #only way to write to log file while running
         with open(checkpoint_dir+"/training_CHUK_metrics.log", "a") as f:
@@ -532,21 +532,21 @@ def train_with_synthetic():
     ### START TRAINING ###
     sess.run(tf.compat.v1.assign(lr_v, lr_init))
     train_blur_imgs = np.array(train_blur_imgs,dtype=object)
-    train_classification_mask = np.array(train_classification_mask,dtype=object)
+    train_mask_imgs = np.array(train_mask_imgs,dtype=object)
     for epoch in range(tl.global_flag['start_from'], n_epoch + 1):
         ## update learning rate
         if epoch !=0 and (epoch % decay_every == 0):
             new_lr_decay = lr_decay ** (epoch // decay_every)
             #new_lr_decay = new_lr_decay * lr_decay
             sess.run(tf.compat.v1.assign(lr_v, lr_init * new_lr_decay))
-            log = " ** new learning rate: %f" % (lr_init * new_lr_decay)
+            log = " ** new learning rate: %f\n" % (lr_init * new_lr_decay)
             # print(log)
             with open(checkpoint_dir + "/training_synthetic_metrics.log", "a") as f:
                 # perform file operations
                 f.write(log)
         elif epoch == tl.global_flag['start_from']:
             sess.run(tf.compat.v1.assign(lr_v, lr_init))
-            log = " ** init lr: %f  decay_every_init: %d, lr_decay: %f" % (lr_init, decay_every, lr_decay)
+            log = " ** init lr: %f  decay_every_init: %d, lr_decay: %f\n" % (lr_init, decay_every, lr_decay)
             # print(log)
             with open(checkpoint_dir + "/training_synthetic_metrics.log", "a") as f:
                 # perform file operations
@@ -568,7 +568,7 @@ def train_with_synthetic():
         # for i in range(0,len(suffle_index),1):
         #     train_blur_imgs.append(prev_train_blur_imgs[suffle_index[i]] )
         #     train_classification_mask.append(prev_train_classification_mask[suffle_index[i]] )
-        train_blur_imgs, train_classification_mask = unison_shuffled_copies(train_blur_imgs, train_classification_mask)
+        train_blur_imgs, train_mask_imgs = unison_shuffled_copies(train_blur_imgs, train_mask_imgs)
 
         for idx in range(0, len(train_blur_imgs) , new_batch_size):
             step_time = time.time()
@@ -577,10 +577,10 @@ def train_with_synthetic():
             augmentation= random.choice(augmentation_list)
             if(augmentation ==0):
                 images_and_score = tl.prepro.threading_data([_ for _ in zip(train_blur_imgs[idx: idx + new_batch_size],
-                        train_classification_mask[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn)
+                        train_mask_imgs[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn)
             elif (augmentation==1):
                 images_and_score = tl.prepro.threading_data([_ for _ in zip(train_blur_imgs[idx: idx + new_batch_size],
-                    train_classification_mask[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn_aug)
+                    train_mask_imgs[idx: idx + new_batch_size])],fn=crop_sub_img_and_classification_fn_aug)
 
             #print images_and_score.shape
             imlist, clist= images_and_score.transpose((1,0,2,3,4))
@@ -609,7 +609,7 @@ def train_with_synthetic():
             total_loss += err
             n_iter += 1
 
-        log = "[*] Epoch: [%2d/%2d] time: %4.4fs, total_err: %.8f" % (epoch, n_epoch, time.time() - epoch_time,
+        log = "[*] Epoch: [%2d/%2d] time: %4.4fs, total_err: %.8f\n" % (epoch, n_epoch, time.time() - epoch_time,
                                                                       total_loss/n_iter)
         # only way to write to log file while running
         with open(checkpoint_dir + "/training_synthetic_metrics.log", "a") as f:
