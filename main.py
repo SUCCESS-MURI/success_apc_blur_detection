@@ -46,6 +46,18 @@ def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
         print('read %d from %s' % (len(imgs), path))
     return imgs
 
+# def limitgpu(maxmem):
+#     gpus = tf.config.list_physical_devices('GPU')
+#     if gpus:
+#         # Restrict TensorFlow to only allocate a fraction of GPU memory
+#         try:
+#             for gpu in gpus:
+#                 tf.config.experimental.set_virtual_device_configuration(gpu,
+#                        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=maxmem)])
+#         except RuntimeError as e:
+#             # Virtual devices must be set before GPUs have been initialized
+#             print(e)
+
 
 def blurmap_3classes(index):
     print("Blurmap Generation")
@@ -244,7 +256,9 @@ def train_with_CUHK():
     train_op = tf.group(train_op1, train_op2)
     # gpu allocation
     configTf = tf.compat.v1.ConfigProto(allow_soft_placement = True, log_device_placement = False)
-    configTf.gpu_options.allow_growth = True
+    #limitgpu(1024 + 512)
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    tf.config.experimental.set_memory_growth(gpus[0], True)
     sess = tf.compat.v1.Session(config=configTf)
 
     print("initializing global variable...")
@@ -451,8 +465,8 @@ def train_with_synthetic():
         index =index +1
     train_mask_imgs=  train_classification_mask
     for i in range(10):
-        train_blur_imgs = train_blur_imgs + ori_train_blur_imgs;
-        train_mask_imgs = train_mask_imgs + ori_train_classification_mask;
+        train_blur_imgs = train_blur_imgs + ori_train_blur_imgs
+        train_mask_imgs = train_mask_imgs + ori_train_classification_mask
 
     print(len(train_blur_imgs), len(train_mask_imgs))
     ori_train_classification_mask = None
@@ -498,7 +512,10 @@ def train_with_synthetic():
     train_op2 = opt2.apply_gradients(zip(grads2, var_list2))
     train_op = tf.group(train_op1, train_op2)
     configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-    configTf.gpu_options.allow_growth = True
+    #configTf.gpu_options.allow_growth = True
+    #limitgpu(1024 + 512)
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    tf.config.experimental.set_memory_growth(gpus[0], True)
     sess = tf.compat.v1.Session(config=configTf)
     print("initializing global variable...")
     tl.layers.initialize_global_variables(sess)
