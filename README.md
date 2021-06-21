@@ -14,10 +14,12 @@ This repository contains a test code and sythetic dataset, which consists of sce
 --------------------------
 
 ## Prerequisites (tested)
-- Ubuntu 16.04
-- Tensorflow 1.6.0 (<= 1.9.0)
-- Tensorlayer 1.8.2
+- Ubuntu 20.04
+- Tensorflow-gpu 2.2.0
+- Tensorlayer 2.2.3
 - OpenCV2
+- Listed in the document Packages_Requirements
+- Using Ananconda Virtual Enviornment
 
 ## Train Details
 - We used [CUHK blur detection dataset](http://www.cse.cuhk.edu.hk/~leojia/projects/dblurdetect/dataset.html) for training our network and generating our synthetic dataset
