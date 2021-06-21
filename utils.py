@@ -43,17 +43,19 @@ def crop_sub_img_and_classification_fn_aug(data):
     #print "image shape", image.shape
     #print "mask shape", mask.shape
 
-    image_h, image_w = image.shape[0:2]
-    # checks if the image is the same size
-    if image_w != dx and dy != image_h:
-        x = np.random.randint(0, image_w - dx - 1)
-        y = np.random.randint(0, image_h - dy - 1)
-        cropped_image = image[y: y+dy, x : x+dx, :]
-        #print "hi2"
-        cropped_mask  = mask[y: y + dy, x: x + dx, :]
-    else:
-        cropped_image = image
-        cropped_mask = mask
+    # image_h, image_w = image.shape[0:2]
+    # # checks if the image is the same size
+    # if image_w != dx and dy != image_h:
+    #     x = np.random.randint(0, image_w - dx - 1)
+    #     y = np.random.randint(0, image_h - dy - 1)
+    #     cropped_image = image[y: y+dy, x : x+dx, :]
+    #     #print "hi2"
+    #     cropped_mask  = mask[y: y + dy, x: x + dx, :]
+    # else:
+    # cropped_image = image
+    # cropped_mask = mask
+    cropped_image = image*(255.)
+    cropped_mask = mask
     cropped_mask = np.concatenate((cropped_mask, cropped_mask, cropped_mask), axis=2)
     # rotation and flip
     rotation_list = [0,90,180,270]
