@@ -16,19 +16,23 @@ config.TRAIN.n_epoch_init = 1000
 ## adversarial learning (SRGAN)
 config.TRAIN.n_epoch = 6000
 config.TRAIN.lr_decay = 0.1
-config.TRAIN.decay_every = 3000
+config.TRAIN.decay_every = 6000
 
 ## train set location
 config.TRAIN.CUHK_blur_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/image/'
 config.TRAIN.CUHK_gt_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/gt/'
 # TODO edit this to my path files
-config.TRAIN.synthetic_blur_path = '/Dataset/BlurDetection/Synthetic_hybrid/imgs/'
-config.TRAIN.synthetic_gt_path = '/Dataset/BlurDetection/Synthetic_hybrid/GT/'
+# config.TRAIN.synthetic_blur_path = '/home/mary/code/local_success_dataset/BlurTrainSyntheic/imgs/'
+# config.TRAIN.synthetic_gt_path = '/home/mary/code/local_success_dataset/BlurTrainSyntheic/GT/'
+config.TRAIN.synthetic_blur_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/image/'
+config.TRAIN.synthetic_gt_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/gt/'
+
+config.TRAIN.ssc_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized/Training/image/'
+config.TRAIN.ssc_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized/Training/gt/'
 
 ## train image size
 config.TRAIN.height = 256#192->144 ->288
 config.TRAIN.width = 256 #->288
-
 
 def log_config(filename, cfg):
     with open(filename, 'w') as f:

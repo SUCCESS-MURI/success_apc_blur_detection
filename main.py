@@ -16,7 +16,7 @@ import time
 import cv2
 import argparse
 import os
-tf.compat.v1.disable_eager_execution()
+#tf.compat.v1.disable_eager_execution()
 import sys
 from train import *
 from test import *
@@ -37,6 +37,7 @@ if __name__ == '__main__':
     parser.add_argument('--mode', type=str, default='PG_CUHK', help='model name')
     parser.add_argument('--is_train', type=str , default='false', help='whether train or not')
     parser.add_argument('--is_synthetic', type=str, default='false', help='whether synthetic train or not')
+    parser.add_argument('--is_ssc_dataset', type=str, default='false', help='whether ssc dataset train or not')
     parser.add_argument('--index', type=int, default='0', help='index range 50')
     parser.add_argument('--start_from', type=int, default='0', help='start from')
     args = parser.parse_args()
@@ -44,13 +45,17 @@ if __name__ == '__main__':
     tl.global_flag['mode'] = args.mode
     tl.global_flag['is_train'] = t_or_f(args.is_train)
     tl.global_flag['is_synthetic'] = t_or_f(args.is_synthetic)
+    tl.global_flag['is_ssc_dataset'] = t_or_f(args.is_ssc_dataset)
     tl.global_flag['start_from'] = int(args.start_from)
 
     if tl.global_flag['is_train']:
         if tl.global_flag['is_synthetic']:
             train_with_synthetic() # train with the CUHK dataset first and then finetune with the synthetic dataset
+        elif tl.global_flag['is_ssc_dataset']:
+            train_with_ssc_dataset()
         else:
             train_with_CUHK()
     else:
-        blurmap_3classes(args.index) #pg test
+        #blurmap_3classes(args.index) #pg test
+        blurmap_3classes_using_numpy_pretrainied_weights(args.index)
 
