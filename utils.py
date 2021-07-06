@@ -37,6 +37,13 @@ def get_imgs_GRAY_fn_cv(file_name, path):
     image = cv2.imread(path + file_name, cv2.IMREAD_GRAYSCALE)
     return np.expand_dims(np.asarray(image), 3)
 
+def get_imgs_RGBGRAY_fn(file_name, path):
+    """ Input an image path and name, return an image array """
+    # return scipy.misc.imread(path + file_name).astype(np.float)
+    # https://www.geeksforgeeks.org/python-pil-image-convert-method/
+    image = Image.open(path + file_name)
+    return np.asarray(image)[:,:,0][:,:,np.newaxis]
+
 def crop_sub_img_and_classification_fn_aug(data):
 
     dx = config.TRAIN.width
@@ -44,14 +51,20 @@ def crop_sub_img_and_classification_fn_aug(data):
     image, mask = data
     #print "image shape", image.shape
     #print "mask shape", mask.shape
+    image = np.asarray(image,dtype=np.float64)
+    mask = np.asarray(mask, dtype=np.float64)
 
     image_h, image_w = np.asarray(image).shape[0:2]
+    if image_w != dx and dy != image_h:
 
-    x = np.random.randint(0, image_w - dx - 1)
-    y = np.random.randint(0, image_h - dy - 1)
-    cropped_image = image[y: y+dy, x : x+dx, :]
-    #print "hi2"
-    cropped_mask  = mask[y: y + dy, x: x + dx, :]
+        x = np.random.randint(0, image_w - dx - 1)
+        y = np.random.randint(0, image_h - dy - 1)
+        cropped_image = image[y: y+dy, x : x+dx, :]
+        #print "hi2"
+        cropped_mask  = mask[y: y + dy, x: x + dx, :]
+    else:
+        cropped_image = image
+        cropped_mask = mask
     cropped_mask = np.concatenate((cropped_mask, cropped_mask, cropped_mask), axis=2)
 
     rotation_list = [0,90,180,270]
@@ -94,14 +107,21 @@ def crop_sub_img_and_classification_fn(data):
     image, mask = data
     #print "image shape", image.shape
     #print "mask shape", mask.shape
+    image = np.asarray(image,dtype=np.float64)
+    mask = np.asarray(mask, dtype=np.float64)
 
     image_h, image_w = np.asarray(image).shape[0:2]
 
-    x = np.random.randint(0, image_w - dx - 1)
-    y = np.random.randint(0, image_h - dy - 1)
-    cropped_image = image[y: y+dy, x : x+dx, :]
-    #print "hi2"
-    cropped_mask  = mask[y: y + dy, x: x + dx, :]
+    if image_w != dx and dy != image_h:
+
+        x = np.random.randint(0, image_w - dx - 1)
+        y = np.random.randint(0, image_h - dy - 1)
+        cropped_image = image[y: y + dy, x: x + dx, :]
+        # print "hi2"
+        cropped_mask = mask[y: y + dy, x: x + dx, :]
+    else:
+        cropped_image = image
+        cropped_mask = mask
     cropped_mask = np.concatenate((cropped_mask, cropped_mask, cropped_mask), axis=2)
 
     #print edge.shape

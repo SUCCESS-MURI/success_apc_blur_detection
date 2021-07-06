@@ -9,39 +9,39 @@ from tensorlayer.layers import *
 from tensorlayer.models import Model
 
 def VGG19_pretrained(t_image,reuse = False,scope="VGG"):
-    VGG_MEAN = [103.939, 116.779, 123.68]
-    """
-        Build the VGG 19 Model
-        Parameters
-        -----------
-        rgb : rgb image placeholder [batch, height, width, 3] values scaled [0, 1]
-        """
-    print("build model started")
-    rgb_scaled = t_image * 255.0
-    # Convert RGB to BGR
-    if tf.__version__ <= '0.11':
-        red, green, blue = tf.split(3, 3, rgb_scaled)
-    else:  # TF 1.0
-        print(rgb_scaled)
-        red, green, blue = tf.split(rgb_scaled, 3, 3)
-
-    if tf.__version__ <= '0.11':
-        bgr = tf.concat(3, [
-            blue - VGG_MEAN[0],
-            green - VGG_MEAN[1],
-            red - VGG_MEAN[2],
-        ])
-    else:
-        bgr = tf.concat(
-            [
-                blue - VGG_MEAN[0],
-                green - VGG_MEAN[1],
-                red - VGG_MEAN[2],
-            ], axis=3)
+    # VGG_MEAN = [103.939, 116.779, 123.68]
+    # """
+    #     Build the VGG 19 Model
+    #     Parameters
+    #     -----------
+    #     rgb : rgb image placeholder [batch, height, width, 3] values scaled [0, 1]
+    #     """
+    # print("build model started")
+    # rgb_scaled = t_image * 255.0
+    # # Convert RGB to BGR
+    # if tf.__version__ <= '0.11':
+    #     red, green, blue = tf.split(3, 3, rgb_scaled)
+    # else:  # TF 1.0
+    #     print(rgb_scaled)
+    #     red, green, blue = tf.split(rgb_scaled, 3, 3)
+    #
+    # if tf.__version__ <= '0.11':
+    #     bgr = tf.concat(3, [
+    #         blue - VGG_MEAN[0],
+    #         green - VGG_MEAN[1],
+    #         red - VGG_MEAN[2],
+    #     ])
+    # else:
+    #     bgr = tf.concat(
+    #         [
+    #             blue - VGG_MEAN[0],
+    #             green - VGG_MEAN[1],
+    #             red - VGG_MEAN[2],
+    #         ], axis=3)
     with tf.compat.v1.variable_scope(scope, reuse=reuse) as vs:
 
         # input layer
-        net_in = Input(bgr.shape, name='input') #tf.keras.layers.InputLayer(bgr, name='input')
+        net_in = Input(t_image.shape, name='input') #tf.keras.layers.InputLayer(bgr, name='input')
         # conv1
         network = Conv2d(n_filter=64, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME',
                           name='conv1_1')(net_in)
@@ -122,7 +122,7 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
 
         # n = tf.nn.relu(n)# n.outputs
         n = Conv2d(n_filter=512, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', W_init=w_init4,
-                   name='u34/c1')(n)
+                   name='u4/c1')(n)
         # n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='u3/b1')
         # n.outputs = tf.nn.relu(n.outputs)
         n = Conv2d(n_filter=512, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', W_init=w_init4,
@@ -133,7 +133,7 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
                    name='u4/c3')(n)
         # n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='u3/b3')
         # n.outputs = tf.nn.relu(n.outputs)
-        n_m3 = Conv2d(n_filter=3, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init4,
+        n_m3 = Conv2d(n_filter=5, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init4,
                       name='u4/loss3')(n)
         #(hrg // 4, wrg // 4)
         n = DeConv2d(n_filter=256, filter_size=(3, 3), strides=(2, 2), act=None, padding='SAME', W_init=w_init3,
@@ -157,7 +157,7 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
                    name='u3/c3')(n)
         # n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='u3/b3')
         # n.outputs = tf.nn.relu(n.outputs)
-        n_m2 = Conv2d(n_filter=3, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init3,
+        n_m2 = Conv2d(n_filter=5, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init3,
                       name='u3/loss2')(n)
         # output-size= (hrg // 2, wrg // 2),
         n = DeConv2d(n_filter=128, filter_size=(3, 3), strides=(2, 2), act=None, padding='SAME', W_init=w_init2,
@@ -178,7 +178,7 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
                    name='u2/c2')(n)
         # n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='u2/b2')
         # n.outputs = tf.nn.relu(n.outputs)
-        n_m1 = Conv2d(n_filter=3, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init2,
+        n_m1 = Conv2d(n_filter=5, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init2,
                       name='u2/loss1')(n)
         #(hrg, wrg),
         n = DeConv2d(n_filter=64, filter_size=(3, 3), strides=(2, 2), act=None, padding='SAME', W_init=w_init1,
@@ -202,8 +202,12 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
         #n = Conv2d(n, 64, (3, 3), (1, 1), act=tf.nn.relu, padding='SAME', W_init=w_init1, name='u1/c3')
         # n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='u1/b1')
         # n.outputs = tf.nn.relu(n.outputs)
-        network = Conv2d(n_filter=3, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init1,
-                   name='u1/c5')(n)
+        # network = Conv2d(n_filter=3, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init1,
+        #            name='u1/c5')(n)
+
+        network = Conv2d(n_filter=5, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init1,
+                         name='u1/c5')(n)
+
         # n = BatchNormLayer(n, is_train=is_train, gamma_init=g_init, name='u1/b2')
         # n.outputs = tf.nn.relu(n.outputs)
         # n = ElementwiseLayer([n, n_init], tf.add, name='s1')

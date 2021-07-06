@@ -26,7 +26,7 @@ def get_weights(sess,network):
     for weights in network.trainable_weights:
         name = weights.name
         splitName ='/'.join(name.split('/')[2:-1])
-        count_layers  = 0
+        count_layers = 0
         for key in keys:
             keySplit = '/'.join(key.split(',')[1:])
             if '/d' in keySplit:
