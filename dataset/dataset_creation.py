@@ -247,10 +247,12 @@ def create_syntheic_dataset_for_testing(args):
     # kernal
     kernal = np.array([3, 5, 7, 9])
     # alpha
-    alpha = np.arange(start=.1, stop=2.1, step=.1)
-    alpha = alpha[alpha != 1.0]
+    alpha_darkness = np.arange(start=0.1, stop=1.0, step=0.2)
+    alpha_brightness = np.arange(start=1.1, stop=2.1, step=0.2)
     # beta
     #beta = np.arange(start=0, stop=2, step=1) # stpop 110 step 10
+    tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
+    tl.files.exists_or_mkdir(args.output_data_dir + "/gt/")
     # list of all original Images
     imagesOrigonal = []
     imageNames = []
@@ -295,8 +297,8 @@ def create_syntheic_dataset_for_testing(args):
                 maskedImageRemovedPIL.paste(motion_blurred_imgPIL, placement,mask=motion_blurred_imgPIL)
                 final_masked_blurred_image = np.array(maskedImageRemovedPIL)[:,:,0:3] # + motion_blurred_img
                 # now save the image
-                saveName = args.output_data_dir + "/" + baseImageName + "_motion_blur_a_" + str(a) + "_s_"+ str(s) + \
-                           args.data_extension
+                saveName = args.output_data_dir + "/images/" + baseImageName + "_motion_blur_a_" + str(a) + "_s_" + \
+                           str(s) + args.data_extension
                 cv2.imwrite(saveName, final_masked_blurred_image)
                 saveName = args.output_data_dir + "/gt/" + baseImageName + "_gt_motion_blur_a_" + str(a) + "_s_"+ \
                            str(s) + args.data_extension
@@ -326,11 +328,12 @@ def create_syntheic_dataset_for_testing(args):
             final_masked_blurred_image = np.array(maskedImageRemovedPIL)[:, :, 0:3]
             # cv2.imshow('BrightnessImage',final_masked_blurred_image)
             # cv2.waitKey(0)
-            saveName = args.output_data_dir + "/" + baseImageName + "_focus_blur_k_" + str(k) + args.data_extension
+            saveName = args.output_data_dir + "/images/" + baseImageName + "_focus_blur_k_" + str(k) + \
+                       args.data_extension
             cv2.imwrite(saveName, final_masked_blurred_image)
             # get ground truth mask
-            saveName = args.output_data_dir + "/gt/" + baseImageName + "_gt_focus_blur_k_" + \
-                       str(k) + args.data_extension
+            saveName = args.output_data_dir + "/gt/" + baseImageName + "_gt_focus_blur_k_" + str(k) + \
+                       args.data_extension
             # add focus identification to mask
             nMask = np.zeros(mask.shape)
             idx = np.where(np.array(focus_blurred_imgPIL)[:, :, 3] == 255)
@@ -340,50 +343,80 @@ def create_syntheic_dataset_for_testing(args):
                                np.ones(idx[1].shape[0]) * (nMask.shape[1] - 1)).astype(int)
             nMask[idx_x, idx_y] = 128
             cv2.imwrite(saveName, nMask)
-        # next we go to brightness and darkness blur
-        for a in alpha:
-            if a == 1.0:
-                continue
-            elif a < 1.0:
-                blurType = "_darkness_blur_a"
-            else:
-                blurType = "_brightness_blur_a"
+        # next we go to darkness blur
+        for a in alpha_darkness:
             # create brightness/darkness blur
             overlayImageIdx = np.random.choice(tempIdxs, 1, replace=False)[0]
             overlayImage = copy.deepcopy(imagesOrigonal[overlayImageIdx])
             imageMask = imageOrigMask[overlayImageIdx]
-            bright_dark_blur = create_brightness_blur(overlayImage, a, 0)
-            brightdark_blur_masked = bright_dark_blur * imageMask[:, :, np.newaxis]
-            if a < 1.0:
-                brightdark_blur_masked[brightdark_blur_masked == 0] = 255
-                darkness = True
-            else:
-                darkness = False
+            dark_blur = create_brightness_blur(overlayImage, a, 0)
+            dark_blur_masked = dark_blur * imageMask[:, :, np.newaxis]
+            dark_blur_masked[imageMask == 0] = 255
+            darkness = True
+            # else:
+            #     darkness = False
             maskedImageRemovedPIL = im.fromarray(np.uint8(baseImage)).convert('RGBA')
-            brightdark_blurred_imgPIL = convert_whiten_and_crop_image(brightdark_blur_masked, darkness)
+            dark_blurred_imgPIL = convert_whiten_and_crop_image(dark_blur_masked, darkness)
             placement = (np.random.randint(0, baseImage.shape[0] * .50, 1)[0],
                          np.random.randint(0, baseImage.shape[1] * .50, 1)[0])
-            maskedImageRemovedPIL.paste(brightdark_blurred_imgPIL, placement, mask=brightdark_blurred_imgPIL)
+            maskedImageRemovedPIL.paste(dark_blurred_imgPIL, placement, mask=dark_blurred_imgPIL)
             final_masked_blurred_image = np.array(maskedImageRemovedPIL)[:, :, 0:3]
             # cv2.imshow('BrightnessImage', final_masked_blurred_image)
             # cv2.waitKey(0)
             # save the image
-            saveName = args.output_data_dir + "/" + baseImageName + blurType + str(a) + args.data_extension
+            saveName = args.output_data_dir + "/images/" + baseImageName + "_darkness_blur_al_" + str(a) + \
+                       args.data_extension
             cv2.imwrite(saveName, final_masked_blurred_image)
             # get ground truth mask
-            saveName = args.output_data_dir + "/gt/" + baseImageName + "_gt_" + blurType + str(a) + args.data_extension
+            saveName = args.output_data_dir + "/gt/" + baseImageName + "_gt_" + "_darkness_blur_al_" + str(a) + \
+                       args.data_extension
             nMask = np.zeros(mask.shape)
             # add brightness and/or darkness blur to mask image
-            idx = np.where(np.array(brightdark_blurred_imgPIL)[:, :, 3] == 255)
+            idx = np.where(np.array(dark_blurred_imgPIL)[:, :, 3] == 255)
             idx_x = np.minimum(placement[1] + idx[0],
                                np.ones(idx[0].shape[0]) * (nMask.shape[0] - 1)).astype(int)
             idx_y = np.minimum(placement[0] + idx[1],
                                np.ones(idx[1].shape[0]) * (nMask.shape[1] - 1)).astype(int)
-            if a < 1.0:  # indicator for dark blur
-                nMask[idx_x, idx_y] = 192
-            else:  # indicator for brightness
-                nMask[idx_x, idx_y] = 255
+            # indicator for dark blur
+            nMask[idx_x, idx_y] = 192
+            # else:  # indicator for brightness
+            #     nMask[idx_x, idx_y] = 255
             cv2.imwrite(saveName, nMask)
+        # next we go to brightness blur
+        for a in alpha_brightness:
+            # create brightness blur
+            overlayImageIdx = np.random.choice(tempIdxs, 1, replace=False)[0]
+            overlayImage = copy.deepcopy(imagesOrigonal[overlayImageIdx])
+            imageMask = imageOrigMask[overlayImageIdx]
+            bright_blur = create_brightness_blur(overlayImage, a, 0)
+            bright_blur_masked = bright_blur * imageMask[:, :, np.newaxis]
+            darkness = False
+            maskedImageRemovedPIL = im.fromarray(np.uint8(baseImage)).convert('RGBA')
+            bright_blurred_imgPIL = convert_whiten_and_crop_image(bright_blur_masked, darkness)
+            placement = (np.random.randint(0, baseImage.shape[0] * .50, 1)[0],
+                             np.random.randint(0, baseImage.shape[1] * .50, 1)[0])
+            maskedImageRemovedPIL.paste(bright_blurred_imgPIL, placement, mask=bright_blurred_imgPIL)
+            final_masked_blurred_image = np.array(maskedImageRemovedPIL)[:, :, 0:3]
+            # cv2.imshow('BrightnessImage', final_masked_blurred_image)
+            # cv2.waitKey(0)
+            # save the image
+            saveName = args.output_data_dir + "/images/" + baseImageName + "_brightness_blur_al_" + str(a) + \
+                       args.data_extension
+            cv2.imwrite(saveName, final_masked_blurred_image)
+            # get ground truth mask
+            saveName = args.output_data_dir + "/gt/" + baseImageName + "_gt_" + "_brightness_blur_al_" + str(a) + \
+                       args.data_extension
+            nMask = np.zeros(mask.shape)
+            # add brightness and/or darkness blur to mask image
+            idx = np.where(np.array(bright_blurred_imgPIL)[:, :, 3] == 255)
+            idx_x = np.minimum(placement[1] + idx[0],
+                                   np.ones(idx[0].shape[0]) * (nMask.shape[0] - 1)).astype(int)
+            idx_y = np.minimum(placement[0] + idx[1],
+                                   np.ones(idx[1].shape[0]) * (nMask.shape[1] - 1)).astype(int)
+            # indicator for brightness
+            nMask[idx_x, idx_y] = 255
+            cv2.imwrite(saveName, nMask)
+
 
 if __name__ == "__main__":
  # Feel free to add more args, or change/remove these.
