@@ -63,13 +63,12 @@ def convert_whiten_and_crop_image(image,darkness):
 def create_syntheic_dataset_for_training(args):
     # angles range for dataset
     angles = np.arange(start=0,stop=190,step=30)
-    # kernal size ranges
-    kernalSize = np.arange(start=3,stop=11,step=2)
+    kernalSize = np.array([3, 5, 7, 9])
     # kernal
     kernal = np.array([3,5,7,9])
     # alpha
-    alpha_darkness = np.arange(start=0.1,stop=1.0,step=0.1)
-    alpha_brightness = np.arange(start=1.1, stop=2.1, step=0.1)
+    alpha_darkness = np.arange(start=0.1,stop=1.0,step=0.2)
+    alpha_brightness = np.arange(start=1.1, stop=2.1, step=0.2)
     # beta
     #beta = np.arange(start=0,stop=1,step=1) # 110 step 10
     tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
@@ -97,7 +96,7 @@ def create_syntheic_dataset_for_training(args):
     np.random.shuffle(indexs)
     idxs = np.arange(start=0,stop=4,step=1)
     # this already makes a huge dataset
-    for i in range(2):
+    for i in range(3):
         tempIdxs = indexs[indexs != i]
         baseImage = imagesOrigonal[i]
         baseImageName = imageNames[i]
