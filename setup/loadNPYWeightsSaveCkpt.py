@@ -41,6 +41,25 @@ def get_weights(sess,network):
 
     sess.run(tl.files.assign_weights(params, network))
 
+def get_weights(sess,network,dict_weights_trained):
+    # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
+    #dict_weights_trained = np.load('./setup/final_model.npy',allow_pickle=True)[()]
+    params = []
+    keys = dict_weights_trained.keys()
+    for weights in network.trainable_weights:
+        name = weights.name
+        splitName ='/'.join(name.split(':')[:1])
+        for key in keys:
+            keySplit = '/'.join(key.split('/'))
+            if splitName == keySplit:
+                if 'bias' in name.split('/')[-1]:
+                    params.append(dict_weights_trained[key])
+                else:
+                    params.append(dict_weights_trained[key])
+                break
+
+    sess.run(tl.files.assign_weights(params, network))
+
 def load_and_save_npy_weights():
     # Model
     patches_blurred = tf.compat.v1.placeholder('float32', [1, 416, 640, 3], name='input_patches')

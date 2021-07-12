@@ -1,5 +1,6 @@
 # coding=utf-8
 import copy
+import random
 
 import tensorflow as tf
 # import tensorflow.compat.v1 as tf
@@ -7,6 +8,10 @@ import tensorflow as tf
 import tensorlayer as tl
 import numpy as np
 import math
+
+from tensorflow.python.training import py_checkpoint_reader
+from sklearn.metrics import f1_score, confusion_matrix
+
 from config import config, log_config
 from setup.loadNPYWeightsSaveCkpt import get_weights
 from utils import *
@@ -17,9 +22,8 @@ import time
 import cv2
 import argparse
 import os
-tf.compat.v1.disable_eager_execution()
-import sys
-from train import *
+#tf.compat.v1.disable_eager_execution()
+#import sys
 
 batch_size = config.TRAIN.batch_size
 lr_init = config.TRAIN.lr_init
@@ -36,11 +40,47 @@ VGG_MEAN = [103.939, 116.779, 123.68]
 
 ni = int(math.ceil(np.sqrt(batch_size)))
 
-def blurmap_3classes(index):
-    print("Blurmap Generation")
+## IOU in pure numpy
+def numpy_iou(y_true, y_pred, n_class=5):
+    # IOU = TP/(TP+FN+FP)
+    IOU = []
+    for c in range(n_class):
+        TP = np.sum((y_true == c) & (y_pred == c))
+        FP = np.sum((y_true != c) & (y_pred == c))
+        FN = np.sum((y_true == c) & (y_pred != c))
+
+        n = TP.astype(float)
+        d = float(TP + FP + FN + 1e-12)
+
+        iou = np.divide(n, d)
+        # since not all classes are present in the iou
+        if n == 0.0 and d == 1e-12:
+            iou = 1.0
+        IOU.append(iou)
+
+    return np.mean(IOU)
+
+def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
+    """ Returns all images in array by given path and name of each image file. """
+    imgs = []
+    for idx in range(0, len(img_list), n_threads):
+        b_imgs_list = img_list[idx : idx + n_threads]
+        if mode == 'RGB':
+            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGB_fn, path=path)
+        elif mode == 'GRAY':
+            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_GRAY_fn, path=path)
+        elif mode == 'RGB2GRAY':
+            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGBGRAY_fn, path=path)
+        # print(b_imgs.shape)
+        imgs.extend(b_imgs)
+        print('read %d from %s' % (len(imgs), path))
+    return imgs
+
+def testData(index):
+    print("Blurmap Generation and Testing")
 
     date = datetime.datetime.now().strftime("%y.%m.%d")
-    save_dir_sample = 'output_origonalResultswithnewDatasetwith256image'
+    save_dir_sample = 'output_{}'.format(tl.global_flag['mode'])
     tl.files.exists_or_mkdir(save_dir_sample)
 
     #Put the input path!
@@ -78,7 +118,14 @@ def blurmap_3classes(index):
                 image_h, image_w =sharp_image.shape[0:2]
                 print(image_h, image_w)
 
-                test_image = sharp_image[0: image_h-(image_h%16), 0: 0 + image_w-(image_w%16), :]/(255.)
+                test_image = sharp_image[0: image_h-(image_h%16), 0: 0 + image_w-(image_w%16), :]#/(255.)
+                red = test_image[:, :, 0]
+                green = test_image[:, :, 1]
+                blue = test_image[:, :, 2]
+                bgr = np.zeros(test_image.shape)
+                bgr[:, :, 0] = blue - VGG_MEAN[0]
+                bgr[:, :, 1] = green - VGG_MEAN[1]
+                bgr[:, :, 2] = red - VGG_MEAN[2]
 
                 # Model
                 patches_blurred = tf.compat.v1.placeholder('float32', [1, test_image.shape[0], test_image.shape[1], 3], name='input_patches')
@@ -90,13 +137,11 @@ def blurmap_3classes(index):
                 start_time = time.time()
 
                 with tf.compat.v1.variable_scope('Unified') as scope:
-                    with tf.compat.v1.variable_scope('VGG') as scope3:
-                        input, n, f0, f0_1, f1_2, f2_3= VGG19_pretrained(patches_blurred, reuse=reuse,scope=scope3)
-                        #tl.visualize.draw_weights(n.all_params[0].eval(), second=10, saveable=True, name='weight_of_1st_layer', fig_idx=2012)
-                    with tf.compat.v1.variable_scope('UNet') as scope1:
-                        output,m1,m2,m3= Decoder_Network_classification(input, n.outputs, f0.outputs, f0_1.outputs,
-                                                                        f1_2.outputs, f2_3.outputs,reuse = reuse,
-                                                                        scope = scope1)
+                    with tf.compat.v1.variable_scope('VGG') as scope1:
+                        input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=reuse, scope=scope1)
+                    with tf.compat.v1.variable_scope('UNet') as scope2:
+                        output, m1, m2, m3 = Decoder_Network_classification(input, n, f0, f0_1, f1_2, f2_3,reuse=reuse,
+                                                                                    scope=scope2)
 
                     output_map = tf.nn.softmax(output.outputs)
                     output_map1 = tf.nn.softmax(m1.outputs)
@@ -106,20 +151,60 @@ def blurmap_3classes(index):
                 #a_vars = tl.layers.get_variables_with_name('Unified', False, True)
 
                 saver = tf.compat.v1.train.Saver()
-                sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False))
+                configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+                configTf.gpu_options.allow_growth = True
+                sess = tf.compat.v1.Session(config=configTf)
                 tl.layers.initialize_global_variables(sess)
 
                 # Load checkpoint
-                saver.restore(sess, "./model/final_model.ckpt")
+                #saver.restore(sess,'SA_net_{}.ckpt-500'.format(tl.global_flag['mode']))
+                # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
+                file_name = 'SA_net_{}.ckpt-500'.format(tl.global_flag['mode'])
+                reader = py_checkpoint_reader.NewCheckpointReader(file_name)
+
+                state_dict = {
+                    v: reader.get_tensor(v) for v in reader.get_variable_to_shape_map()
+                }
                 #print(tf.trainable_variables())
+                get_weights(sess,output,state_dict)
 
                 start_time = time.time()
-                blur_map,_,_,_ = sess.run([output_map,output_map1,output_map2,output_map3],{patches_blurred: np.expand_dims(
-                    (test_image), axis=0)})
-                blur_map = np.squeeze(blur_map)
-                # o1= np.squeeze(o1)
-                # o2 = np.squeeze(o2)
-                # o3 = np.squeeze(o3)
+                blur_map,o1,o2,o3 = sess.run([output_map,output_map1,output_map2,output_map3],{patches_blurred: np.expand_dims(
+                    (bgr), axis=0)})
+                #np.argmax(sess.run(tf.nn.softmax(net_regression(imlist.astype(np.float32)))), axis=3)
+                blur_map = np.squeeze(np.argmax(blur_map,axis=3))
+                o1 = np.squeeze(np.argmax(o1,axis=3))
+                o2 = np.squeeze(np.argmax(o2,axis=3))
+                o3 = np.squeeze(np.argmax(o3,axis=3))
+
+                # now color code
+                rgb_blur_map = np.zeros(test_image.shape)
+                rgb_o1 = np.zeros((int(test_image.shape[0] / 2), int(test_image.shape[1] / 2), 3))
+                rgb_o2 = np.zeros((int(test_image.shape[0] / 4), int(test_image.shape[1] / 4), 3))
+                rgb_o3 = np.zeros((int(test_image.shape[0] / 8), int(test_image.shape[1] / 8), 3))
+                # red
+                rgb_blur_map[blur_map == 1] = [255,0,0]
+                rgb_o1[o1 == 1] = [255, 0, 0]
+                rgb_o2[o2 == 1] = [255, 0, 0]
+                rgb_o3[o3 == 1] = [255, 0, 0]
+
+                # green
+                rgb_blur_map[blur_map == 2] = [0, 255, 0]
+                rgb_o1[o1 == 2] = [0, 255, 0]
+                rgb_o2[o2 == 2] = [0, 255, 0]
+                rgb_o3[o3 == 2] = [0, 255, 0]
+
+                # blue
+                rgb_blur_map[blur_map == 3] = [0, 0, 255]
+                rgb_o1[o1 == 3] = [0, 0, 255]
+                rgb_o2[o2 == 3] = [0, 0, 255]
+                rgb_o3[o3 == 3] = [0, 0, 255]
+
+                # pink
+                rgb_blur_map[blur_map == 4] = [255, 192, 203]
+                rgb_o1[o1 == 4] = [255, 192, 203]
+                rgb_o2[o2 == 4] = [255, 192, 203]
+                rgb_o3[o3 == 4] = [255, 192, 203]
 
                 if ".jpg" in image:
                     image.replace(".jpg", ".png")
@@ -132,7 +217,10 @@ def blurmap_3classes(index):
                     cv2.imwrite(save_dir_sample +  '/'+ image.replace(".jpg", ".png"), blur_map*255)
                 if ".png" in image:
                     image.replace(".jpg", ".png")
-                    cv2.imwrite(save_dir_sample + '/' + image.replace(".jpg", ".png"), blur_map*255)
+                    cv2.imwrite(save_dir_sample + '/' + image.replace(".jpg", ".png"), rgb_blur_map)
+                    cv2.imwrite(save_dir_sample + '/m1_results' + image.replace(".jpg", ".png"), rgb_o1)
+                    cv2.imwrite(save_dir_sample + '/m2_results' + image.replace(".jpg", ".png"), rgb_o2)
+                    cv2.imwrite(save_dir_sample + '/m3_results' + image.replace(".jpg", ".png"), rgb_o3)
 
                 sess.close()
                 flag=1
@@ -142,6 +230,201 @@ def blurmap_3classes(index):
                 if(i==index+101-1):
                     return 0
         i = i + 1
+    return 0
+
+
+def testData_return_error():
+    print("Blurmap Testing")
+
+    date = datetime.datetime.now().strftime("%y.%m.%d")
+    save_dir_sample = 'output_{}'.format(tl.global_flag['mode'])
+    tl.files.exists_or_mkdir(save_dir_sample)
+    tl.files.exists_or_mkdir(save_dir_sample+'/gt')
+
+    test_blur_img_list = sorted(tl.files.load_file_list(path=config.TEST.ssc_blur_path, regx='/*.(png|PNG)', printable=False))
+    test_mask_img_list = sorted(tl.files.load_file_list(path=config.TEST.ssc_gt_path, regx='/*.(png|PNG)', printable=False))
+
+    ###Load Testing Data ####
+    test_blur_imgs = read_all_imgs(test_blur_img_list, path=config.TEST.ssc_blur_path, n_threads=100, mode='RGB')
+    test_mask_imgs = read_all_imgs(test_mask_img_list, path=config.TEST.ssc_gt_path, n_threads=100, mode='RGB2GRAY')
+
+    test_classification_mask = []
+    # print train_mask_imgs
+    # img_n = 0
+    for img in test_mask_imgs:
+        tmp_class = img
+        tmp_classification = np.concatenate((img, img, img), axis=2)
+
+        tmp_class[np.where(tmp_classification[:, :, 0] == 0)] = 0  # sharp
+        tmp_class[np.where(tmp_classification[:, :, 0] == 64)] = 1  # motion blur
+        tmp_class[np.where(tmp_classification[:, :, 0] == 128)] = 2  # out of focus blur
+        if np.where(tmp_classification[:, :, 0] == 192)[0].size == 0:
+            tmp_class[np.where(tmp_classification[:, :, 0] == 255)] = 4  # brightness blur
+        else:
+            tmp_class[np.where(tmp_classification[:, :, 0] == 192)] = 3  # darkness blur
+
+        test_classification_mask.append(tmp_class)
+
+    test_mask_imgs = test_classification_mask
+    print(len(test_blur_imgs), len(test_mask_imgs))
+
+    ### DEFINE MODEL ###
+    patches_blurred = tf.compat.v1.placeholder('float32', [1, h, w, 3], name='input_patches')
+    classification_map = tf.compat.v1.placeholder('int64', [1, h, w, 1], name='labels')
+    #predictions = tf.compat.v1.placeholder('int64', [1, h, w, 1], name='predictions')
+    with tf.compat.v1.variable_scope('Unified'):
+        with tf.compat.v1.variable_scope('VGG') as scope1:
+            input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
+        with tf.compat.v1.variable_scope('UNet') as scope2:
+            net_regression, m1, m2, m3 = Decoder_Network_classification(input, n, f0, f0_1, f1_2, f2_3, reuse=False,
+                                                                        scope=scope2)
+
+    output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs),axis=3),axis=3)
+
+    ### DEFINE LOSS ###
+    loss1 = tf.cast(tf.math.reduce_sum(1-tf.math.abs(tf.math.subtract(output_map, classification_map))),
+                    dtype=tf.float32)*(1/(h*w))
+    #mean_iou, update_op = tf.compat.v1.metrics.mean_iou(labels=classification_map,predictions=predictions,num_classes=5)
+
+    configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+    configTf.gpu_options.allow_growth = True
+    sess = tf.compat.v1.Session(config=configTf)
+    tl.layers.initialize_global_variables(sess)
+    sess.run(tf.compat.v1.global_variables_initializer())
+    sess.run(tf.compat.v1.local_variables_initializer())
+
+    # Load checkpoint
+    # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
+    file_name = 'SA_net_{}.ckpt-500'.format(tl.global_flag['mode'])
+    reader = py_checkpoint_reader.NewCheckpointReader(file_name)
+
+    state_dict = {
+        v: reader.get_tensor(v) for v in reader.get_variable_to_shape_map()
+    }
+    # print(tf.trainable_variables())
+    get_weights(sess, net_regression, state_dict)
+
+    net_regression.test()
+    m1.test()
+    m2.test()
+    m3.test()
+
+    accuracy_list = []
+    miou_list = []
+    f1score_list = []
+    perclass_accuracyList = []
+
+    for i in range(len(test_blur_imgs)):
+        test_image = test_blur_imgs[i]
+        gt_test_image = test_mask_imgs[i]
+        image_name = test_blur_img_list[i]
+        red = test_image[:, :, 0]
+        green = test_image[:, :, 1]
+        blue = test_image[:, :, 2]
+        test_image = np.zeros(test_image.shape)
+        test_image[:, :, 0] = blue - VGG_MEAN[0]
+        test_image[:, :, 1] = green - VGG_MEAN[1]
+        test_image[:, :, 2] = red - VGG_MEAN[2]
+
+        # Model
+        start_time = time.time()
+        blur_map,accuracy = sess.run([output_map,loss1],{net_regression.inputs: np.expand_dims((test_image), axis=0),
+                                                  classification_map: np.expand_dims(gt_test_image,axis=0)})
+        # calculate mean intersection of union
+        miou = numpy_iou(np.squeeze(gt_test_image),np.squeeze(blur_map))
+
+        perclass_accuracy = confusion_matrix(np.squeeze(gt_test_image).flatten(),np.squeeze(blur_map).flatten(),
+                                       labels=[0,1,2,3,4],normalize="true").diagonal()
+
+        # calculate f1 score
+        # https://machinelearningmastery.com/precision-recall-and-f-measure-for-imbalanced-classification/
+        f1score = f1_score(np.squeeze(gt_test_image).flatten(),np.squeeze(blur_map).flatten(), labels=[0,1,2,3,4],
+                           average='micro')
+
+        # record accuracy miou and f1 score in test set
+        accuracy_list.append(accuracy)
+        perclass_accuracyList.append(perclass_accuracy)
+        miou_list.append(miou)
+        f1score_list.append(f1score)
+
+        blur_map = np.squeeze(blur_map)
+        gt_map = np.squeeze(gt_test_image)
+
+        # now color code
+        rgb_blur_map = np.zeros(test_image.shape)
+        rgb_gt_map = np.zeros(test_image.shape)
+        # red motion blur
+        rgb_blur_map[blur_map == 1] = [255,0,0]
+        rgb_gt_map[gt_map == 1] = [255,0,0]
+        # green focus blur
+        rgb_blur_map[blur_map == 2] = [0, 255, 0]
+        rgb_gt_map[gt_map == 2] = [0, 255, 0]
+        # blue darkness blur
+        rgb_blur_map[blur_map == 3] = [0, 0, 255]
+        rgb_gt_map[gt_map == 3] = [0, 0, 255]
+        # pink brightness blur
+        rgb_blur_map[blur_map == 4] = [255, 192, 203]
+        rgb_gt_map[gt_map == 4] = [255, 192, 203]
+
+        log = "[*] Testing image name:"+image_name+" time: %4.4fs, Overall Accuracy: %.8f Accuracy for Class 0 %.8f " \
+                                    "Accuracy for Class 1 %.8f Accuracy for Class 2 %.8f Accuracy for Class 3 %.8f " \
+                                    "Accuracy for Class 4 %.8f mIOU: %.8f f1_score: %.8f\n" \
+              % (time.time() - start_time,accuracy,perclass_accuracy[0],perclass_accuracy[1],perclass_accuracy[2],
+                 perclass_accuracy[3],perclass_accuracy[4],miou,f1score)
+        # only way to write to log file while running
+        with open(save_dir_sample + "/testing_metrics.log", "a") as f:
+            # perform file operations
+            f.write(log)
+
+        if ".jpg" in image_name:
+            image_name.replace(".jpg", ".png")
+            cv2.imwrite(save_dir_sample + '/' + image_name.replace(".jpg", ".png"), rgb_blur_map)
+            cv2.imwrite(save_dir_sample + '/gt/gt_' + image_name.replace(".jpg", ".png"), rgb_gt_map)
+            # cv2.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".jpg", ".png"), rgb_o1)
+            # cv2.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".jpg", ".png"), rgb_o2)
+            # cv2.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".jpg", ".png"), rgb_o3)
+        if ".JPG" in image_name:
+            image_name.replace(".JPG", ".png")
+            cv2.imwrite(save_dir_sample + '/' + image_name.replace(".JPG", ".png"), rgb_blur_map)
+            cv2.imwrite(save_dir_sample + '/gt/gt_' + image_name.replace(".JPG", ".png"), rgb_gt_map)
+            # cv2.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".JPG", ".png"), rgb_o1)
+            # cv2.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".JPG", ".png"), rgb_o2)
+            # cv2.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".JPG", ".png"), rgb_o3)
+        if ".PNG" in image_name:
+            image_name.replace(".jpg", ".png")
+            cv2.imwrite(save_dir_sample + '/' + image_name.replace(".jpg", ".png"), rgb_blur_map)
+            cv2.imwrite(save_dir_sample + '/gt/gt_' + image_name.replace(".jpg", ".png"), rgb_gt_map)
+            # cv2.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".jpg", ".png"), rgb_o1)
+            # cv2.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".jpg", ".png"), rgb_o2)
+            # cv2.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".jpg", ".png"), rgb_o3)
+        if ".png" in image_name:
+            image_name.replace(".jpg", ".png")
+            cv2.imwrite(save_dir_sample + '/' + image_name.replace(".jpg", ".png"), rgb_blur_map)
+            cv2.imwrite(save_dir_sample + '/gt/gt_' + image_name.replace(".jpg", ".png"), rgb_gt_map)
+            # cv2.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".jpg", ".png"), rgb_o1)
+            # cv2.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".jpg", ".png"), rgb_o2)
+            # cv2.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".jpg", ".png"), rgb_o3)
+
+    sess.close()
+    log = "[*] Testing Max Overall Accuracy: %.8f Max Accuracy Class 0: %.8f Max Accuracy Class 1: %.8f " \
+          "Max Accuracy Class 2: %.8f Max Accuracy Class 3: %.8f Max Accuracy Class 4: %.8f Max IoU: %.8f " \
+          "Variance: %.8f Max F1_score: %.8f\n" % \
+          (np.max(np.array(accuracy_list)),np.max(np.array(perclass_accuracyList),axis=0)[0],
+           np.max(np.array(perclass_accuracyList),axis=0)[1],np.max(np.array(perclass_accuracyList),axis=0)[2],
+           np.max(np.array(perclass_accuracyList),axis=0)[3],np.max(np.array(perclass_accuracyList),axis=0)[4],
+           np.max(np.array(miou_list)),np.var(np.asarray(accuracy_list)),np.max(np.array(f1score_list)))
+    log2 = "[*] Testing Mean Overall Accuracy: %.8f Mean Accuracy Class 0: %.8f Mean Accuracy Class 1: %.8f " \
+          "Mean Accuracy Class 2: %.8f Mean Accuracy Class 3: %.8f Mean Accuracy Class 4: %.8f Mean IoU: %.8f " \
+          "Mean F1_score: %.8f\n" % \
+          (np.mean(np.array(accuracy_list)), np.mean(np.array(perclass_accuracyList), axis=0)[0],
+           np.mean(np.array(perclass_accuracyList), axis=0)[1], np.mean(np.array(perclass_accuracyList), axis=0)[2],
+           np.mean(np.array(perclass_accuracyList), axis=0)[3], np.mean(np.array(perclass_accuracyList), axis=0)[4],
+           np.mean(np.array(miou_list)),np.mean(np.array(f1score_list)))
+    # only way to write to log file while running
+    with open(save_dir_sample + "/testing_metrics.log", "a") as f:
+        # perform file operations
+        f.write(log)
+        f.write(log2)
     return 0
 
 

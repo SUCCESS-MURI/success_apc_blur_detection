@@ -8,6 +8,9 @@ import tensorflow as tf
 import tensorlayer as tl
 import numpy as np
 import math
+
+from tensorflow.python.training import py_checkpoint_reader
+
 from config import config, log_config
 from setup.loadNPYWeightsSaveCkpt import get_weights
 from utils import *
@@ -33,8 +36,8 @@ h = config.TRAIN.height
 w = config.TRAIN.width
 
 ni = int(math.ceil(np.sqrt(batch_size)))
-np.random.seed(10)
-random.seed(10)
+# np.random.seed(10)
+# random.seed(10)
 
 def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
     """ Returns all images in array by given path and name of each image file. """
@@ -623,20 +626,8 @@ def train_with_ssc_dataset():
     a_vars = tl.layers.get_variables_with_name('', False, True)  # Unified
     #var_list1 = tl.layers.get_variables_with_name('VGG', True, True)  # ?
     var_list2 = tl.layers.get_variables_with_name('UNet', True, True)  # ?
-        # varlist2 = tl.layers.get_variables_with_name('UNet', True, True)  # ?
-        # var_list2 = []
-        # for var in varlist2:
-        #     if hasattr(var,'values'):
-        #         var_list2.append(var.values[0])
-        #     else:
-        #         var_list2.append(var)
-        #distributed_values = strategy.experimental_distribute_values_from_function(lambda _: var_list2)
-        #opt1 = tf.optimizers.Adam(learning_rate=lr_v)  # *0.1*0.1
     opt2 = tf.optimizers.Adam(learning_rate=lr_v2)
     grads = tf.gradients(ys=loss, xs=var_list2, unconnected_gradients='zero')
-        #grads1 = grads[:len(var_list1)]
-        #grads2 = grads[len(var_list1):]
-        #train_op1 = opt1.apply_gradients(zip(grads1, var_list1))
     train_op2 = opt2.apply_gradients(zip(grads, var_list2))
     train_op = tf.group(train_op2)
     configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
@@ -662,16 +653,22 @@ def train_with_ssc_dataset():
         tl.files.load_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
                            save_dir=checkpoint_dir, var_list=a_vars, is_latest=True, printable=True)
     else:
-        get_weights(sess,n)
+        # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
+        file_name = 'SA_net_ssc_smaller_dataset_256.ckpt-500'
+        reader = py_checkpoint_reader.NewCheckpointReader(file_name)
+
+        state_dict = {
+            v: reader.get_tensor(v) for v in reader.get_variable_to_shape_map()
+        }
+        # print(tf.trainable_variables())
+        get_weights(sess, net_regression, state_dict)
+        #get_weights(sess,n)
 
     ### START TRAINING ###
     augmentation_list = [0, 1]
     train_blur_imgs = np.array(train_blur_imgs, dtype=object)
     train_classification_mask = np.array(train_classification_mask, dtype=object)
-    net_regression.train()
-    m1.train()
-    m2.train()
-    m3.train()
+    net_regression.eval()
     for epoch in range(tl.global_flag['start_from'], n_epoch + 1):
         # update learning rate
         if epoch != 0 and (epoch % decay_every == 0):

@@ -42,10 +42,10 @@ def resize_dataset(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--file_input_path', type=str,
-                        default='/home/mary/code/local_success_dataset/BlurDetectionDataset/Training',
+                        default='/home/mary/code/local_success_dataset/ssc_dataset_test',
                         help='Path to the dataset size 224 by 224 ')
     parser.add_argument('--file_output_path', type=str,
-                        default='/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized',
+                        default='/home/mary/code/local_success_dataset/BlurDetectionDataset/Testing_Resized',
                         help='Output Path to the dataset for training resized to 256 by 256')
     args = parser.parse_args()
     resize_dataset(args)

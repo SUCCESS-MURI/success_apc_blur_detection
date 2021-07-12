@@ -57,5 +57,6 @@ if __name__ == '__main__':
             train_with_CUHK()
     else:
         #blurmap_3classes(args.index) #pg test
-        blurmap_3classes_using_numpy_pretrainied_weights(args.index)
+        #blurmap_3classes_using_numpy_pretrainied_weights(args.index)
+        testData_return_error()
 

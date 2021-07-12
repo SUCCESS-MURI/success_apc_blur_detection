@@ -21,7 +21,6 @@ config.TRAIN.decay_every = 6000
 ## train set location
 config.TRAIN.CUHK_blur_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/image/'
 config.TRAIN.CUHK_gt_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/gt/'
-# TODO edit this to my path files
 # config.TRAIN.synthetic_blur_path = '/home/mary/code/local_success_dataset/BlurTrainSyntheic/imgs/'
 # config.TRAIN.synthetic_gt_path = '/home/mary/code/local_success_dataset/BlurTrainSyntheic/GT/'
 config.TRAIN.synthetic_blur_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/image/'
@@ -29,6 +28,9 @@ config.TRAIN.synthetic_gt_path = '/home/mary/code/local_success_dataset/CUHK_Spl
 
 config.TRAIN.ssc_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized/Training_smallerversion/image/'
 config.TRAIN.ssc_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized/Training_smallerversion/gt/'
+
+config.TEST.ssc_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Testing_Resized/Testing/image/'
+config.TEST.ssc_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Testing_Resized/Testing/gt/'
 
 ## train image size
 config.TRAIN.height = 256#192->144 ->288
