@@ -41,6 +41,7 @@ VGG_MEAN = [103.939, 116.779, 123.68]
 ni = int(math.ceil(np.sqrt(batch_size)))
 
 ## IOU in pure numpy
+# https://github.com/hipiphock/Mean-IOU-in-Numpy-TensorFlow/blob/master/main.py
 def numpy_iou(y_true, y_pred, n_class=5):
     # IOU = TP/(TP+FN+FP)
     IOU = []
@@ -312,7 +313,12 @@ def testData_return_error():
     accuracy_list = []
     miou_list = []
     f1score_list = []
-    perclass_accuracyList = []
+    class_0_list = []
+    class_1_list = []
+    class_2_list = []
+    class_3_list = []
+    class_4_list = []
+    classesList = [class_0_list,class_1_list,class_2_list,class_3_list,class_4_list]
 
     for i in range(len(test_blur_imgs)):
         test_image = test_blur_imgs[i]
@@ -333,8 +339,16 @@ def testData_return_error():
         # calculate mean intersection of union
         miou = numpy_iou(np.squeeze(gt_test_image),np.squeeze(blur_map))
 
-        perclass_accuracy = confusion_matrix(np.squeeze(gt_test_image).flatten(),np.squeeze(blur_map).flatten(),
-                                       labels=[0,1,2,3,4],normalize="true").diagonal()
+        # https://stackoverflow.com/questions/39770376/scikit-learn-get-accuracy-scores-for-each-class
+        perclass_accuracy_conf_matrix = confusion_matrix(np.squeeze(gt_test_image).flatten(),np.squeeze(blur_map).flatten(),
+                                       labels=[0,1,2,3,4],normalize="true")
+
+        perclass_accuracy = perclass_accuracy_conf_matrix.diagonal()
+        for lab in range(5):
+            if (perclass_accuracy_conf_matrix[lab,:] == 0).all() and (perclass_accuracy_conf_matrix[:,lab] == 0).all():
+                pass
+            else:
+                classesList[lab].append(perclass_accuracy[lab])
 
         # calculate f1 score
         # https://machinelearningmastery.com/precision-recall-and-f-measure-for-imbalanced-classification/
@@ -343,7 +357,6 @@ def testData_return_error():
 
         # record accuracy miou and f1 score in test set
         accuracy_list.append(accuracy)
-        perclass_accuracyList.append(perclass_accuracy)
         miou_list.append(miou)
         f1score_list.append(f1score)
 
@@ -353,13 +366,13 @@ def testData_return_error():
         # now color code
         rgb_blur_map = np.zeros(test_image.shape)
         rgb_gt_map = np.zeros(test_image.shape)
-        # red motion blur
+        # blue motion blur
         rgb_blur_map[blur_map == 1] = [255,0,0]
         rgb_gt_map[gt_map == 1] = [255,0,0]
         # green focus blur
         rgb_blur_map[blur_map == 2] = [0, 255, 0]
         rgb_gt_map[gt_map == 2] = [0, 255, 0]
-        # blue darkness blur
+        # red darkness blur
         rgb_blur_map[blur_map == 3] = [0, 0, 255]
         rgb_gt_map[gt_map == 3] = [0, 0, 255]
         # pink brightness blur
@@ -409,16 +422,16 @@ def testData_return_error():
     log = "[*] Testing Max Overall Accuracy: %.8f Max Accuracy Class 0: %.8f Max Accuracy Class 1: %.8f " \
           "Max Accuracy Class 2: %.8f Max Accuracy Class 3: %.8f Max Accuracy Class 4: %.8f Max IoU: %.8f " \
           "Variance: %.8f Max F1_score: %.8f\n" % \
-          (np.max(np.array(accuracy_list)),np.max(np.array(perclass_accuracyList),axis=0)[0],
-           np.max(np.array(perclass_accuracyList),axis=0)[1],np.max(np.array(perclass_accuracyList),axis=0)[2],
-           np.max(np.array(perclass_accuracyList),axis=0)[3],np.max(np.array(perclass_accuracyList),axis=0)[4],
+          (np.max(np.array(accuracy_list)),np.max(np.array(classesList[0]),axis=0),
+           np.max(np.array(classesList[1]),axis=0),np.max(np.array(classesList[2]),axis=0),
+           np.max(np.array(classesList[3]),axis=0),np.max(np.array(classesList[4]),axis=0),
            np.max(np.array(miou_list)),np.var(np.asarray(accuracy_list)),np.max(np.array(f1score_list)))
     log2 = "[*] Testing Mean Overall Accuracy: %.8f Mean Accuracy Class 0: %.8f Mean Accuracy Class 1: %.8f " \
           "Mean Accuracy Class 2: %.8f Mean Accuracy Class 3: %.8f Mean Accuracy Class 4: %.8f Mean IoU: %.8f " \
           "Mean F1_score: %.8f\n" % \
-          (np.mean(np.array(accuracy_list)), np.mean(np.array(perclass_accuracyList), axis=0)[0],
-           np.mean(np.array(perclass_accuracyList), axis=0)[1], np.mean(np.array(perclass_accuracyList), axis=0)[2],
-           np.mean(np.array(perclass_accuracyList), axis=0)[3], np.mean(np.array(perclass_accuracyList), axis=0)[4],
+          (np.mean(np.array(accuracy_list)), np.mean(np.array(classesList[0])),
+           np.mean(np.array(classesList[1])), np.mean(np.array(classesList[2])),
+           np.mean(np.array(classesList[3])), np.mean(np.array(classesList[4])),
            np.mean(np.array(miou_list)),np.mean(np.array(f1score_list)))
     # only way to write to log file while running
     with open(save_dir_sample + "/testing_metrics.log", "a") as f:

@@ -2,9 +2,6 @@
 # resizes the new dataset into 256 by 256
 import argparse
 import os
-import random
-import shutil
-
 import cv2
 import numpy as np
 
@@ -13,13 +10,13 @@ output_size = (256,256,3)
 def resize_dataset(args):
     # name the input folders
     # now create folders for correct data vs incorrectly labeled data
-    path_for_training = os.path.join(args.file_output_path, "Training")
-    os.makedirs(path_for_training)
-    output_training_images_path = os.path.join(path_for_training, "image")
-    output_training_gt_path = os.path.join(path_for_training, "gt")
+    #path_for_training = os.path.join(args.file_output_path, "Training")
+    os.makedirs(args.file_output_path)
+    output_training_images_path = os.path.join(args.file_output_path, "image")
+    output_training_gt_path = os.path.join(args.file_output_path, "gt")
     os.makedirs(output_training_images_path)
     os.makedirs(output_training_gt_path)
-    print("Directory for Training data is located in : " + path_for_training)
+    print("Directory for data is located in : " + args.file_output_path)
     # https://careerkarma.com/blog/python-list-files-in-directory/
     input_images_file_path = os.path.join(args.file_input_path, "images")
     input_gt_file_path = os.path.join(args.file_input_path, "gt")
@@ -45,7 +42,7 @@ if __name__ == '__main__':
                         default='/home/mary/code/local_success_dataset/ssc_dataset_test',
                         help='Path to the dataset size 224 by 224 ')
     parser.add_argument('--file_output_path', type=str,
-                        default='/home/mary/code/local_success_dataset/BlurDetectionDataset/Testing_Resized',
+                        default='/home/mary/code/local_success_dataset/BlurDetectionDataset/Test_Resized',
                         help='Output Path to the dataset for training resized to 256 by 256')
     args = parser.parse_args()
     resize_dataset(args)
