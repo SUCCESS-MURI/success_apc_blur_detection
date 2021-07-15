@@ -122,7 +122,7 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
 
         # n = tf.nn.relu(n)# n.outputs
         n = Conv2d(n_filter=512, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', W_init=w_init4,
-                   name='u4/c1')(n)
+                   name='u34/c1')(n)
         # n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='u3/b1')
         # n.outputs = tf.nn.relu(n.outputs)
         n = Conv2d(n_filter=512, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', W_init=w_init4,
@@ -133,6 +133,7 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
                    name='u4/c3')(n)
         # n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='u3/b3')
         # n.outputs = tf.nn.relu(n.outputs)
+        m3BModel = Model(inputs=maininput,outputs=n)
         n_m3 = Conv2d(n_filter=5, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init4,
                       name='u4/loss3')(n)
         #(hrg // 4, wrg // 4)
@@ -157,6 +158,7 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
                    name='u3/c3')(n)
         # n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='u3/b3')
         # n.outputs = tf.nn.relu(n.outputs)
+        m2BModel = Model(inputs=maininput, outputs=n)
         n_m2 = Conv2d(n_filter=5, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init3,
                       name='u3/loss2')(n)
         # output-size= (hrg // 2, wrg // 2),
@@ -178,6 +180,7 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
                    name='u2/c2')(n)
         # n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='u2/b2')
         # n.outputs = tf.nn.relu(n.outputs)
+        m1BModel = Model(inputs=maininput, outputs=n)
         n_m1 = Conv2d(n_filter=5, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init2,
                       name='u2/loss1')(n)
         #(hrg, wrg),
@@ -204,6 +207,7 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
         # n.outputs = tf.nn.relu(n.outputs)
         # network = Conv2d(n_filter=3, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init1,
         #            name='u1/c5')(n)
+        m4BModel = Model(inputs=maininput, outputs=n)
 
         network = Conv2d(n_filter=5, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init1,
                          name='u1/c5')(n)
@@ -219,7 +223,7 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
         n_m2 = Model(inputs=network.inputs, outputs=n_m2,)
         n_m1 = Model(inputs=network.inputs, outputs=n_m1,)
 
-    return network, n_m1, n_m2, n_m3
+    return network, n_m1, n_m2, n_m3,m1BModel,m2BModel,m3BModel,m4BModel
 
 
 

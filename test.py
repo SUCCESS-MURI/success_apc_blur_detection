@@ -296,14 +296,22 @@ def testData_return_error():
 
     # Load checkpoint
     # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
-    file_name = 'SA_net_{}.ckpt-500'.format(tl.global_flag['mode'])
-    reader = py_checkpoint_reader.NewCheckpointReader(file_name)
+    # file_name = 'SA_net_{}.ckpt-500'.format(tl.global_flag['mode'])
+    # reader = py_checkpoint_reader.NewCheckpointReader(file_name)
+    #
+    # state_dict = {
+    #     v: reader.get_tensor(v) for v in reader.get_variable_to_shape_map()
+    # }
+    # # print(tf.trainable_variables())
+    # get_weights(sess, net_regression, state_dict)
+    saver = tf.compat.v1.train.Saver()
+    configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+    configTf.gpu_options.allow_growth = True
+    sess = tf.compat.v1.Session(config=configTf)
+    tl.layers.initialize_global_variables(sess)
 
-    state_dict = {
-        v: reader.get_tensor(v) for v in reader.get_variable_to_shape_map()
-    }
-    # print(tf.trainable_variables())
-    get_weights(sess, net_regression, state_dict)
+    # Load checkpoint
+    saver.restore(sess,'SA_net_{}.ckpt-500'.format(tl.global_flag['mode']))
 
     net_regression.test()
     m1.test()

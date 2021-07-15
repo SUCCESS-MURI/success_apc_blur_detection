@@ -43,76 +43,6 @@ def get_imgs_RGBGRAY_fn(file_name, path):
     image = Image.open(path + file_name)
     return np.asarray(image)[:,:,0][:,:,np.newaxis]
 
-def data_aug_train(image,mask):
-    dx = config.TRAIN.width
-    dy = config.TRAIN.height
-    augmentation_list = [0, 1]
-    augmentation = random.choice(augmentation_list)
-    if augmentation == 0:
-        #image, mask = crop_sub_img_and_classification_fn(image,mask)
-        image_h = image.get_shape()[0]
-        image_w = image.get_shape()[1]
-        #TODO test this
-        if image_w != dx and dy != image_h:
-            x = np.random.randint(0, image_w - dx - 1)
-            y = np.random.randint(0, image_h - dy - 1)
-            cropped_image = tf.squeeze(tf.image.crop_and_resize(image, (y, y + dy, x, x + dx), (0), (dy, dx)))
-            cropped_mask = tf.squeeze(tf.image.crop_and_resize(mask, (y, y + dy, x, x + dx), (0), (dy, dx)))
-        else:
-            cropped_image = image
-            cropped_mask = mask
-        mask = cropped_mask
-    else:
-        #image, mask = crop_sub_img_and_classification_fn_aug(image,mask)
-        image_h = image.get_shape()[0]
-        image_w = image.get_shape()[1]
-        if image_w != dx and dy != image_h:
-            x = np.random.randint(0, image_w - dx - 1)
-            y = np.random.randint(0, image_h - dy - 1)
-            cropped_image = tf.squeeze(tf.image.crop_and_resize(image, (y,y+dy,x,x+dx), (0), (dy,dx)))
-            cropped_mask = tf.squeeze(tf.image.crop_and_resize(mask, (y,y+dy,x,x+dx), (0), (dy,dx)))
-        else:
-            cropped_image = image
-            cropped_mask = mask
-
-        rotation_list = [0, 1, 2, 3]
-        flip_list = [0, 1]
-        rotation = random.choice(rotation_list)
-        flip = random.choice(flip_list)
-
-        if flip == 1:
-            # flip image along width x axis
-            cropped_image = tf.image.flip_left_right(cropped_image)
-            cropped_mask = tf.image.flip_left_right(cropped_mask)
-        if rotation != 0:
-            # https://www.tensorflow.org/api_docs/python/tf/image/rot90
-            cropped_image = tf.image.rot90(cropped_image, k=rotation)
-            cropped_mask = tf.image.rot90(cropped_mask, k=rotation)
-    mask = tf.cast(cropped_mask,dtype=tf.float32)
-    red, green, blue = tf.split(cropped_image,3,2)
-    bgr = tf.concat([blue - VGG_MEAN[0],green - VGG_MEAN[1],red - VGG_MEAN[2],], axis=2)
-    return bgr, mask
-
-def data_aug_valid(image, mask):
-    dx = config.TRAIN.width
-    dy = config.TRAIN.height
-    # image, mask = crop_sub_img_and_classification_fn(image,mask)
-    image_h = image.get_shape()[0]
-    image_w = image.get_shape()[1]
-    # TODO Test this
-    if image_w != dx and dy != image_h:
-        x = np.random.randint(0, image_w - dx - 1)
-        y = np.random.randint(0, image_h - dy - 1)
-        cropped_image = tf.squeeze(tf.image.crop_and_resize(image, (y, y + dy, x, x + dx), (0), (dy, dx)))
-        cropped_mask = tf.squeeze(tf.image.crop_and_resize(mask, (y, y + dy, x, x + dx), (0), (dy, dx)))
-    else:
-        cropped_image = image
-        cropped_mask = mask
-    mask = tf.cast(cropped_mask,dtype=tf.float32)
-    red, green, blue = tf.split(cropped_image, 3, 2)
-    bgr = tf.concat([blue - VGG_MEAN[0], green - VGG_MEAN[1], red - VGG_MEAN[2], ], axis=2)
-    return bgr, mask
-
 def crop_sub_img_and_classification_fn_aug(data):
 
     dx = config.TRAIN.width
@@ -122,7 +52,7 @@ def crop_sub_img_and_classification_fn_aug(data):
     image, mask = data
     #print "image shape", image.shape
     #print "mask shape", mask.shape
-    image = np.asarray(image, dtype=np.float64)
+    image = np.asarray(image,dtype=np.float64)
     mask = np.asarray(mask, dtype=np.float64)
 
     image_h, image_w = np.asarray(image).shape[0:2]

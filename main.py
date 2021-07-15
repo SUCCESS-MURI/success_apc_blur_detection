@@ -52,8 +52,7 @@ if __name__ == '__main__':
         if tl.global_flag['is_synthetic']:
             train_with_synthetic() # train with the CUHK dataset first and then finetune with the synthetic dataset
         elif tl.global_flag['is_ssc_dataset']:
-            #train_with_ssc_dataset()
-            UPDATED_train_with_ssc_dataset()
+            train_with_ssc_dataset()
         else:
             train_with_CUHK()
     else:

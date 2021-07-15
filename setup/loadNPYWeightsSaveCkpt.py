@@ -41,7 +41,7 @@ def get_weights(sess,network):
 
     sess.run(tl.files.assign_weights(params, network))
 
-def get_weights(sess,network,dict_weights_trained):
+def get_weights_checkpoint(sess,network,dict_weights_trained):
     # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
     #dict_weights_trained = np.load('./setup/final_model.npy',allow_pickle=True)[()]
     params = []
