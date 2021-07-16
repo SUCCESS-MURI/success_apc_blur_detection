@@ -121,6 +121,8 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
         # n = InputLayer(tf.nn.relu(n.outputs), name='relu4')
 
         # n = tf.nn.relu(n)# n.outputs
+        # this is really studpid the origional code had the  name 'u34/c1' which was a typo but when i fixed it it cause
+        # disscepencies with names. now running test 1 you have to name this u4/c1 but running test 2 you need the name u34/c1.
         n = Conv2d(n_filter=512, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', W_init=w_init4,
                    name='u34/c1')(n)
         # n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='u3/b1')

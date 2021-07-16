@@ -1,5 +1,6 @@
 # coding=utf-8
 import copy
+import csv
 import random
 
 import tensorflow as tf
@@ -22,8 +23,6 @@ import time
 import cv2
 import argparse
 import os
-#tf.compat.v1.disable_eager_execution()
-#import sys
 
 batch_size = config.TRAIN.batch_size
 lr_init = config.TRAIN.lr_init
@@ -277,8 +276,9 @@ def testData_return_error():
         with tf.compat.v1.variable_scope('VGG') as scope1:
             input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
         with tf.compat.v1.variable_scope('UNet') as scope2:
-            net_regression, m1, m2, m3 = Decoder_Network_classification(input, n, f0, f0_1, f1_2, f2_3, reuse=False,
-                                                                        scope=scope2)
+            net_regression, m1, m2, m3, m1B, m2B, m3B, m4B = Decoder_Network_classification(input, n, f0, f0_1, f1_2,
+                                                                                            f2_3, reuse=False,
+                                                                                            scope=scope2)
 
     output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs),axis=3),axis=3)
 
@@ -327,6 +327,10 @@ def testData_return_error():
     class_3_list = []
     class_4_list = []
     classesList = [class_0_list,class_1_list,class_2_list,class_3_list,class_4_list]
+    with open(save_dir_sample + "/testing_metrics.csv", "w") as f:
+        writer = csv.writer(f)
+        writer.writerow(['Image Name', 'Overall Accuracy', 'Accuracy for Class 0', 'Accuracy for Class 1', 'Accuracy for Class 2',
+                        'Accuracy for Class 3','Accuracy for Class 4','mIOU','f1_score'])
 
     for i in range(len(test_blur_imgs)):
         test_image = test_blur_imgs[i]
@@ -396,6 +400,14 @@ def testData_return_error():
         with open(save_dir_sample + "/testing_metrics.log", "a") as f:
             # perform file operations
             f.write(log)
+        # write csv file output for plots making
+        string_list = [image_name,str(np.round(accuracy,8)),str(np.round(perclass_accuracy[0],8)),
+                   str(np.round(perclass_accuracy[1],8)),str(np.round(perclass_accuracy[2],8)),
+                   str(np.round(perclass_accuracy[3],8)),str(np.round(perclass_accuracy[4],8)),str(np.round(miou,8)),
+                   str(np.round(f1score,8))]
+        with open(save_dir_sample + "/testing_metrics.csv", "a") as f:
+            writer = csv.writer(f)
+            writer.writerow(string_list)
 
         if ".jpg" in image_name:
             image_name.replace(".jpg", ".png")
