@@ -1,5 +1,6 @@
 # coding=utf-8
 import copy
+import csv
 import multiprocessing
 import random
 
@@ -20,6 +21,7 @@ import time
 import cv2
 import argparse
 import os
+from os import path
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.DEBUG)
 tl.logging.set_verbosity(tl.logging.DEBUG)
@@ -56,12 +58,10 @@ def read_all_imgs(img_list, path='', n_threads=32, mode='RGB'):
         print('read %d from %s' % (len(imgs), path))
     return imgs
 
-
 # https://izziswift.com/better-way-to-shuffle-two-numpy-arrays-in-unison/
 def unison_shuffled_copies(a, b):
     p = np.random.permutation(len(a))
     return a[p], b[p]
-
 
 # training with the original CHUK images
 def train_with_CUHK():
@@ -292,7 +292,6 @@ def train_with_CUHK():
         if epoch % 10 == 0:
             tl.files.save_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
                                save_dir=checkpoint_dir, var_list=a_vars, global_step=epoch, printable=False)
-
 
 # train with synthetic images
 def train_with_synthetic():
@@ -539,7 +538,6 @@ def train_with_synthetic():
             tl.files.save_ckpt(sess=sess, mode_name='final_SA_net_{}.ckpt'.format(tl.global_flag['mode']),
                                save_dir=checkpoint_dir, var_list=a_vars, global_step=epoch, printable=False)
 
-
 # my new code for training the data using this version.
 # TODO remove if below works
 def train_with_ssc_dataset():
@@ -565,14 +563,14 @@ def train_with_ssc_dataset():
     train_list_names = []
     train_mask_names = []
     for idx in list_names_idx:
-        train_list_names.append(train_blur_img_list)
+        train_list_names.append(train_blur_img_list[idx])
         train_images.append(train_blur_imgs[idx])
         train_classification_mask.append(train_mask_imgs[idx])
         train_mask_names.append(train_mask_img_list[idx])
     train_mask_imgs = train_classification_mask
     train_blur_imgs = train_images
-    train_mask_img_list = train_mask_img_list
-    train_blur_img_list = train_blur_img_list
+    train_mask_img_list = train_mask_names
+    train_blur_img_list = train_list_names
     # print train_mask_imgs
     train_classification_mask = []
     # img_n = 0
@@ -592,31 +590,49 @@ def train_with_ssc_dataset():
     train_classification_mask = np.array(train_classification_mask, dtype=object)
 
     # make validation set
-    numValid = int(len(train_blur_imgs) * .1)
-    valid_blur_imgs = train_blur_imgs[:numValid]
-    valid_classification_mask = train_classification_mask[:numValid]
-    train_blur_imgs = train_blur_imgs[numValid:]
-    train_classification_mask = train_classification_mask[numValid:]
+    if path.exists(checkpoint_dir + "/validation_image_list.txt"):
+        # https://stackoverflow.com/questions/57882946/reading-log-files-in-python
+        with open(checkpoint_dir + "/validation_image_list.txt", "r") as f:
+            list = f.read().splitlines()
+        idxs = []
+        for item in list:
+            for idx in range(len(train_blur_img_list)):
+                if train_blur_img_list[idx] == item:
+                    idxs.append(idx)
+                    break
+        idxs = np.array(idxs)
+        idxs_not = np.arange(len(train_blur_img_list))
+        idxs_not_list = []
+        for item in idxs_not:
+            if item in idxs:
+                pass
+            else:
+                idxs_not_list.append(item)
+        idxs_not_list = np.array(idxs_not_list)
+        valid_blur_imgs = train_blur_imgs[idxs]
+        valid_classification_mask = train_classification_mask[idxs]
+        train_blur_imgs = train_blur_imgs[idxs_not_list]
+        train_classification_mask = train_classification_mask[idxs_not_list]
+        print("Reusing the found validation txt file in cehckpoint directory")
+    else:
+        numValid = int(len(train_blur_imgs) * .1)
+        valid_blur_imgs = train_blur_imgs[:numValid]
+        valid_classification_mask = train_classification_mask[:numValid]
+        train_blur_imgs = train_blur_imgs[numValid:]
+        train_classification_mask = train_classification_mask[numValid:]
+        with open(checkpoint_dir + "/validation_image_list.txt", "a") as f:
+            # perform file operations
+            for line in train_blur_img_list[:numValid]:
+                f.write(line + "\n")
+        with open(checkpoint_dir + "/training_image_list.txt", "a") as f:
+            # perform file operations
+            for line in train_blur_img_list[numValid:]:
+                f.write(line + "\n")
     print("Number of training images " + str(len(train_blur_imgs)))
     print("Number of validation images " + str(len(valid_blur_imgs)))
-    with open(checkpoint_dir + "/validation_image_list.txt", "a") as f:
-        # perform file operations
-        for line in train_blur_img_list[:numValid]:
-            f.write(line + "\n")
-    with open(checkpoint_dir + "/training_image_list.txt", "a") as f:
-        # perform file operations
-        for line in train_blur_img_list[numValid:]:
-            f.write(line + "\n")
 
     ### DEFINE MODEL ###
-    # gpu allocation
-    # device_type = 'GPU'
-    # devices = tf.config.experimental.list_physical_devices(
-    #     device_type)
-    # devices_names = [d.name.split("e:")[1]for d in devices]
-    # strategy = tf.distribute.MirroredStrategy(devices=devices_names,cross_device_ops=tf.distribute.ReductionToOneDevice())
     patches_blurred = tf.compat.v1.placeholder('float32', [batch_size, h, w, 3], name='input_patches')
-    # labels_sigma = tf.compat.v1.placeholder('float32', [batch_size,h,w, 1], name = 'lables')
     classification_map = tf.compat.v1.placeholder('int32', [batch_size, h, w, 1], name='labels')
     # with strategy.scope():
     with tf.compat.v1.variable_scope('Unified'):
@@ -693,6 +709,19 @@ def train_with_ssc_dataset():
     # m1.train()
     # m2.train()
     # m3.train()
+
+    # initialize the csv metrics output
+    with open(save_dir_sample + "/training_metrics.csv", "w") as f:
+        writer = csv.writer(f)
+        writer.writerow(['Epoch', 'total_error'])
+
+    # initialize the csv metrics output
+    with open(save_dir_sample + "/validation_metrics.csv", "w") as f:
+        writer = csv.writer(f)
+        writer.writerow(
+            ['Epoch','total_error','Accuracy for Class 0','Accuracy for Class 1','Accuracy for Class 2',
+             'Accuracy for Class 3','Accuracy for Class 4'])
+
     for epoch in range(tl.global_flag['start_from'], n_epoch + 1):
         # update learning rate
         if epoch != 0 and (epoch % decay_every == 0):
@@ -774,6 +803,10 @@ def train_with_ssc_dataset():
         with open(checkpoint_dir + "/training_ssc_metrics.log", "a") as f:
             # perform file operations
             f.write(log)
+        with open(save_dir_sample + "/training_metrics.csv", "a") as f:
+            writer = csv.writer(f)
+            writer.writerow([epoch,str(np.round(total_loss / n_iter,8))])
+
         ## save model
         if epoch % 10 == 0:
             tl.files.save_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
@@ -819,6 +852,11 @@ def train_with_ssc_dataset():
             with open(checkpoint_dir + "/training_ssc_metrics.log", "a") as f:
                 # perform file operations
                 f.write(log)
+            with open(save_dir_sample + "/validation_metrics.csv", "a") as f:
+                writer = csv.writer(f)
+                writer.writerow([str(epoch),str(np.round(total_loss / n_iter,8)), str(np.round(mean_accuracy_per_class[0],8)),
+                                 str(np.round(mean_accuracy_per_class[1],8)),str(np.round(mean_accuracy_per_class[2],8)),
+            str(np.round(mean_accuracy_per_class[3],8)), str(np.round(mean_accuracy_per_class[4],8))])
 
 def make_dataset(images, labels, num_epochs=1, shuffle_data_seed=0):
     img = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(images,dtype=np.float32))
@@ -852,6 +890,10 @@ def build_validation(x, y_):
     cost = loss1 + loss2 + loss3 + loss4
     accuracy = tf.cast(tf.math.reduce_sum(1 - tf.math.abs(tf.math.subtract(net_regression.outputs, y_))),
                        dtype=tf.float32) * (1 / (256 * 256))
+
+    # perclass_accuracy = confusion_matrix(np.squeeze().flatten(), np.squeeze(outmap).flatten(),
+    #                                                  labels=[0, 1, 2, 3, 4], normalize="true").diagonal()
+
     return output, [cost, accuracy]
 
 def build_train(x, y_):
@@ -983,7 +1025,7 @@ def UPDATED_train_with_ssc_dataset():
                                   tf.squeeze(tf.image.resize(classification_map, [int(h / 8), int(w / 8)],
                                                              method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)),
                                   name='loss4')
-    out = (net_regression.outputs)
+    #out = (net_regression.outputs)
     #output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
     loss = loss1 + loss2 + loss3 + loss4
 
@@ -1037,7 +1079,7 @@ def UPDATED_train_with_ssc_dataset():
     trainer = tl.distributed.Trainer(
         build_training_func=build_train, training_dataset=training_dataset, optimizer=tf.compat.v1.train.AdamOptimizer,
         optimizer_args={'learning_rate': lr_init}, batch_size=10, prefetch_size=10, log_step_size=1,#756
-        checkpoint_dir=checkpoint_dir_local)#,validation_dataset=validation_dataset, build_validation_func=build_validation)
+        checkpoint_dir=checkpoint_dir_local,save_checkpoint_step_size=2)#,validation_dataset=validation_dataset, build_validation_func=build_validation)
 
     # There are multiple ways to use the trainer:
     # 1. Easiest way to train all data: trainer.train_to_end()

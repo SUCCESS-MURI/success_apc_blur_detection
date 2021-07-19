@@ -16,7 +16,7 @@ config.TRAIN.n_epoch_init = 1000
 config.TRAIN.valid_every = 10 # TODO change to 100
 
 ## adversarial learning (SRGAN)
-config.TRAIN.n_epoch = 100
+config.TRAIN.n_epoch = 1000
 config.TRAIN.lr_decay = 0.1
 config.TRAIN.decay_every = 6000
 
@@ -31,8 +31,8 @@ config.TRAIN.synthetic_gt_path = '/home/mary/code/local_success_dataset/CUHK_Spl
 config.TRAIN.ssc_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized_small/image/'
 config.TRAIN.ssc_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized_small/gt/'
 
-config.TEST.ssc_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Test_Resized/image/'
-config.TEST.ssc_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Test_Resized/gt/'
+config.TEST.ssc_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Test_Resized_2/image/'
+config.TEST.ssc_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Test_Resized_2/gt/'
 
 ## train image size
 config.TRAIN.height = 256

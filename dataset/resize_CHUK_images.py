@@ -12,7 +12,7 @@ output_size = (224,224)
 
 def resize_dataset(args):
     # name the input folders
-    test_list_file = '../dataset/test_list.txt'
+    test_list_file = 'test_list.txt'
     # now create folders for correct data vs incorectly labeled data
     path_for_training = os.path.join(args.file_output_path, "Training")
     path_for_testing = os.path.join(args.file_output_path, "Testing")

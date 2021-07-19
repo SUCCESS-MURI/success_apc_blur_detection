@@ -76,6 +76,122 @@ def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
         print('read %d from %s' % (len(imgs), path))
     return imgs
 
+def blurmap_3classes_using_numpy_pretrainied_weights(index):
+    print("Blurmap Generation")
+
+    date = datetime.datetime.now().strftime("%y.%m.%d")
+    save_dir_sample = 'output_test'
+    tl.files.exists_or_mkdir(save_dir_sample)
+
+    #Put the input path!
+    sharp_path = './input'
+    test_sharp_img_list = os.listdir(sharp_path)
+    test_sharp_img_list.sort()
+
+    flag=0
+    i=0
+
+    for image in test_sharp_img_list:
+        if(i>=index and i<index+100):
+            print(i)
+            if (image.find('.jpg') & image.find('.png') & image.find('.JPG')& image.find('.PNG')) != -1:
+
+                sharp = os.path.join(sharp_path, image)
+                sharp_image = Image.open(sharp)
+                sharp_image.load()
+
+                sharp_image = np.asarray(sharp_image, dtype="float32")
+
+                if(len(sharp_image.shape)<3):
+                    sharp_image= np.expand_dims(np.asarray(sharp_image), 3)
+                    sharp_image=np.concatenate([sharp_image, sharp_image, sharp_image],axis=2)
+
+                if (sharp_image.shape[2] ==4):
+                    print(sharp_image.shape)
+                    sharp_image = np.expand_dims(np.asarray(sharp_image), 3)
+
+                    print(sharp_image.shape)
+                    sharp_image = np.concatenate((sharp_image[:,:,0],sharp_image[:,:,1],sharp_image[:,:,2]),axis=2)
+
+                print(sharp_image.shape)
+
+                image_h, image_w =sharp_image.shape[0:2]
+                print(image_h, image_w)
+
+                test_image = sharp_image[0: image_h - (image_h % 16), 0: 0 + image_w - (image_w % 16), :] #/ (255.)
+                red = test_image[:,:,0]
+                green = test_image[:, :, 1]
+                blue = test_image[:, :, 2]
+                bgr = np.zeros(test_image.shape)
+                bgr[:,:,0]= blue - VGG_MEAN[0]
+                bgr[:, :, 1] = green - VGG_MEAN[1]
+                bgr[:, :, 2] = red - VGG_MEAN[2]
+                #bgr = np.round(bgr).astype(np.float32)
+                # Model
+                patches_blurred = tf.compat.v1.placeholder('float32', [1, test_image.shape[0], test_image.shape[1], 3], name='input_patches')
+                if flag==0:
+                    reuse =False
+                else:
+                    reuse =True
+
+                start_time = time.time()
+
+                with tf.compat.v1.variable_scope('Unified') as scope:
+                    with tf.compat.v1.variable_scope('VGG') as scope3:
+                        input, n, f0, f0_1, f1_2, f2_3= VGG19_pretrained(patches_blurred, reuse=reuse,scope=scope3)
+                    with tf.compat.v1.variable_scope('UNet') as scope1:
+                        output,m1,m2,m3= Decoder_Network_classification(input, n, f0, f0_1,
+                                                                        f1_2, f2_3, reuse = reuse,
+                                                                        scope = scope1)
+
+                #a_vars = tl.layers.get_variables_with_name('Unified', False, True)
+
+                configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+                configTf.gpu_options.allow_growth = True
+                sess = tf.compat.v1.Session(config=configTf)
+
+                tl.layers.initialize_global_variables(sess)
+
+                # Load checkpoint
+                #saver.restore(sess, "./setup/checkpoint/final_checkpoint_tf2.ckpt")
+                get_weights(sess, output)
+                print("loaded all the weights")
+                output_map = tf.nn.softmax(output.outputs)
+                output_map1 = tf.nn.softmax(m1.outputs)
+                output_map2 = tf.nn.softmax(m2.outputs)
+                output_map3 = tf.nn.softmax(m3.outputs)
+
+                start_time = time.time()
+                blur_map,_,_,_ = sess.run([output_map,output_map1,output_map2,output_map3],{output.inputs: np.expand_dims(
+                    (bgr), axis=0)})
+                blur_map = np.squeeze(blur_map)
+                # o1= np.squeeze(o1)
+                # o2 = np.squeeze(o2)
+                # o3 = np.squeeze(o3)
+
+                if ".jpg" in image:
+                    image.replace(".jpg", ".png")
+                    cv2.imwrite(save_dir_sample +  '/'+ image.replace(".jpg", ".png"), blur_map*255)
+                if ".JPG" in image:
+                    image.replace(".JPG", ".png")
+                    cv2.imwrite(save_dir_sample +  '/'+ image.replace(".JPG", ".png"), blur_map*255)
+                if ".PNG" in image:
+                    image.replace(".jpg", ".png")
+                    cv2.imwrite(save_dir_sample +  '/'+ image.replace(".jpg", ".png"), blur_map*255)
+                if ".png" in image:
+                    image.replace(".jpg", ".png")
+                    cv2.imwrite(save_dir_sample + '/' + image.replace(".jpg", ".png"), blur_map*255)
+
+                sess.close()
+                flag=1
+
+                print("5.--- %s seconds ---" % (time.time() - start_time))
+                start_time = time.time()
+                if(i==index+101-1):
+                    return 0
+        i = i + 1
+    return 0
+
 def testData(index):
     print("Blurmap Generation and Testing")
 
@@ -232,7 +348,7 @@ def testData(index):
         i = i + 1
     return 0
 
-
+# main test function
 def testData_return_error():
     print("Blurmap Testing")
 
@@ -258,10 +374,8 @@ def testData_return_error():
         tmp_class[np.where(tmp_classification[:, :, 0] == 0)] = 0  # sharp
         tmp_class[np.where(tmp_classification[:, :, 0] == 64)] = 1  # motion blur
         tmp_class[np.where(tmp_classification[:, :, 0] == 128)] = 2  # out of focus blur
-        if np.where(tmp_classification[:, :, 0] == 192)[0].size == 0:
-            tmp_class[np.where(tmp_classification[:, :, 0] == 255)] = 4  # brightness blur
-        else:
-            tmp_class[np.where(tmp_classification[:, :, 0] == 192)] = 3  # darkness blur
+        tmp_class[np.where(tmp_classification[:, :, 0] == 192)] = 3  # darkness blur
+        tmp_class[np.where(tmp_classification[:, :, 0] == 255)] = 4  # brightness blur
 
         test_classification_mask.append(tmp_class)
 
@@ -311,7 +425,7 @@ def testData_return_error():
     tl.layers.initialize_global_variables(sess)
 
     # Load checkpoint
-    saver.restore(sess,'SA_net_{}.ckpt-500'.format(tl.global_flag['mode']))
+    saver.restore(sess,'./model/SA_net_{}.ckpt'.format(tl.global_flag['mode']))
 
     net_regression.test()
     m1.test()
@@ -321,12 +435,8 @@ def testData_return_error():
     accuracy_list = []
     miou_list = []
     f1score_list = []
-    class_0_list = []
-    class_1_list = []
-    class_2_list = []
-    class_3_list = []
-    class_4_list = []
-    classesList = [class_0_list,class_1_list,class_2_list,class_3_list,class_4_list]
+    classesList = [[],[],[],[],[]]
+    # initalize the csv metrics output
     with open(save_dir_sample + "/testing_metrics.csv", "w") as f:
         writer = csv.writer(f)
         writer.writerow(['Image Name', 'Overall Accuracy', 'Accuracy for Class 0', 'Accuracy for Class 1', 'Accuracy for Class 2',
@@ -441,139 +551,20 @@ def testData_return_error():
     sess.close()
     log = "[*] Testing Max Overall Accuracy: %.8f Max Accuracy Class 0: %.8f Max Accuracy Class 1: %.8f " \
           "Max Accuracy Class 2: %.8f Max Accuracy Class 3: %.8f Max Accuracy Class 4: %.8f Max IoU: %.8f " \
-          "Variance: %.8f Max F1_score: %.8f\n" % \
-          (np.max(np.array(accuracy_list)),np.max(np.array(classesList[0]),axis=0),
-           np.max(np.array(classesList[1]),axis=0),np.max(np.array(classesList[2]),axis=0),
-           np.max(np.array(classesList[3]),axis=0),np.max(np.array(classesList[4]),axis=0),
-           np.max(np.array(miou_list)),np.var(np.asarray(accuracy_list)),np.max(np.array(f1score_list)))
+          "Variance: %.8f Max F1_score: %.8f\n" % (np.max(np.array(accuracy_list)),
+           np.max(np.array(classesList[0]),axis=0),np.max(np.array(classesList[1]),axis=0),
+           np.max(np.array(classesList[2]),axis=0),np.max(np.array(classesList[3]),axis=0),
+           np.max(np.array(classesList[4]),axis=0),np.max(np.array(miou_list)),np.var(np.asarray(accuracy_list)),
+           np.max(np.array(f1score_list)))
     log2 = "[*] Testing Mean Overall Accuracy: %.8f Mean Accuracy Class 0: %.8f Mean Accuracy Class 1: %.8f " \
           "Mean Accuracy Class 2: %.8f Mean Accuracy Class 3: %.8f Mean Accuracy Class 4: %.8f Mean IoU: %.8f " \
-          "Mean F1_score: %.8f\n" % \
-          (np.mean(np.array(accuracy_list)), np.mean(np.array(classesList[0])),
-           np.mean(np.array(classesList[1])), np.mean(np.array(classesList[2])),
-           np.mean(np.array(classesList[3])), np.mean(np.array(classesList[4])),
-           np.mean(np.array(miou_list)),np.mean(np.array(f1score_list)))
+          "Mean F1_score: %.8f\n" % (np.mean(np.array(accuracy_list)), np.mean(np.array(classesList[0])),
+           np.mean(np.array(classesList[1])),np.mean(np.array(classesList[2])),np.mean(np.array(classesList[3])),
+           np.mean(np.array(classesList[4])),np.mean(np.array(miou_list)),np.mean(np.array(f1score_list)))
     # only way to write to log file while running
     with open(save_dir_sample + "/testing_metrics.log", "a") as f:
         # perform file operations
         f.write(log)
         f.write(log2)
-    return 0
-
-
-def blurmap_3classes_using_numpy_pretrainied_weights(index):
-    print("Blurmap Generation")
-
-    date = datetime.datetime.now().strftime("%y.%m.%d")
-    save_dir_sample = 'output_test'
-    tl.files.exists_or_mkdir(save_dir_sample)
-
-    #Put the input path!
-    sharp_path = './input'
-    test_sharp_img_list = os.listdir(sharp_path)
-    test_sharp_img_list.sort()
-
-    flag=0
-    i=0
-
-    for image in test_sharp_img_list:
-        if(i>=index and i<index+100):
-            print(i)
-            if (image.find('.jpg') & image.find('.png') & image.find('.JPG')& image.find('.PNG')) != -1:
-
-                sharp = os.path.join(sharp_path, image)
-                sharp_image = Image.open(sharp)
-                sharp_image.load()
-
-                sharp_image = np.asarray(sharp_image, dtype="float32")
-
-                if(len(sharp_image.shape)<3):
-                    sharp_image= np.expand_dims(np.asarray(sharp_image), 3)
-                    sharp_image=np.concatenate([sharp_image, sharp_image, sharp_image],axis=2)
-
-                if (sharp_image.shape[2] ==4):
-                    print(sharp_image.shape)
-                    sharp_image = np.expand_dims(np.asarray(sharp_image), 3)
-
-                    print(sharp_image.shape)
-                    sharp_image = np.concatenate((sharp_image[:,:,0],sharp_image[:,:,1],sharp_image[:,:,2]),axis=2)
-
-                print(sharp_image.shape)
-
-                image_h, image_w =sharp_image.shape[0:2]
-                print(image_h, image_w)
-
-                test_image = sharp_image[0: image_h - (image_h % 16), 0: 0 + image_w - (image_w % 16), :] #/ (255.)
-                red = test_image[:,:,0]
-                green = test_image[:, :, 1]
-                blue = test_image[:, :, 2]
-                bgr = np.zeros(test_image.shape)
-                bgr[:,:,0]= blue - VGG_MEAN[0]
-                bgr[:, :, 1] = green - VGG_MEAN[1]
-                bgr[:, :, 2] = red - VGG_MEAN[2]
-                #bgr = np.round(bgr).astype(np.float32)
-                # Model
-                patches_blurred = tf.compat.v1.placeholder('float32', [1, test_image.shape[0], test_image.shape[1], 3], name='input_patches')
-                if flag==0:
-                    reuse =False
-                else:
-                    reuse =True
-
-                start_time = time.time()
-
-                with tf.compat.v1.variable_scope('Unified') as scope:
-                    with tf.compat.v1.variable_scope('VGG') as scope3:
-                        input, n, f0, f0_1, f1_2, f2_3= VGG19_pretrained(patches_blurred, reuse=reuse,scope=scope3)
-                    with tf.compat.v1.variable_scope('UNet') as scope1:
-                        output,m1,m2,m3= Decoder_Network_classification(input, n, f0, f0_1,
-                                                                        f1_2, f2_3, reuse = reuse,
-                                                                        scope = scope1)
-
-                #a_vars = tl.layers.get_variables_with_name('Unified', False, True)
-
-                configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-                configTf.gpu_options.allow_growth = True
-                sess = tf.compat.v1.Session(config=configTf)
-
-                tl.layers.initialize_global_variables(sess)
-
-                # Load checkpoint
-                #saver.restore(sess, "./setup/checkpoint/final_checkpoint_tf2.ckpt")
-                get_weights(sess, output)
-                print("loaded all the weights")
-                output_map = tf.nn.softmax(output.outputs)
-                output_map1 = tf.nn.softmax(m1.outputs)
-                output_map2 = tf.nn.softmax(m2.outputs)
-                output_map3 = tf.nn.softmax(m3.outputs)
-
-                start_time = time.time()
-                blur_map,_,_,_ = sess.run([output_map,output_map1,output_map2,output_map3],{output.inputs: np.expand_dims(
-                    (bgr), axis=0)})
-                blur_map = np.squeeze(blur_map)
-                # o1= np.squeeze(o1)
-                # o2 = np.squeeze(o2)
-                # o3 = np.squeeze(o3)
-
-                if ".jpg" in image:
-                    image.replace(".jpg", ".png")
-                    cv2.imwrite(save_dir_sample +  '/'+ image.replace(".jpg", ".png"), blur_map*255)
-                if ".JPG" in image:
-                    image.replace(".JPG", ".png")
-                    cv2.imwrite(save_dir_sample +  '/'+ image.replace(".JPG", ".png"), blur_map*255)
-                if ".PNG" in image:
-                    image.replace(".jpg", ".png")
-                    cv2.imwrite(save_dir_sample +  '/'+ image.replace(".jpg", ".png"), blur_map*255)
-                if ".png" in image:
-                    image.replace(".jpg", ".png")
-                    cv2.imwrite(save_dir_sample + '/' + image.replace(".jpg", ".png"), blur_map*255)
-
-                sess.close()
-                flag=1
-
-                print("5.--- %s seconds ---" % (time.time() - start_time))
-                start_time = time.time()
-                if(i==index+101-1):
-                    return 0
-        i = i + 1
     return 0
 

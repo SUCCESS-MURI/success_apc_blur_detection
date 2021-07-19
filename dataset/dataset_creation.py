@@ -67,8 +67,8 @@ def create_syntheic_dataset_for_training(args):
     # kernal
     kernal = np.array([3,5,7,9])
     # alpha
-    alpha_darkness = np.arange(start=0.1,stop=1.0,step=0.2)
-    alpha_brightness = np.arange(start=1.1, stop=2.1, step=0.2)
+    alpha_darkness = np.arange(start=0.1, stop=0.6, step=0.1)
+    alpha_brightness = np.arange(start=1.5, stop=2.0, step=0.1)
     # beta
     #beta = np.arange(start=0,stop=1,step=1) # 110 step 10
     tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
@@ -247,8 +247,8 @@ def create_syntheic_dataset_for_testing(args):
     # kernal
     kernal = np.array([3, 5, 7, 9])
     # alpha
-    alpha_darkness = np.arange(start=0.1, stop=1.0, step=0.2)
-    alpha_brightness = np.arange(start=1.1, stop=2.1, step=0.2)
+    alpha_darkness = np.arange(start=0.1, stop=0.6, step=0.1)
+    alpha_brightness = np.arange(start=1.5, stop=2.0, step=0.1)
     # beta
     #beta = np.arange(start=0, stop=2, step=1) # stpop 110 step 10
     tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
