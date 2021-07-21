@@ -4,7 +4,7 @@ previous project's readme
 # deep_blur_detection_and_classification
 
 
-#![input2](./input/out_of_focus0607.jpg) ![output2](./output/out_of_focus0607.png)
+%![input2](./input/out_of_focus0607.jpg) ![output2](./output/out_of_focus0607.png)
 
 This repository contains a test code and sythetic dataset, which consists of scenes including motion and defocus blurs together in each scene.
 
