@@ -3,11 +3,8 @@ previous project's readme
 
 # deep_blur_detection_and_classification
 
-Tensorflow implementation of "Defocus and Motion Blur Detection with Deep Contextual Features"
 
-For image examples:
-
-![input2](./input/out_of_focus0607.jpg) ![output2](./output/out_of_focus0607.png)
+#![input2](./input/out_of_focus0607.jpg) ![output2](./output/out_of_focus0607.png)
 
 This repository contains a test code and sythetic dataset, which consists of scenes including motion and defocus blurs together in each scene.
 
@@ -38,12 +35,18 @@ python main.py
 - download [synthetic train set](https://drive.google.com/file/d/1QUygL2nalHldcJMwFJPfPFWokMoIbI9L/view?usp=sharing)(337MB) and [synthetic test set](https://drive.google.com/file/d/1-lV3CS_6rI_by6StkGQYsdn0SeOxwepu/view?usp=sharing)(11.5MB) from google drive
 - Note that sharp pixels, motion-blurred pixels, and defocus-blurred pixels in GT blur maps are labeled as 0, 100, and 200, respectively, in the [0,255] range.
 
-## License ##
-This software is being made available under the terms in the [LICENSE](LICENSE) file.
+## Sample output 
+in the folder sample_blur_output there are 3 folders:
 
+gt_images - rgb ground truth images for blur detection (pink-brightness, red - darkness, green - focus, blue - motion)
+
+output_images - rgb images for that were outputed by blur detection (pink-brightness, red - darkness, green - focus, blue - motion) 
+
+raw_npy_output - softmax blur output (size (256,256,5)) the indexs indicate the following: 0: no blur 1: motion blur 2: focus blur 3: darkness blur 4: brightness blur
+
+## License ##
+NEED to Update for MURI/CMU
+
+This software is being made available under the terms in the [LICENSE](LICENSE) file.
 Any exemptions to these terms requires a license from the Pohang University of Science and Technology.
 
-## About Coupe Project ##
-Project ‘COUPE’ aims to develop software that evaluates and improves the quality of images and videos based on big visual data. To achieve the goal, we extract sharpness, color, composition features from images and develop technologies for restoring and improving by using it. In addition,ersonalization technology through userreference analysis is under study.  
-
-Please checkout out other Coupe repositories in our [Posgraph](https://github.com/posgraph) github organization.
