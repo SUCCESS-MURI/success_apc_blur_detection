@@ -42,22 +42,6 @@ ni = int(math.ceil(np.sqrt(batch_size)))
 # np.random.seed(10)
 # random.seed(10)
 
-def read_all_imgs(img_list, path='', n_threads=32, mode='RGB'):
-    """ Returns all images in array by given path and name of each image file. """
-    imgs = []
-    for idx in range(0, len(img_list), n_threads):
-        b_imgs_list = img_list[idx: idx + n_threads]
-        if mode == 'RGB':
-            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGB_fn, path=path)
-        elif mode == 'GRAY':
-            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_GRAY_fn, path=path)
-        elif mode == 'RGB2GRAY':
-            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGBGRAY_fn, path=path)
-        # print(b_imgs.shape)
-        imgs.extend(b_imgs)
-        print('read %d from %s' % (len(imgs), path))
-    return imgs
-
 # https://izziswift.com/better-way-to-shuffle-two-numpy-arrays-in-unison/
 def unison_shuffled_copies(a, b):
     p = np.random.permutation(len(a))
@@ -1066,10 +1050,10 @@ def UPDATED_train_with_ssc_dataset():
         # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
         # we are updating all of the pretrained weights up to the last layer
         get_weights(sess, n)
-        # get_weights(sess, m1B)
-        # get_weights(sess, m2B)
-        # get_weights(sess, m3B)
-        # get_weights(sess, m4B)
+        get_weights(sess, m1B)
+        get_weights(sess, m2B)
+        get_weights(sess, m3B)
+        get_weights(sess, m4B)
 
     ### START TRAINING ###
 
@@ -1079,7 +1063,8 @@ def UPDATED_train_with_ssc_dataset():
     trainer = tl.distributed.Trainer(
         build_training_func=build_train, training_dataset=training_dataset, optimizer=tf.compat.v1.train.AdamOptimizer,
         optimizer_args={'learning_rate': lr_init}, batch_size=10, prefetch_size=10, log_step_size=1,#756
-        checkpoint_dir=checkpoint_dir_local,save_checkpoint_step_size=2)#,validation_dataset=validation_dataset, build_validation_func=build_validation)
+        checkpoint_dir=checkpoint_dir_local,save_checkpoint_step_size=2, validation_dataset=validation_dataset,
+        build_validation_func=build_validation)
 
     # There are multiple ways to use the trainer:
     # 1. Easiest way to train all data: trainer.train_to_end()
@@ -1088,8 +1073,8 @@ def UPDATED_train_with_ssc_dataset():
     while not trainer.session.should_stop():
         try:
             # Run a training step synchronously.
-            trainer.train_on_batch()
-            #trainer.train_and_validate_to_end(validate_step_size=5)
+            #trainer.train_on_batch()
+            trainer.train_and_validate_to_end(validate_step_size=5)
             # TODO: do whatever you like to the training session.
         except tf.errors.OutOfRangeError:
             # The dataset would throw the OutOfRangeError when it reaches the end

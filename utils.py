@@ -18,6 +18,22 @@ import numpy as np
 
 VGG_MEAN = [103.939, 116.779, 123.68]
 
+def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
+    """ Returns all images in array by given path and name of each image file. """
+    imgs = []
+    for idx in range(0, len(img_list), n_threads):
+        b_imgs_list = img_list[idx : idx + n_threads]
+        if mode == 'RGB':
+            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGB_fn, path=path)
+        elif mode == 'GRAY':
+            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_GRAY_fn, path=path)
+        elif mode == 'RGB2GRAY':
+            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGBGRAY_fn, path=path)
+        # print(b_imgs.shape)
+        imgs.extend(b_imgs)
+        print('read %d from %s' % (len(imgs), path))
+    return imgs
+
 def get_imgs_RGB_fn(file_name, path):
     """ Input an image path and name, return an image array """
     # return scipy.misc.imread(path + file_name).astype(np.float)

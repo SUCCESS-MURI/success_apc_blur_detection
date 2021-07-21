@@ -20,6 +20,9 @@ import tensorlayer as tl
 # https://stackoverflow.com/questions/40305933/how-to-add-motion-blur-to-numpy-array
 #size - in pixels, size of motion blur
 #angel - in degrees, direction of motion blur
+from dataset.resize_dataset import resize_dataset
+
+
 def apply_motion_blur(image, size, angle):
     k = np.zeros((size, size), dtype=np.float32)
     k[ (size-1)// 2 , :] = np.ones(size, dtype=np.float32)
@@ -427,8 +430,18 @@ if __name__ == "__main__":
     # type of data / image extension
     parser.add_argument('--data_extension', type=str,default=".png")
     parser.add_argument('--is_testing', default=False, action='store_true')
+    # now resize the data
+    parser.add_argument('--file_input_path', type=str,
+                    default='/home/mary/code/local_success_dataset/ssc_dataset_training_2',
+                    help='Path to the dataset size 224 by 224 ')
+    parser.add_argument('--file_output_path', type=str,
+                    default='/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized_2',
+                    help='Output Path to the dataset for training resized to 256 by 256')
     args = parser.parse_args()
     if args.is_testing:
         create_syntheic_dataset_for_testing(args)
     else:
         create_syntheic_dataset_for_training(args)
+    resize_dataset(args)
+
+

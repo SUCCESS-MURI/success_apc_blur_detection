@@ -60,22 +60,6 @@ def numpy_iou(y_true, y_pred, n_class=5):
 
     return np.mean(IOU)
 
-def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
-    """ Returns all images in array by given path and name of each image file. """
-    imgs = []
-    for idx in range(0, len(img_list), n_threads):
-        b_imgs_list = img_list[idx : idx + n_threads]
-        if mode == 'RGB':
-            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGB_fn, path=path)
-        elif mode == 'GRAY':
-            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_GRAY_fn, path=path)
-        elif mode == 'RGB2GRAY':
-            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGBGRAY_fn, path=path)
-        # print(b_imgs.shape)
-        imgs.extend(b_imgs)
-        print('read %d from %s' % (len(imgs), path))
-    return imgs
-
 def blurmap_3classes_using_numpy_pretrainied_weights(index):
     print("Blurmap Generation")
 
@@ -384,8 +368,7 @@ def testData_return_error():
 
     ### DEFINE MODEL ###
     patches_blurred = tf.compat.v1.placeholder('float32', [1, h, w, 3], name='input_patches')
-    classification_map = tf.compat.v1.placeholder('int64', [1, h, w, 1], name='labels')
-    #predictions = tf.compat.v1.placeholder('int64', [1, h, w, 1], name='predictions')
+    classification_map = tf.compat.v1.placeholder('float32', [1, h, w, 1], name='labels')
     with tf.compat.v1.variable_scope('Unified'):
         with tf.compat.v1.variable_scope('VGG') as scope1:
             input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
@@ -458,6 +441,8 @@ def testData_return_error():
         start_time = time.time()
         blur_map,accuracy = sess.run([output_map,loss1],{net_regression.inputs: np.expand_dims((test_image), axis=0),
                                                   classification_map: np.expand_dims(gt_test_image,axis=0)})
+        #np.save(save_dir_sample + '/raw_' + image_name.replace(".png", ".npy"), np.squeeze(blur_map))
+
         # calculate mean intersection of union
         miou = numpy_iou(np.squeeze(gt_test_image),np.squeeze(blur_map))
 
