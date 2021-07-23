@@ -11,7 +11,7 @@ import numpy as np
 import math
 
 from tensorflow.python.training import py_checkpoint_reader
-from sklearn.metrics import f1_score, confusion_matrix
+from sklearn.metrics import f1_score, confusion_matrix, accuracy_score
 
 from config import config, log_config
 from setup.loadNPYWeightsSaveCkpt import get_weights
@@ -368,7 +368,7 @@ def testData_return_error():
 
     ### DEFINE MODEL ###
     patches_blurred = tf.compat.v1.placeholder('float32', [1, h, w, 3], name='input_patches')
-    classification_map = tf.compat.v1.placeholder('float32', [1, h, w, 1], name='labels')
+    classification_map = tf.compat.v1.placeholder('int64', [1, h, w, 1], name='labels')
     with tf.compat.v1.variable_scope('Unified'):
         with tf.compat.v1.variable_scope('VGG') as scope1:
             input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
@@ -378,6 +378,7 @@ def testData_return_error():
                                                                                             scope=scope2)
 
     output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs),axis=3),axis=3)
+    output = tf.nn.log_softmax(net_regression.outputs)
 
     ### DEFINE LOSS ###
     loss1 = tf.cast(tf.math.reduce_sum(1-tf.math.abs(tf.math.subtract(output_map, classification_map))),
@@ -439,9 +440,40 @@ def testData_return_error():
 
         # Model
         start_time = time.time()
-        blur_map,accuracy = sess.run([output_map,loss1],{net_regression.inputs: np.expand_dims((test_image), axis=0),
-                                                  classification_map: np.expand_dims(gt_test_image,axis=0)})
+
+        # uncertain labeling
+        # step run we run the network 100 times
+        blurMap = []
+        blur_map = np.zeros((256,256))
+        for i in range(100): # this might take forever to run. might need to optimize if going to use this in real time
+            blurMap.append(np.squeeze(sess.run([output],{net_regression.inputs: np.expand_dims((test_image), axis=0)})))
+        blurMap = np.asarray(blurMap)
+
+        for i in range(blurMap.shape[1]):
+            for j in range(blurMap.shape[2]):
+
+                all_digits_prob = []
+                highlight = False
+
+                for k in range(5): # number of classes
+                    histo_exp=np.exp(blurMap[:,i,j,k])
+                    # now we need to check each pixel and if the mean is over 20 percent.
+                    prob = np.percentile(histo_exp, 50)  # sampling median probability
+                    all_digits_prob.append(prob)
+
+                if np.argwhere(np.array(all_digits_prob) >= 0.2).size == 1:  # select if network thinks this sample is 20% chance of this being a label
+                    highlight = True  # possibly an answer
+                # the argmax is the predicted label
+                predicted = np.argmax(all_digits_prob)
+                if highlight:
+                    blur_map[i,j] = predicted
+                else: # mark as undecided
+                    blur_map[i,j] = 5
+        # blur_map,accuracy = sess.run([output_map,loss1],{net_regression.inputs: np.expand_dims((test_image), axis=0),
+        #                                           classification_map: np.expand_dims(gt_test_image,axis=0)})
+
         #np.save(save_dir_sample + '/raw_' + image_name.replace(".png", ".npy"), np.squeeze(blur_map))
+        accuracy = accuracy_score(np.squeeze(gt_test_image).flatten(),np.squeeze(blur_map).flatten(),normalize=True)
 
         # calculate mean intersection of union
         miou = numpy_iou(np.squeeze(gt_test_image),np.squeeze(blur_map))
@@ -485,6 +517,8 @@ def testData_return_error():
         # pink brightness blur
         rgb_blur_map[blur_map == 4] = [255, 192, 203]
         rgb_gt_map[gt_map == 4] = [255, 192, 203]
+        # yellow unknown blur
+        rgb_blur_map[blur_map == 5] = [0, 255, 255]
 
         log = "[*] Testing image name:"+image_name+" time: %4.4fs, Overall Accuracy: %.8f Accuracy for Class 0 %.8f " \
                                     "Accuracy for Class 1 %.8f Accuracy for Class 2 %.8f Accuracy for Class 3 %.8f " \
