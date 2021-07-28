@@ -131,6 +131,6 @@ dmypy.json
 # ide PyCharm
 .idea/
 
-#*.npy
+*.npy
 test_checkpoint/
 report.txt
