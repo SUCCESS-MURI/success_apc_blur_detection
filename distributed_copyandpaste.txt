@@ -123,7 +123,7 @@ class Trainer(object):
         training_dataset = training_dataset.shard(num_shards=hvd.size(), index=hvd.rank()).batch(batch_size)
 
         training_dataset.prefetch(buffer_size=prefetch_size)
-        training_iterator = tf.compat.v1.data.make_one_shot_iterator(training_dataset)#training_dataset.make_one_shot_iterator()
+        training_iterator = tf.compat.v1.data.make_one_shot_iterator(training_dataset)#training_dataset.make_one_shot_iterator() #tf.compat.v1.data.make_initializable_iterator(training_dataset)#
         self._training_network, loss, log_tensors = build_training_func(*training_iterator.get_next())
 
         # Adjust learning rate based on number of GPUs.
@@ -550,4 +550,5 @@ class LoadCheckpoint(session_run_hook.SessionRunHook):
 # Alias
 TaskSpec = create_task_spec_def
 DistributedSession = create_distributed_session
+
 

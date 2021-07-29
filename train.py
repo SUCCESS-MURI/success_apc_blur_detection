@@ -5,6 +5,7 @@ import multiprocessing
 import random
 
 import tensorflow as tf
+#tf.compat.v1.enable_eager_execution()
 # tf.disable_v2_behavior()
 import tensorlayer as tl
 import numpy as np
@@ -842,11 +843,24 @@ def train_with_ssc_dataset():
                                  str(np.round(mean_accuracy_per_class[1],8)),str(np.round(mean_accuracy_per_class[2],8)),
             str(np.round(mean_accuracy_per_class[3],8)), str(np.round(mean_accuracy_per_class[4],8))])
 
-def make_dataset(images, labels, num_epochs=1, shuffle_data_seed=0):
-    img = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(images,dtype=np.float32))
-    lab = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(labels,dtype=np.int32))
+def make_dataset(images_train, labels_train, num_epochs=1, shuffle_data_seed=0, batchSize=1):
+    tensors_img = []
+    for i in range(0,len(images_train),batchSize):
+        tensors_img.append(tf.convert_to_tensor(images_train[i:i+batchSize], dtype=np.float32))
+    tensor_img = tf.concat([tensors_img[0],tensors_img[1]], axis=0)
+    for i in range(2, len(tensors_img)):
+        tensor_img = tf.concat([tensor_img,tensors_img[i]],axis=0)
+    img = tf.data.Dataset.from_tensor_slices(tensor_img)
+    tensors_lab = []
+    for i in range(0, len(labels_train), batchSize):
+        tensors_lab.append(tf.convert_to_tensor(labels_train[i:i + batchSize], dtype=np.int32))
+    tensors_label = tf.concat([tensors_lab[0], tensors_lab[1]], axis=0)
+    for i in range(2, len(tensors_lab)):
+        tensors_label = tf.concat([tensors_label, tensors_lab[i]], axis=0)
+    lab = tf.data.Dataset.from_tensor_slices(tensors_label)
     dataset = tf.data.Dataset.zip((img, lab))
-    dataset = dataset.repeat(num_epochs).shuffle(buffer_size=100000,seed=shuffle_data_seed,reshuffle_each_iteration=True)
+    dataset = dataset.repeat(num_epochs).shuffle(buffer_size=100000, seed=shuffle_data_seed,
+                                                 reshuffle_each_iteration=True)
     return dataset
 
 def build_validation(x, y_):
@@ -872,8 +886,9 @@ def build_validation(x, y_):
                                                                     method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
     cost = loss1 + loss2 + loss3 + loss4
     ## get overall accuracy
-    accuracy_overall = tf.cast(tf.math.reduce_sum(1 - tf.math.abs(tf.math.subtract(output, y_))),
-                       dtype=tf.float32) * (1 / (256 * 256))
+    # output_map = tf.cast(tf.expand_dims(tf.math.argmax(tf.nn.softmax(output), axis=3), axis=3),dtype=tf.int32)
+    # accuracy = tf.cast(tf.math.reduce_sum(1 - tf.math.abs(tf.math.subtract(output_map, y))), dtype=tf.float32) * (
+    #             1 / (256 * 256))
     # perclass_accuracy_conf_matrix = tf.math.confusion_matrix(tf.squeeze(y),
     #                                                          tf.squeeze(tf.math.argmax(tf.nn.softmax(output),axis=3)),
     #                                                          num_classes=5)
@@ -881,7 +896,7 @@ def build_validation(x, y_):
     # perclass_accuracy = tf.linalg.tensor_diag_part(perclass_accuracy_conf_matrix)
 
     #log_tensors = {'cost_validation': cost, 'accuracy_validation': accuracy}
-    return output, [cost,accuracy_overall]
+    return output, [cost]
 
 def build_train(x, y_):
     net_regression.train()
@@ -902,8 +917,9 @@ def build_train(x, y_):
     loss4 = tl.cost.cross_entropy(m3o,tf.squeeze(tf.image.resize(y, [int(h / 8), int(w / 8)],
                                                              method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
     cost = loss1 + loss2 + loss3 + loss4
-    accuracy = tf.cast(tf.math.reduce_sum(1-tf.math.abs(tf.math.subtract(output, y_))),dtype=tf.float32)*(1/(256*256))
-    log_tensors = {'cost_train': cost, 'accuracy_train': accuracy}
+    # output_map = tf.cast(tf.expand_dims(tf.math.argmax(tf.nn.softmax(output), axis=3), axis=3),dtype=tf.int32)
+    # accuracy = tf.cast(tf.math.reduce_sum(1-tf.math.abs(tf.math.subtract(output_map, y))),dtype=tf.float32)*(1/(256*256))
+    log_tensors = {'cost_train': cost} # , 'accuracy_train': accuracy
     return output, cost, log_tensors
 
 # my new code for training the data using this version.
@@ -998,10 +1014,6 @@ def UPDATED_train_with_ssc_dataset():
                 f.write(line + "\n")
     print("Number of training images " + str(len(train_blur_imgs)))
     print("Number of validation images " + str(len(valid_blur_imgs)))
-    training_dataset = make_dataset(train_blur_imgs, train_classification_mask, num_epochs=n_epoch-tl.global_flag['start_from']+5)
-    training_dataset = training_dataset.map(data_aug_train, num_parallel_calls=multiprocessing.cpu_count())
-    validation_dataset = make_dataset(valid_blur_imgs, valid_classification_mask, num_epochs=n_epoch-tl.global_flag['start_from']+5)
-    validation_dataset = validation_dataset.map(data_aug_valid, num_parallel_calls=multiprocessing.cpu_count())
 
     ### DEFINE MODEL ###
     patches_blurred = tf.compat.v1.placeholder('float32', [batch_size, h, w, 3], name='input_patches')
@@ -1036,6 +1048,13 @@ def UPDATED_train_with_ssc_dataset():
     print("initializing global variable...")
     sess.run(tf.compat.v1.global_variables_initializer())
     print("initializing global variable...DONE")
+    training_dataset = make_dataset(train_blur_imgs, train_classification_mask,num_epochs=n_epoch -
+                                                                                          tl.global_flag['start_from'] + 5)
+    validation_dataset = make_dataset(valid_blur_imgs,valid_classification_mask,num_epochs=n_epoch -
+                                                                                           tl.global_flag['start_from'] + 5)
+    training_dataset = training_dataset.map(data_aug_train, num_parallel_calls=multiprocessing.cpu_count())
+
+    validation_dataset = validation_dataset.map(data_aug_valid, num_parallel_calls=multiprocessing.cpu_count())
 
     ### initalize weights ###
     # initialize weights from previous run if indicated
@@ -1057,7 +1076,7 @@ def UPDATED_train_with_ssc_dataset():
     # can't figure out how to do the decay
     trainer = tl.distributed.Trainer(
         build_training_func=build_train, training_dataset=training_dataset, optimizer=tf.compat.v1.train.AdamOptimizer,
-        optimizer_args={'learning_rate': lr_v2}, batch_size=10, prefetch_size=10, log_step_size=n_epoch+5,
+        optimizer_args={'learning_rate': lr_v2}, batch_size=batch_size, prefetch_size=10, log_step_size=int(len(train_blur_imgs)/batch_size),
         checkpoint_dir=checkpoint_dir_local,save_checkpoint_step_size=10, validation_dataset=validation_dataset,
         build_validation_func=build_validation, variables_to_train=var_list2)
 
@@ -1071,7 +1090,7 @@ def UPDATED_train_with_ssc_dataset():
         try:
             # Run a training step synchronously.
             #trainer.train_on_batch()
-            trainer.train_and_validate_to_end(validate_step_size=do_validation_every)
+            trainer.train_and_validate_to_end(validate_step_size=do_validation_every*int(len(train_blur_imgs)/batch_size))
         except tf.errors.OutOfRangeError:
             # The dataset would throw the OutOfRangeError when it reaches the end
             break
