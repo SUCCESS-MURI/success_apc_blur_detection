@@ -2,10 +2,14 @@
 import argparse
 import copy
 import glob
+import os
+
 import cv2
 import numpy as np
 from numba import jit, prange
 from sklearn.preprocessing import MinMaxScaler
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
 from skimage.filters import threshold_otsu
 from skimage.segmentation import clear_border
@@ -417,12 +421,13 @@ def backprojection_saliency(img):
 # test on all images and return sailency maps
 def compute_saliency_backprop(args):
     sailencyMaps = []
-    for imageFileName in glob.glob(args.data_dir + '/Incorrect/*' + args.data_extension):
+    for imageFileName in glob.glob('/home/mary/code/local_success_dataset/fetch_images/muri_images/*' + args.data_extension):
         image = cv2.imread(imageFileName)
-        #saliency = compute_saliency_by_backprojection(image)
-        saliency = compute_sailency_through_backprop_color_spesific(image,0)
-        cv2.imshow("Image Saliency Threshold", saliency)
-        cv2.waitKey(0)
+        saliency = backprojection_saliency(image)
+        #saliency = compute_sailency_through_backprop_color_spesific(image,0)
+        #cv2.imshow("Image Saliency Threshold", saliency)
+        #cv2.waitKey(0)
+        cv2.imwrite(imageFileName+'salinecy.png',saliency*255)
         sailencyMaps.append(saliency)
     return sailencyMaps
 
@@ -433,7 +438,6 @@ def compute_sailency_through_backprop(image):
     # cv2.imshow("Image Saliency Threshold", segmentation)
     # cv2.waitKey(0)
     return segmentation
-
 # compute the saliency detection using backpropagation and return the masked image
 def compute_sailency_through_backprop_color_spesific(image,idx):
     # It converts the BGR color space of image to HSV color space
@@ -534,6 +538,42 @@ def color_mask(image, rangeHue):
     rgb = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
     return rgb, mask
 
+# using the model from https://github.com/Joker316701882/Salient-Object-Detection
+class Saliency_NN:
+    def __init__(self):
+        os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+        self.g_mean = np.array(([126.88,120.24,112.19])).reshape([1,1,3])
+        self.gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.7)
+        self.sess = tf.Session(config=tf.ConfigProto(gpu_options=self.gpu_options))
+        #with tf.Session(config=tf.ConfigProto(gpu_options=self.gpu_options)) as sess:
+        self.saver = tf.train.import_meta_graph('./dataset/salience_model/my-model.meta')
+        self.saver.restore(self.sess, tf.train.latest_checkpoint('./dataset/salience_model'))
+        self.image_batch = tf.get_collection('image_batch')[0]
+        self.pred_mattes = tf.get_collection('mask')[0]
+
+    # run neural network saliency
+    def compute_saliency_NN(self,image):
+        #with tf.Session(config=tf.ConfigProto(gpu_options=self.gpu_options)) as sess:
+        origin_shape = image.shape
+        rgb = np.expand_dims(
+        cv2.resize(image.astype(np.uint8), [320, 320], interpolation=cv2.INTER_NEAREST).astype(np.float32) - self.g_mean, 0)
+        feed_dict = {self.image_batch: rgb}
+        pred_alpha = self.sess.run(self.pred_mattes, feed_dict=feed_dict)
+        final_alpha = cv2.resize(np.squeeze(pred_alpha), np.flip(origin_shape[0:2])) * 255
+        (T, saliency) = cv2.threshold(final_alpha, 255 / 2, 255, cv2.THRESH_BINARY)
+        return refine_saliency_with_grabcut(image,saliency.astype(np.uint8))
+
+    # grabcut finds the contors and returns the masked image
+    def refine_saliency_with_grabcut(self,img, saliency):
+        rect = largest_contours_rect(saliency)
+        bgdmodel = np.zeros((1, 65), np.float64)
+        fgdmodel = np.zeros((1, 65), np.float64)
+        saliency[np.where(saliency > 0)] = cv2.GC_FGD
+        mask = saliency
+        cv2.grabCut(img, mask, rect, bgdmodel, fgdmodel, 1, cv2.GC_INIT_WITH_RECT)
+        mask = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
+        return mask
+
 if __name__ == "__main__":
     # Feel free to add more args, or change/remove these.
     parser = argparse.ArgumentParser(description='SUCCESS DATASET SALIENCY DETECTION')
@@ -542,7 +582,7 @@ if __name__ == "__main__":
     # output directory to put blur measurement
     parser.add_argument('--threshold_dir', type=str)
     # type of data / image extension
-    parser.add_argument('--data_extension', type=str)
+    parser.add_argument('--data_extension', type=str,default='.png')
     args = parser.parse_args()
     # compute saliency detection
     #saliencyMaps = compute_saliency_Itti(args)

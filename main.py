@@ -39,6 +39,7 @@ if __name__ == '__main__':
     parser.add_argument('--is_ssc_dataset', type=str, default='false', help='whether ssc dataset train or not')
     parser.add_argument('--index', type=int, default='0', help='index range 50')
     parser.add_argument('--start_from', type=int, default='0', help='start from')
+    parser.add_argument('--uncertainty_label', type=str, default='false', help='whether testing result should have an uncertanity label. default is false')
     args = parser.parse_args()
 
     tl.global_flag['mode'] = args.mode
@@ -46,6 +47,7 @@ if __name__ == '__main__':
     tl.global_flag['is_synthetic'] = t_or_f(args.is_synthetic)
     tl.global_flag['is_ssc_dataset'] = t_or_f(args.is_ssc_dataset)
     tl.global_flag['start_from'] = int(args.start_from)
+    tl.global_flag['uncertainty_label'] = t_or_f(args.uncertainty_label)
 
     if tl.global_flag['is_train']:
         if tl.global_flag['is_synthetic']:

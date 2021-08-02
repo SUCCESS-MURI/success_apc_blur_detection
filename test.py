@@ -443,28 +443,28 @@ def testData_return_error():
 
         # uncertain labeling
         # step run we run the network 100 times
-        blurMap = []
+        blurMap = np.squeeze(sess.run([output],{net_regression.inputs: np.expand_dims((test_image), axis=0)}))
         blur_map = np.zeros((256,256))
-        for i in range(100): # this might take forever to run. might need to optimize if going to use this in real time
-            blurMap.append(np.squeeze(sess.run([output],{net_regression.inputs: np.expand_dims((test_image), axis=0)})))
-        blurMap = np.asarray(blurMap)
 
-        for i in range(blurMap.shape[1]):
-            for j in range(blurMap.shape[2]):
+        for i in range(blurMap.shape[0]):
+            for j in range(blurMap.shape[1]):
 
-                all_digits_prob = []
+                #all_digits_prob = []
                 highlight = False
+                histo_exp = np.exp(blurMap[i, j, :])
+                #prob = np.median(histo_exp, 50)
+                prob = histo_exp
 
-                for k in range(5): # number of classes
-                    histo_exp=np.exp(blurMap[:,i,j,k])
-                    # now we need to check each pixel and if the mean is over 20 percent.
-                    prob = np.percentile(histo_exp, 50)  # sampling median probability
-                    all_digits_prob.append(prob)
+                # for k in range(5): # number of classes
+                #     histo_exp=np.exp(blurMap[i,j,k])
+                #     # now we need to check each pixel and if the mean is over 20 percent.
+                #     prob = np.percentile(histo_exp, 50)  # sampling median probability
+                #     all_digits_prob.append(prob)
 
-                if np.argwhere(np.array(all_digits_prob) >= 0.2).size == 1:  # select if network thinks this sample is 20% chance of this being a label
+                if np.argwhere(np.array(prob) >= 0.2).size == 1:  # select if network thinks this sample is 20% chance of this being a label
                     highlight = True  # possibly an answer
                 # the argmax is the predicted label
-                predicted = np.argmax(all_digits_prob)
+                predicted = np.argmax(prob)
                 if highlight:
                     blur_map[i,j] = predicted
                 else: # mark as undecided
