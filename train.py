@@ -1,27 +1,17 @@
 # coding=utf-8
-import copy
 import csv
-import multiprocessing
 import random
 
 import tensorflow as tf
-# tf.compat.v1.enable_eager_execution()
-# tf.disable_v2_behavior()
 import tensorlayer as tl
 import numpy as np
 import math
 from sklearn.metrics import confusion_matrix
 
 from config import config, log_config
-from utils import *
-from model import *
-import matplotlib
-import datetime
+from utils import read_all_imgs, crop_sub_img_and_classification_fn_aug, crop_sub_img_and_classification_fn
+from model import Decoder_Network_classification, VGG19_pretrained
 import time
-import cv2
-import argparse
-import os
-from os import path
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.DEBUG)
 tl.logging.set_verbosity(tl.logging.DEBUG)
@@ -44,6 +34,7 @@ def unison_shuffled_copies(a, b):
     p = np.random.permutation(len(a))
     return a[p], b[p]
 
+# get the weights for each model but leave off the last layer for label change
 def get_weights(sess,network):
     # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
     dict_weights_trained = np.load('./setup/final_model.npy',allow_pickle=True)[()]

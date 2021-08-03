@@ -2,13 +2,32 @@
 import argparse
 import rospy
 import tensorflow as tf
+import tensorlayer as tl
 from tensorflow.python.training import py_checkpoint_reader
-from model import *
+from model import Decoder_Network_classification, VGG19_pretrained
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
+import numpy as np
 from sensor_msgs.msg import Image
 
-from setup.loadNPYWeightsSaveCkpt import get_weights
+def get_weights_checkpoint(sess,network,dict_weights_trained):
+    # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
+    #dict_weights_trained = np.load('./setup/final_model.npy',allow_pickle=True)[()]
+    params = []
+    keys = dict_weights_trained.keys()
+    for weights in network.trainable_weights:
+        name = weights.name
+        splitName ='/'.join(name.split(':')[:1])
+        for key in keys:
+            keySplit = '/'.join(key.split('/'))
+            if splitName == keySplit:
+                if 'bias' in name.split('/')[-1]:
+                    params.append(dict_weights_trained[key])
+                else:
+                    params.append(dict_weights_trained[key])
+                break
+
+    sess.run(tl.files.assign_weights(params, network))
 
 # class for executing the blur detection algorithm
 class BlurDetection:
@@ -63,7 +82,7 @@ class BlurDetection:
         reader = py_checkpoint_reader.NewCheckpointReader(self.model_checkpoint)
         state_dict = {v: reader.get_tensor(v) for v in reader.get_variable_to_shape_map()}
         # save weights to the model
-        get_weights(self.sess, self.net_regression, state_dict)
+        get_weights_checkpoint(self.sess, self.net_regression, state_dict)
         output_map = tf.nn.softmax(self.net_regression.outputs)
         self.net_outputs = output_map
 

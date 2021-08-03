@@ -1,27 +1,18 @@
 # coding=utf-8
-import copy
 import csv
-import random
-
 import tensorflow as tf
-# import tensorflow.compat.v1 as tf
-# tf.disable_v2_behavior()
 import tensorlayer as tl
 import numpy as np
 import math
-
 from tensorflow.python.training import py_checkpoint_reader
 from sklearn.metrics import f1_score, confusion_matrix, accuracy_score
-
-from config import config, log_config
-from utils import *
-from model import *
+from config import config
+from utils import read_all_imgs
+from model import Decoder_Network_classification, VGG19_pretrained
 import matplotlib
 import datetime
 import time
 import cv2
-import argparse
-import os
 
 batch_size = config.TRAIN.batch_size
 lr_init = config.TRAIN.lr_init
