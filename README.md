@@ -1,12 +1,11 @@
 ## NEED TO UPDATE THIS 
 previous project's readme 
 
-# deep_blur_detection_and_classification
-
-
+# MURI Deep Blur Detection and Classification
+# Update images 
 %![input2](./input/out_of_focus0607.jpg) ![output2](./output/out_of_focus0607.png)
 
-This repository contains a test code and sythetic dataset, which consists of scenes including motion and defocus blurs together in each scene.
+This repository contains the code and dataset locations for the muri integration project and the origional datasets used by the origional project https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.
 
 --------------------------
 
@@ -18,10 +17,16 @@ This repository contains a test code and sythetic dataset, which consists of sce
 - Listed in the document Packages_Requirements
 - Using Ananconda Virtual Enviornment
 
-## Train Details
+install anaconda and packages from the commands found in the doc XXXXX
+
+## Model Pre-Trained Weights Training Details
+- ## CHUK Dataset
 - We used [CUHK blur detection dataset](http://www.cse.cuhk.edu.hk/~leojia/projects/dblurdetect/dataset.html) for training our network and generating our synthetic dataset
 - Train and test set lists are uploaded in 'dataset' folder
 - Need to modify some options and paths in 'main.py' and 'config.py' for training
+- ## Synthetic Dataset
+- download [synthetic train set](https://drive.google.com/file/d/1QUygL2nalHldcJMwFJPfPFWokMoIbI9L/view?usp=sharing)(337MB) and [synthetic test set](https://drive.google.com/file/d/1-lV3CS_6rI_by6StkGQYsdn0SeOxwepu/view?usp=sharing)(11.5MB) from google drive
+- Note that sharp pixels, motion-blurred pixels, and defocus-blurred pixels in GT blur maps are labeled as 0, 100, and 200, respectively, in the [0,255] range.
 
 ## Test Details
 - download [model weights](https://drive.google.com/file/d/11FBVmAIfeHDHpOjLXewzpA2lgcOOqo2_/view?usp=sharing) from google drive and save the model into 'model' folder.
@@ -31,9 +36,6 @@ This repository contains a test code and sythetic dataset, which consists of sce
 ```bash
 python main.py
 ```
-## Synthetic Dataset
-- download [synthetic train set](https://drive.google.com/file/d/1QUygL2nalHldcJMwFJPfPFWokMoIbI9L/view?usp=sharing)(337MB) and [synthetic test set](https://drive.google.com/file/d/1-lV3CS_6rI_by6StkGQYsdn0SeOxwepu/view?usp=sharing)(11.5MB) from google drive
-- Note that sharp pixels, motion-blurred pixels, and defocus-blurred pixels in GT blur maps are labeled as 0, 100, and 200, respectively, in the [0,255] range.
 
 ## Sample output 
 in the folder sample_blur_output there are 3 folders:
