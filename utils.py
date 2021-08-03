@@ -29,6 +29,8 @@ def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
             b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_GRAY_fn, path=path)
         elif mode == 'RGB2GRAY':
             b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGBGRAY_fn, path=path)
+        elif mode == 'RGB2GRAY2':
+            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGBGRAY_2_fn, path=path)
         # print(b_imgs.shape)
         imgs.extend(b_imgs)
         print('read %d from %s' % (len(imgs), path))
@@ -58,6 +60,13 @@ def get_imgs_RGBGRAY_fn(file_name, path):
     # https://www.geeksforgeeks.org/python-pil-image-convert-method/
     image = Image.open(path + file_name)
     return np.asarray(image)[:,:,0][:,:,np.newaxis]
+
+def get_imgs_RGBGRAY_2_fn(file_name, path):
+    """ Input an image path and name, return an image array """
+    # return scipy.misc.imread(path + file_name).astype(np.float)
+    # https://www.geeksforgeeks.org/python-pil-image-convert-method/
+    image = Image.open(path + file_name)
+    return np.asarray(image)[:,:,np.newaxis]
 
 def data_aug_train(image,mask):
     dx = config.TRAIN.width

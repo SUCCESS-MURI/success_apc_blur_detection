@@ -4,6 +4,7 @@ import json
 config = edict()
 config.TRAIN = edict()
 config.TEST = edict()
+config.VALIDATION = edict()
 
 ## Adam
 config.TRAIN.batch_size = 10
@@ -34,10 +35,11 @@ config.TRAIN.ssc_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionD
 config.TEST.ssc_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Testing_Resized_2/image/'
 config.TEST.ssc_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Testing_Resized_2/gt/'
 
-config.TRAIN.muri_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized_small/image/'
-config.TRAIN.muri_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized_small/gt/'
-config.VALIDATION.muri_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized_small/image/'
-config.VALIDATION.muri_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized_small/gt/'
+config.TRAIN.muri_blur_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Training/images/'
+config.TRAIN.muri_gt_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Training/gt/'
+
+config.VALIDATION.muri_blur_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Validation/images/'
+config.VALIDATION.muri_gt_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Validation/gt/'
 
 ## train image size
 config.TRAIN.height = 256

@@ -5,7 +5,7 @@ import multiprocessing
 import random
 
 import tensorflow as tf
-#tf.compat.v1.enable_eager_execution()
+# tf.compat.v1.enable_eager_execution()
 # tf.disable_v2_behavior()
 import tensorlayer as tl
 import numpy as np
@@ -40,6 +40,7 @@ w = config.TRAIN.width
 
 ni = int(math.ceil(np.sqrt(batch_size)))
 
+
 # np.random.seed(10)
 # random.seed(10)
 
@@ -47,6 +48,7 @@ ni = int(math.ceil(np.sqrt(batch_size)))
 def unison_shuffled_copies(a, b):
     p = np.random.permutation(len(a))
     return a[p], b[p]
+
 
 # training with the original CHUK images
 def train_with_CUHK():
@@ -277,6 +279,7 @@ def train_with_CUHK():
         if epoch % 10 == 0:
             tl.files.save_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
                                save_dir=checkpoint_dir, var_list=a_vars, global_step=epoch, printable=False)
+
 
 # train with synthetic images
 def train_with_synthetic():
@@ -523,6 +526,7 @@ def train_with_synthetic():
             tl.files.save_ckpt(sess=sess, mode_name='final_SA_net_{}.ckpt'.format(tl.global_flag['mode']),
                                save_dir=checkpoint_dir, var_list=a_vars, global_step=epoch, printable=False)
 
+
 # my new code for training the data using this version.
 # TODO remove if below works
 def train_with_ssc_dataset():
@@ -704,8 +708,8 @@ def train_with_ssc_dataset():
     with open(save_dir_sample + "/validation_metrics.csv", "w") as f:
         writer = csv.writer(f)
         writer.writerow(
-            ['Epoch','total_error','Accuracy for Class 0','Accuracy for Class 1','Accuracy for Class 2',
-             'Accuracy for Class 3','Accuracy for Class 4'])
+            ['Epoch', 'total_error', 'Accuracy for Class 0', 'Accuracy for Class 1', 'Accuracy for Class 2',
+             'Accuracy for Class 3', 'Accuracy for Class 4'])
 
     for epoch in range(tl.global_flag['start_from'], n_epoch + 1):
         # update learning rate
@@ -790,7 +794,7 @@ def train_with_ssc_dataset():
             f.write(log)
         with open(save_dir_sample + "/training_metrics.csv", "a") as f:
             writer = csv.writer(f)
-            writer.writerow([epoch,str(np.round(total_loss / n_iter,8))])
+            writer.writerow([epoch, str(np.round(total_loss / n_iter, 8))])
 
         ## save model
         if epoch % 10 == 0:
@@ -830,18 +834,20 @@ def train_with_ssc_dataset():
 
             mean_accuracy_per_class = np.mean(np.array(accuracy_list), axis=0)
             log = "[*] Validation Results: time: %4.4fs, total_err: %.8f Accuracy per class: 0: %.8f, 1: %.8f, 2: %.8f, 3: %.8f, 4: %.8f\n" % (
-            time.time() - step_time,
-            total_loss / n_iter, mean_accuracy_per_class[0], mean_accuracy_per_class[1], mean_accuracy_per_class[2],
-            mean_accuracy_per_class[3], mean_accuracy_per_class[4])
+                time.time() - step_time,
+                total_loss / n_iter, mean_accuracy_per_class[0], mean_accuracy_per_class[1], mean_accuracy_per_class[2],
+                mean_accuracy_per_class[3], mean_accuracy_per_class[4])
             # only way to write to log file while running
             with open(checkpoint_dir + "/training_ssc_metrics.log", "a") as f:
                 # perform file operations
                 f.write(log)
             with open(save_dir_sample + "/validation_metrics.csv", "a") as f:
                 writer = csv.writer(f)
-                writer.writerow([str(epoch),str(np.round(total_loss / n_iter,8)), str(np.round(mean_accuracy_per_class[0],8)),
-                                 str(np.round(mean_accuracy_per_class[1],8)),str(np.round(mean_accuracy_per_class[2],8)),
-            str(np.round(mean_accuracy_per_class[3],8)), str(np.round(mean_accuracy_per_class[4],8))])
+                writer.writerow(
+                    [str(epoch), str(np.round(total_loss / n_iter, 8)), str(np.round(mean_accuracy_per_class[0], 8)),
+                     str(np.round(mean_accuracy_per_class[1], 8)), str(np.round(mean_accuracy_per_class[2], 8)),
+                     str(np.round(mean_accuracy_per_class[3], 8)), str(np.round(mean_accuracy_per_class[4], 8))])
+
 
 # my new code for training the data using this version.
 def train_with_muri_dataset():
@@ -851,20 +857,21 @@ def train_with_muri_dataset():
 
     # save_dir_sample = "samples/{}".format(tl.global_flag['mode'])
     # tl.files.exists_or_mkdir(save_dir_sample)
-    input_path = config.TRAIN.ssc_blur_path
-    gt_path = config.TRAIN.ssc_gt_path
+    input_path = config.TRAIN.muri_blur_path
+    gt_path = config.TRAIN.muri_gt_path
     train_blur_img_list = sorted(tl.files.load_file_list(path=input_path, regx='/*.(png|PNG)', printable=False))
     train_mask_img_list = sorted(tl.files.load_file_list(path=gt_path, regx='/*.(png|PNG)', printable=False))
-    input_path = config.VALIDATION.muri_blur_path
-    gt_path = config.VALIDATION.muri_gt_path
-    validation_blur_img_list = sorted(tl.files.load_file_list(path=input_path, regx='/*.(png|PNG)', printable=False))
-    validation_mask_img_list = sorted(tl.files.load_file_list(path=gt_path, regx='/*.(png|PNG)', printable=False))
+    valid_input_path = config.VALIDATION.muri_blur_path
+    valid_gt_path = config.VALIDATION.muri_gt_path
+    validation_blur_img_list = sorted(
+        tl.files.load_file_list(path=valid_input_path, regx='/*.(png|PNG)', printable=False))
+    validation_mask_img_list = sorted(tl.files.load_file_list(path=valid_gt_path, regx='/*.(png|PNG)', printable=False))
 
     ###Load Training Data ####
     train_blur_imgs = read_all_imgs(train_blur_img_list, path=input_path, n_threads=100, mode='RGB')
-    train_mask_imgs = read_all_imgs(train_mask_img_list, path=gt_path, n_threads=100, mode='RGB2GRAY')
-    valid_blur_imgs = read_all_imgs(validation_blur_img_list, path=input_path, n_threads=100, mode='RGB')
-    valid_mask_imgs = read_all_imgs(validation_mask_img_list, path=gt_path, n_threads=100, mode='RGB2GRAY')
+    train_mask_imgs = read_all_imgs(train_mask_img_list, path=gt_path, n_threads=100, mode='RGB2GRAY2')
+    valid_blur_imgs = read_all_imgs(validation_blur_img_list, path=valid_input_path, n_threads=100, mode='RGB')
+    valid_mask_imgs = read_all_imgs(validation_mask_img_list, path=valid_gt_path, n_threads=100, mode='RGB2GRAY2')
     # print train_mask_imgs
     train_classification_mask = []
     # img_n = 0
@@ -873,13 +880,13 @@ def train_with_muri_dataset():
         tmp_classification = np.concatenate((img, img, img), axis=2)
 
         tmp_class[np.where(tmp_classification[:, :, 0] == 0)] = 0  # sharp
-        if np.where(tmp_classification[:, :, 0] == 64).size != 0:
+        if len(np.where(tmp_classification[:, :, 0] == 64)) != 0:
             tmp_class[np.where(tmp_classification[:, :, 0] == 64)] = 1  # motion blur
-        if np.where(tmp_classification[:, :, 0] == 128).size != 0:
+        if len(np.where(tmp_classification[:, :, 0] == 128)) != 0:
             tmp_class[np.where(tmp_classification[:, :, 0] == 128)] = 2  # out of focus blur
-        if np.where(tmp_classification[:, :, 0] == 192).size != 0:
+        if len(np.where(tmp_classification[:, :, 0] == 192)) != 0:
             tmp_class[np.where(tmp_classification[:, :, 0] == 192)] = 3  # darkness blur
-        if np.where(tmp_classification[:, :, 0] == 255).size != 0:
+        if len(np.where(tmp_classification[:, :, 0] == 255)) != 0:
             tmp_class[np.where(tmp_classification[:, :, 0] == 255)] = 4  # brightness blur
 
         train_classification_mask.append(tmp_class)
@@ -894,13 +901,13 @@ def train_with_muri_dataset():
         tmp_classification = np.concatenate((img, img, img), axis=2)
 
         tmp_class[np.where(tmp_classification[:, :, 0] == 0)] = 0  # sharp
-        if np.where(tmp_classification[:, :, 0] == 64).size != 0:
+        if len(np.where(tmp_classification[:, :, 0] == 64)) != 0:
             tmp_class[np.where(tmp_classification[:, :, 0] == 64)] = 1  # motion blur
-        if np.where(tmp_classification[:, :, 0] == 128).size != 0:
+        if len(np.where(tmp_classification[:, :, 0] == 128)) != 0:
             tmp_class[np.where(tmp_classification[:, :, 0] == 128)] = 2  # out of focus blur
-        if np.where(tmp_classification[:, :, 0] == 192).size != 0:
+        if len(np.where(tmp_classification[:, :, 0] == 192)) != 0:
             tmp_class[np.where(tmp_classification[:, :, 0] == 192)] = 3  # darkness blur
-        if np.where(tmp_classification[:, :, 0] == 255).size != 0:
+        if len(np.where(tmp_classification[:, :, 0] == 255)) != 0:
             tmp_class[np.where(tmp_classification[:, :, 0] == 255)] = 4  # brightness blur
 
         valid_classification_mask.append(tmp_class)
@@ -995,8 +1002,8 @@ def train_with_muri_dataset():
     with open(checkpoint_dir + "/validation_metrics.csv", "w") as f:
         writer = csv.writer(f)
         writer.writerow(
-            ['Epoch','total_error','Accuracy for Class 0','Accuracy for Class 1','Accuracy for Class 2',
-             'Accuracy for Class 3','Accuracy for Class 4'])
+            ['Epoch', 'total_error', 'Accuracy for Class 0', 'Accuracy for Class 1', 'Accuracy for Class 2',
+             'Accuracy for Class 3', 'Accuracy for Class 4'])
 
     for epoch in range(tl.global_flag['start_from'], n_epoch + 1):
         # update learning rate
@@ -1048,12 +1055,7 @@ def train_with_muri_dataset():
             # print clist.shape
             clist = np.expand_dims(clist, axis=3)
 
-            err, l1, l2, l3, l4, _, outmap = sess.run([loss, loss1, loss2, loss3, loss4, train_op, out],
-                                                      {net_regression.inputs: imlist,
-                                                       classification_map: clist})
-            #
-            # err = strategy.run(train_step, args=(imlist,clist,net_regression,m1,m2,m3,opt2,distributed_values,))#sess.run(train_step(imlist,clist,net_regression,m1,m2,m3,opt2,distributed_values))
-
+            err,_ = sess.run([loss,train_op,],{net_regression.inputs: imlist,classification_map: clist})
             # outmap1 = np.squeeze(outmap[1,:,:,0])
             # outmap2 = np.squeeze(outmap[1, :, :, 1])
             # outmap3 = np.squeeze(outmap[1, :, :, 2])
@@ -1081,7 +1083,7 @@ def train_with_muri_dataset():
             f.write(log)
         with open(checkpoint_dir + "/training_metrics.csv", "a") as f:
             writer = csv.writer(f)
-            writer.writerow([epoch,str(np.round(total_loss / n_iter,8))])
+            writer.writerow([epoch, str(np.round(total_loss / n_iter, 8))])
 
         ## save model
         if epoch % 10 == 0:
@@ -1093,7 +1095,7 @@ def train_with_muri_dataset():
             total_loss, n_iter = 0, 0
             new_batch_size = batch_size  # batchsize 50->40 + 10(augmented)
             step_time = time.time()
-            accuracy_list = []
+            classesList = [[],[],[],[],[]]
             # validation just crop
             for idx in range(0, len(valid_blur_imgs), new_batch_size):
                 images_and_score = tl.prepro.threading_data(
@@ -1109,280 +1111,294 @@ def train_with_muri_dataset():
                 # print clist.shape
                 clist = np.expand_dims(clist, axis=3)
 
-                err, l1, l2, l3, l4, outmap = sess.run([loss, loss1, loss2, loss3, loss4, output_map],
-                                                       {net_regression.inputs: imlist,
-                                                        classification_map: clist})
-                # per class accuraccy
-                perclass_accuracy = confusion_matrix(np.squeeze(clist).flatten(), np.squeeze(outmap).flatten(),
-                                                     labels=[0, 1, 2, 3, 4], normalize="true").diagonal()
-                accuracy_list.append(perclass_accuracy)
+                err, outmap = sess.run([loss, output_map],{net_regression.inputs: imlist,classification_map: clist})
+
+                # https://stackoverflow.com/questions/39770376/scikit-learn-get-accuracy-scores-for-each-class
+                perclass_accuracy_conf_matrix = confusion_matrix(np.squeeze(clist).flatten(), np.squeeze(outmap).flatten(),
+                                                                 labels=[0, 1, 2, 3, 4], normalize="true")
+
+                perclass_accuracy = perclass_accuracy_conf_matrix.diagonal()
+                for lab in range(5):
+                    if (perclass_accuracy_conf_matrix[lab, :] == 0).all() and (
+                            perclass_accuracy_conf_matrix[:, lab] == 0).all():
+                        pass
+                    else:
+                        classesList[lab].append(perclass_accuracy[lab])
                 total_loss += err
                 n_iter += 1
 
-            mean_accuracy_per_class = np.mean(np.array(accuracy_list), axis=0)
             log = "[*] Validation Results: time: %4.4fs, total_err: %.8f Accuracy per class: 0: %.8f, 1: %.8f, 2: %.8f, 3: %.8f, 4: %.8f\n" % (
-            time.time() - step_time,
-            total_loss / n_iter, mean_accuracy_per_class[0], mean_accuracy_per_class[1], mean_accuracy_per_class[2],
-            mean_accuracy_per_class[3], mean_accuracy_per_class[4])
+                time.time() - step_time,
+                total_loss / n_iter, np.mean(np.array(classesList[0])), np.mean(np.array(classesList[1])),
+                np.mean(np.array(classesList[2])),np.mean(np.array(classesList[3])), np.mean(np.array(classesList[4])))
             # only way to write to log file while running
             with open(checkpoint_dir + "/training_ssc_metrics.log", "a") as f:
                 # perform file operations
                 f.write(log)
             with open(checkpoint_dir + "/validation_metrics.csv", "a") as f:
                 writer = csv.writer(f)
-                writer.writerow([str(epoch),str(np.round(total_loss / n_iter,8)), str(np.round(mean_accuracy_per_class[0],8)),
-                                 str(np.round(mean_accuracy_per_class[1],8)),str(np.round(mean_accuracy_per_class[2],8)),
-            str(np.round(mean_accuracy_per_class[3],8)), str(np.round(mean_accuracy_per_class[4],8))])
+                writer.writerow(
+                    [str(epoch), str(np.round(total_loss / n_iter, 8)), str(np.round(np.mean(np.array(classesList[0])), 8)),
+                     str(np.round(np.mean(np.array(classesList[1])), 8)), str(np.round(np.mean(np.array(classesList[2])), 8)),
+                     str(np.round(np.mean(np.array(classesList[3])), 8)), str(np.round(np.mean(np.array(classesList[4])), 8))])
 
-def make_dataset(images_train, labels_train, num_epochs=1, shuffle_data_seed=0, batchSize=1):
-    tensors_img = []
-    for i in range(0,len(images_train),batchSize):
-        tensors_img.append(tf.convert_to_tensor(images_train[i:i+batchSize], dtype=np.float32))
-    tensor_img = tf.concat([tensors_img[0],tensors_img[1]], axis=0)
-    for i in range(2, len(tensors_img)):
-        tensor_img = tf.concat([tensor_img,tensors_img[i]],axis=0)
-    img = tf.data.Dataset.from_tensor_slices(tensor_img)
-    tensors_lab = []
-    for i in range(0, len(labels_train), batchSize):
-        tensors_lab.append(tf.convert_to_tensor(labels_train[i:i + batchSize], dtype=np.int32))
-    tensors_label = tf.concat([tensors_lab[0], tensors_lab[1]], axis=0)
-    for i in range(2, len(tensors_lab)):
-        tensors_label = tf.concat([tensors_label, tensors_lab[i]], axis=0)
-    lab = tf.data.Dataset.from_tensor_slices(tensors_label)
-    dataset = tf.data.Dataset.zip((img, lab))
-    dataset = dataset.repeat(num_epochs).shuffle(buffer_size=100000, seed=shuffle_data_seed,
-                                                 reshuffle_each_iteration=True)
-    return dataset
-
-def build_validation(x, y_):
-    # save the weights at this checkpoint
-    net_regression.eval()
-    m1.eval()
-    m2.eval()
-    m3.eval()
-    # run the network
-    output = net_regression(x)
-    m1o = m1(x)
-    m2o = m2(x)
-    m3o = m3(x)
-    y = tf.cast(y_,tf.int32)
-
-    ### get loss #####
-    loss1 = tl.cost.cross_entropy(output, tf.squeeze(y))
-    loss2 = tl.cost.cross_entropy(m1o, tf.squeeze(tf.image.resize(y, [int(h / 2), int(w / 2)],
-                                                                    method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
-    loss3 = tl.cost.cross_entropy(m2o, tf.squeeze(tf.image.resize(y, [int(h / 4), int(w / 4)],
-                                                                    method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
-    loss4 = tl.cost.cross_entropy(m3o, tf.squeeze(tf.image.resize(y, [int(h / 8), int(w / 8)],
-                                                                    method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
-    cost = loss1 + loss2 + loss3 + loss4
-    ## get overall accuracy
-    # output_map = tf.cast(tf.expand_dims(tf.math.argmax(tf.nn.softmax(output), axis=3), axis=3),dtype=tf.int32)
-    # accuracy = tf.cast(tf.math.reduce_sum(1 - tf.math.abs(tf.math.subtract(output_map, y))), dtype=tf.float32) * (
-    #             1 / (256 * 256))
-    # perclass_accuracy_conf_matrix = tf.math.confusion_matrix(tf.squeeze(y),
-    #                                                          tf.squeeze(tf.math.argmax(tf.nn.softmax(output),axis=3)),
-    #                                                          num_classes=5)
-    #
-    # perclass_accuracy = tf.linalg.tensor_diag_part(perclass_accuracy_conf_matrix)
-
-    #log_tensors = {'cost_validation': cost, 'accuracy_validation': accuracy}
-    return output, [cost]
-
-def build_train(x, y_):
-    net_regression.train()
-    m1.train()
-    m2.train()
-    m3.train()
-    output = net_regression(x)
-    m1o = m1(x)
-    m2o = m2(x)
-    m3o = m3(x)
-    y = tf.cast(y_,tf.int32)
-
-    loss1 = tl.cost.cross_entropy(output, tf.squeeze(y))
-    loss2 = tl.cost.cross_entropy(m1o,tf.squeeze(tf.image.resize(y, [int(h / 2), int(w / 2)],
-                                                             method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
-    loss3 = tl.cost.cross_entropy(m2o,tf.squeeze(tf.image.resize(y, [int(h / 4), int(w / 4)],
-                                                             method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
-    loss4 = tl.cost.cross_entropy(m3o,tf.squeeze(tf.image.resize(y, [int(h / 8), int(w / 8)],
-                                                             method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
-    cost = loss1 + loss2 + loss3 + loss4
-    # output_map = tf.cast(tf.expand_dims(tf.math.argmax(tf.nn.softmax(output), axis=3), axis=3),dtype=tf.int32)
-    # accuracy = tf.cast(tf.math.reduce_sum(1-tf.math.abs(tf.math.subtract(output_map, y))),dtype=tf.float32)*(1/(256*256))
-    log_tensors = {'cost_train': cost} # , 'accuracy_train': accuracy
-    return output, cost, log_tensors
-
-# my new code for training the data using this version.
-def UPDATED_train_with_ssc_dataset():
-    global checkpoint_dir_local
-    checkpoint_dir_local = "test_checkpoint/{}".format(tl.global_flag['mode'])  # checkpoint_resize_conv
-    tl.files.exists_or_mkdir(checkpoint_dir_local)
-    log_config(checkpoint_dir_local + '/config', config)
-
-    save_dir_sample = "samples/{}".format(tl.global_flag['mode'])
-    tl.files.exists_or_mkdir(save_dir_sample)
-    input_path = config.TRAIN.ssc_blur_path
-    gt_path = config.TRAIN.ssc_gt_path
-    train_blur_img_list = sorted(tl.files.load_file_list(path=input_path, regx='/*.(png|PNG)', printable=False))
-    train_mask_img_list = sorted(tl.files.load_file_list(path=gt_path, regx='/*.(png|PNG)', printable=False))
-
-    ###Load Training Data ####
-    train_blur_imgs = read_all_imgs(train_blur_img_list, path=input_path, n_threads=100, mode='RGB')
-    train_mask_imgs = read_all_imgs(train_mask_img_list, path=gt_path, n_threads=100, mode='RGB2GRAY')
-    list_names_idx = np.arange(0, len(train_blur_imgs), 1)
-    np.random.shuffle(list_names_idx)
-    # need to know which images were in the valid dataset
-    train_classification_mask = []
-    train_images = []
-    train_list_names = []
-    train_mask_names = []
-    for idx in list_names_idx:
-        train_list_names.append(train_blur_img_list[idx])
-        train_images.append(train_blur_imgs[idx])
-        train_classification_mask.append(train_mask_imgs[idx])
-        train_mask_names.append(train_mask_img_list[idx])
-    train_mask_imgs = train_classification_mask
-    train_blur_imgs = train_images
-    train_mask_img_list = train_mask_names
-    train_blur_img_list = train_list_names
-    # print train_mask_imgs
-    train_classification_mask = []
-    # img_n = 0
-    for img in train_mask_imgs:
-        tmp_class = img
-        tmp_classification = np.concatenate((img, img, img), axis=2)
-
-        tmp_class[np.where(tmp_classification[:, :, 0] == 0)] = 0  # sharp
-        tmp_class[np.where(tmp_classification[:, :, 0] == 64)] = 1  # motion blur
-        tmp_class[np.where(tmp_classification[:, :, 0] == 128)] = 2  # out of focus blur
-        tmp_class[np.where(tmp_classification[:, :, 0] == 192)] = 3  # darkness blur
-        tmp_class[np.where(tmp_classification[:, :, 0] == 255)] = 4  # brightness blur
-
-        train_classification_mask.append(tmp_class)
-
-    train_blur_imgs = np.array(train_blur_imgs, dtype=object)
-    train_classification_mask = np.array(train_classification_mask, dtype=object)
-
-    # make validation set
-    if path.exists(checkpoint_dir_local + "/validation_image_list.txt"):
-        # https://stackoverflow.com/questions/57882946/reading-log-files-in-python
-        with open(checkpoint_dir_local + "/validation_image_list.txt", "r") as f:
-            list = f.read().splitlines()
-        idxs = []
-        for item in list:
-            for idx in range(len(train_blur_img_list)):
-                if train_blur_img_list[idx] == item:
-                    idxs.append(idx)
-                    break
-        idxs = np.array(idxs)
-        idxs_not = np.arange(len(train_blur_img_list))
-        idxs_not_list = []
-        for item in idxs_not:
-            if item in idxs:
-                pass
-            else:
-                idxs_not_list.append(item)
-        idxs_not_list = np.array(idxs_not_list)
-        valid_blur_imgs = train_blur_imgs[idxs]
-        valid_classification_mask = train_classification_mask[idxs]
-        train_blur_imgs = train_blur_imgs[idxs_not_list]
-        train_classification_mask = train_classification_mask[idxs_not_list]
-        print("Reusing the found validation txt file in cehckpoint directory")
-    else:
-        numValid = int(len(train_blur_imgs) * .5)
-        valid_blur_imgs = train_blur_imgs[:numValid]
-        valid_classification_mask = train_classification_mask[:numValid]
-        train_blur_imgs = train_blur_imgs[numValid:]
-        train_classification_mask = train_classification_mask[numValid:]
-        with open(checkpoint_dir_local + "/validation_image_list.txt", "a") as f:
-            # perform file operations
-            for line in train_blur_img_list[:numValid]:
-                f.write(line + "\n")
-        with open(checkpoint_dir_local + "/training_image_list.txt", "a") as f:
-            # perform file operations
-            for line in train_blur_img_list[numValid:]:
-                f.write(line + "\n")
-    print("Number of training images " + str(len(train_blur_imgs)))
-    print("Number of validation images " + str(len(valid_blur_imgs)))
-
-    ### DEFINE MODEL ###
-    patches_blurred = tf.compat.v1.placeholder('float32', [batch_size, h, w, 3], name='input_patches')
-    global net_regression
-    global m1
-    global m3
-    global m2
-    with tf.compat.v1.variable_scope('Unified'):
-        with tf.compat.v1.variable_scope('VGG') as scope1:
-            input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
-        with tf.compat.v1.variable_scope('UNet') as scope2:
-            net_regression, m1, m2, m3, m1B, m2B, m3B, m4B = Decoder_Network_classification(input, n, f0, f0_1, f1_2,
-                                                                                            f2_3, reuse=False,
-                                                                                            scope=scope2)
-    ### DEFINE OPTIMIZER ###
-    with tf.compat.v1.variable_scope('learning_rate'):
-        lr_v2 = tf.Variable(lr_init * 0.1, trainable=False)
-    a_vars = tl.layers.get_variables_with_name('Unified', False, True)
-    var_list2 = tl.layers.get_variables_with_name('UNet', True, True)  # ?
-    configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-    configTf.gpu_options.allow_growth = True
-    # gpus = tf.config.experimental.list_physical_devices('GPU')
-    # if gpus:
-    #     try:
-    #         for gpu in gpus:
-    #             tf.config.experimental.set_memory_growth(gpu, True)
-    #
-    #     except RuntimeError as e:
-    #         print(e)
-    sess = tf.compat.v1.Session(config=configTf)
-
-    print("initializing global variable...")
-    sess.run(tf.compat.v1.global_variables_initializer())
-    print("initializing global variable...DONE")
-    training_dataset = make_dataset(train_blur_imgs, train_classification_mask,num_epochs=n_epoch -
-                                                                                          tl.global_flag['start_from'] + 5)
-    validation_dataset = make_dataset(valid_blur_imgs,valid_classification_mask,num_epochs=n_epoch -
-                                                                                           tl.global_flag['start_from'] + 5)
-    training_dataset = training_dataset.map(data_aug_train, num_parallel_calls=multiprocessing.cpu_count())
-
-    validation_dataset = validation_dataset.map(data_aug_valid, num_parallel_calls=multiprocessing.cpu_count())
-
-    ### initalize weights ###
-    # initialize weights from previous run if indicated
-    if tl.global_flag['start_from'] != 0:
-        print("loading initial checkpoint")
-        tl.files.load_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
-                           save_dir=checkpoint_dir_local, var_list=a_vars, is_latest=True, printable=True)
-    else:
-        # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
-        # we are updating all of the pretrained weights up to the last layer
-        get_weights(sess, n)
-        get_weights(sess, m1B)
-        get_weights(sess, m2B)
-        get_weights(sess, m3B)
-        get_weights(sess, m4B)
-
-    ### START TRAINING ###
-    # TODO put in learning rate decay settings right now will not be used
-    # can't figure out how to do the decay
-    trainer = tl.distributed.Trainer(
-        build_training_func=build_train, training_dataset=training_dataset, optimizer=tf.compat.v1.train.AdamOptimizer,
-        optimizer_args={'learning_rate': lr_v2}, batch_size=batch_size, prefetch_size=10, log_step_size=int(len(train_blur_imgs)/batch_size),
-        checkpoint_dir=checkpoint_dir_local,save_checkpoint_step_size=10, validation_dataset=validation_dataset,
-        build_validation_func=build_validation, variables_to_train=var_list2)
-
-    # There are multiple ways to use the trainer:
-    # 1. Easiest way to train all data: trainer.train_to_end()
-    # 2. Train with validation in the middle: trainer.train_and_validate_to_end(validate_step_size=100)
-    # 3. Train with full control like follows:
-    # TODO add validation accuracy for each class
-    # on hold for getting this working and running
-    while not trainer.session.should_stop():
-        try:
-            # Run a training step synchronously.
-            #trainer.train_on_batch()
-            trainer.train_and_validate_to_end(validate_step_size=do_validation_every*int(len(train_blur_imgs)/batch_size))
-        except tf.errors.OutOfRangeError:
-            # The dataset would throw the OutOfRangeError when it reaches the end
-            break
-    print("Finished Training the dataset")
+### Distruibuted Strategy code DOESN'T WORK #####
+# def make_dataset(images_train, labels_train, num_epochs=1, shuffle_data_seed=0, batchSize=1):
+#     tensors_img = []
+#     for i in range(0, len(images_train), batchSize):
+#         tensors_img.append(tf.convert_to_tensor(images_train[i:i + batchSize], dtype=np.float32))
+#     tensor_img = tf.concat([tensors_img[0], tensors_img[1]], axis=0)
+#     for i in range(2, len(tensors_img)):
+#         tensor_img = tf.concat([tensor_img, tensors_img[i]], axis=0)
+#     img = tf.data.Dataset.from_tensor_slices(tensor_img)
+#     tensors_lab = []
+#     for i in range(0, len(labels_train), batchSize):
+#         tensors_lab.append(tf.convert_to_tensor(labels_train[i:i + batchSize], dtype=np.int32))
+#     tensors_label = tf.concat([tensors_lab[0], tensors_lab[1]], axis=0)
+#     for i in range(2, len(tensors_lab)):
+#         tensors_label = tf.concat([tensors_label, tensors_lab[i]], axis=0)
+#     lab = tf.data.Dataset.from_tensor_slices(tensors_label)
+#     dataset = tf.data.Dataset.zip((img, lab))
+#     dataset = dataset.repeat(num_epochs).shuffle(buffer_size=100000, seed=shuffle_data_seed,
+#                                                  reshuffle_each_iteration=True)
+#     return dataset
+#
+#
+# def build_validation(x, y_):
+#     # save the weights at this checkpoint
+#     net_regression.eval()
+#     m1.eval()
+#     m2.eval()
+#     m3.eval()
+#     # run the network
+#     output = net_regression(x)
+#     m1o = m1(x)
+#     m2o = m2(x)
+#     m3o = m3(x)
+#     y = tf.cast(y_, tf.int32)
+#
+#     ### get loss #####
+#     loss1 = tl.cost.cross_entropy(output, tf.squeeze(y))
+#     loss2 = tl.cost.cross_entropy(m1o, tf.squeeze(tf.image.resize(y, [int(h / 2), int(w / 2)],
+#                                                                   method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
+#     loss3 = tl.cost.cross_entropy(m2o, tf.squeeze(tf.image.resize(y, [int(h / 4), int(w / 4)],
+#                                                                   method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
+#     loss4 = tl.cost.cross_entropy(m3o, tf.squeeze(tf.image.resize(y, [int(h / 8), int(w / 8)],
+#                                                                   method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
+#     cost = loss1 + loss2 + loss3 + loss4
+#     ## get overall accuracy
+#     # output_map = tf.cast(tf.expand_dims(tf.math.argmax(tf.nn.softmax(output), axis=3), axis=3),dtype=tf.int32)
+#     # accuracy = tf.cast(tf.math.reduce_sum(1 - tf.math.abs(tf.math.subtract(output_map, y))), dtype=tf.float32) * (
+#     #             1 / (256 * 256))
+#     # perclass_accuracy_conf_matrix = tf.math.confusion_matrix(tf.squeeze(y),
+#     #                                                          tf.squeeze(tf.math.argmax(tf.nn.softmax(output),axis=3)),
+#     #                                                          num_classes=5)
+#     #
+#     # perclass_accuracy = tf.linalg.tensor_diag_part(perclass_accuracy_conf_matrix)
+#
+#     # log_tensors = {'cost_validation': cost, 'accuracy_validation': accuracy}
+#     return output, [cost]
+#
+#
+# def build_train(x, y_):
+#     net_regression.train()
+#     m1.train()
+#     m2.train()
+#     m3.train()
+#     output = net_regression(x)
+#     m1o = m1(x)
+#     m2o = m2(x)
+#     m3o = m3(x)
+#     y = tf.cast(y_, tf.int32)
+#
+#     loss1 = tl.cost.cross_entropy(output, tf.squeeze(y))
+#     loss2 = tl.cost.cross_entropy(m1o, tf.squeeze(tf.image.resize(y, [int(h / 2), int(w / 2)],
+#                                                                   method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
+#     loss3 = tl.cost.cross_entropy(m2o, tf.squeeze(tf.image.resize(y, [int(h / 4), int(w / 4)],
+#                                                                   method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
+#     loss4 = tl.cost.cross_entropy(m3o, tf.squeeze(tf.image.resize(y, [int(h / 8), int(w / 8)],
+#                                                                   method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
+#     cost = loss1 + loss2 + loss3 + loss4
+#     # output_map = tf.cast(tf.expand_dims(tf.math.argmax(tf.nn.softmax(output), axis=3), axis=3),dtype=tf.int32)
+#     # accuracy = tf.cast(tf.math.reduce_sum(1-tf.math.abs(tf.math.subtract(output_map, y))),dtype=tf.float32)*(1/(256*256))
+#     log_tensors = {'cost_train': cost}  # , 'accuracy_train': accuracy
+#     return output, cost, log_tensors
+#
+#
+# # my new code for training the data using this version.
+# def UPDATED_train_with_ssc_dataset():
+#     global checkpoint_dir_local
+#     checkpoint_dir_local = "test_checkpoint/{}".format(tl.global_flag['mode'])  # checkpoint_resize_conv
+#     tl.files.exists_or_mkdir(checkpoint_dir_local)
+#     log_config(checkpoint_dir_local + '/config', config)
+#
+#     save_dir_sample = "samples/{}".format(tl.global_flag['mode'])
+#     tl.files.exists_or_mkdir(save_dir_sample)
+#     input_path = config.TRAIN.ssc_blur_path
+#     gt_path = config.TRAIN.ssc_gt_path
+#     train_blur_img_list = sorted(tl.files.load_file_list(path=input_path, regx='/*.(png|PNG)', printable=False))
+#     train_mask_img_list = sorted(tl.files.load_file_list(path=gt_path, regx='/*.(png|PNG)', printable=False))
+#
+#     ###Load Training Data ####
+#     train_blur_imgs = read_all_imgs(train_blur_img_list, path=input_path, n_threads=100, mode='RGB')
+#     train_mask_imgs = read_all_imgs(train_mask_img_list, path=gt_path, n_threads=100, mode='RGB2GRAY')
+#     list_names_idx = np.arange(0, len(train_blur_imgs), 1)
+#     np.random.shuffle(list_names_idx)
+#     # need to know which images were in the valid dataset
+#     train_classification_mask = []
+#     train_images = []
+#     train_list_names = []
+#     train_mask_names = []
+#     for idx in list_names_idx:
+#         train_list_names.append(train_blur_img_list[idx])
+#         train_images.append(train_blur_imgs[idx])
+#         train_classification_mask.append(train_mask_imgs[idx])
+#         train_mask_names.append(train_mask_img_list[idx])
+#     train_mask_imgs = train_classification_mask
+#     train_blur_imgs = train_images
+#     train_mask_img_list = train_mask_names
+#     train_blur_img_list = train_list_names
+#     # print train_mask_imgs
+#     train_classification_mask = []
+#     # img_n = 0
+#     for img in train_mask_imgs:
+#         tmp_class = img
+#         tmp_classification = np.concatenate((img, img, img), axis=2)
+#
+#         tmp_class[np.where(tmp_classification[:, :, 0] == 0)] = 0  # sharp
+#         tmp_class[np.where(tmp_classification[:, :, 0] == 64)] = 1  # motion blur
+#         tmp_class[np.where(tmp_classification[:, :, 0] == 128)] = 2  # out of focus blur
+#         tmp_class[np.where(tmp_classification[:, :, 0] == 192)] = 3  # darkness blur
+#         tmp_class[np.where(tmp_classification[:, :, 0] == 255)] = 4  # brightness blur
+#
+#         train_classification_mask.append(tmp_class)
+#
+#     train_blur_imgs = np.array(train_blur_imgs, dtype=object)
+#     train_classification_mask = np.array(train_classification_mask, dtype=object)
+#
+#     # make validation set
+#     if path.exists(checkpoint_dir_local + "/validation_image_list.txt"):
+#         # https://stackoverflow.com/questions/57882946/reading-log-files-in-python
+#         with open(checkpoint_dir_local + "/validation_image_list.txt", "r") as f:
+#             list = f.read().splitlines()
+#         idxs = []
+#         for item in list:
+#             for idx in range(len(train_blur_img_list)):
+#                 if train_blur_img_list[idx] == item:
+#                     idxs.append(idx)
+#                     break
+#         idxs = np.array(idxs)
+#         idxs_not = np.arange(len(train_blur_img_list))
+#         idxs_not_list = []
+#         for item in idxs_not:
+#             if item in idxs:
+#                 pass
+#             else:
+#                 idxs_not_list.append(item)
+#         idxs_not_list = np.array(idxs_not_list)
+#         valid_blur_imgs = train_blur_imgs[idxs]
+#         valid_classification_mask = train_classification_mask[idxs]
+#         train_blur_imgs = train_blur_imgs[idxs_not_list]
+#         train_classification_mask = train_classification_mask[idxs_not_list]
+#         print("Reusing the found validation txt file in cehckpoint directory")
+#     else:
+#         numValid = int(len(train_blur_imgs) * .5)
+#         valid_blur_imgs = train_blur_imgs[:numValid]
+#         valid_classification_mask = train_classification_mask[:numValid]
+#         train_blur_imgs = train_blur_imgs[numValid:]
+#         train_classification_mask = train_classification_mask[numValid:]
+#         with open(checkpoint_dir_local + "/validation_image_list.txt", "a") as f:
+#             # perform file operations
+#             for line in train_blur_img_list[:numValid]:
+#                 f.write(line + "\n")
+#         with open(checkpoint_dir_local + "/training_image_list.txt", "a") as f:
+#             # perform file operations
+#             for line in train_blur_img_list[numValid:]:
+#                 f.write(line + "\n")
+#     print("Number of training images " + str(len(train_blur_imgs)))
+#     print("Number of validation images " + str(len(valid_blur_imgs)))
+#
+#     ### DEFINE MODEL ###
+#     patches_blurred = tf.compat.v1.placeholder('float32', [batch_size, h, w, 3], name='input_patches')
+#     global net_regression
+#     global m1
+#     global m3
+#     global m2
+#     with tf.compat.v1.variable_scope('Unified'):
+#         with tf.compat.v1.variable_scope('VGG') as scope1:
+#             input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
+#         with tf.compat.v1.variable_scope('UNet') as scope2:
+#             net_regression, m1, m2, m3, m1B, m2B, m3B, m4B = Decoder_Network_classification(input, n, f0, f0_1, f1_2,
+#                                                                                             f2_3, reuse=False,
+#                                                                                             scope=scope2)
+#     ### DEFINE OPTIMIZER ###
+#     with tf.compat.v1.variable_scope('learning_rate'):
+#         lr_v2 = tf.Variable(lr_init * 0.1, trainable=False)
+#     a_vars = tl.layers.get_variables_with_name('Unified', False, True)
+#     var_list2 = tl.layers.get_variables_with_name('UNet', True, True)  # ?
+#     configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+#     configTf.gpu_options.allow_growth = True
+#     # gpus = tf.config.experimental.list_physical_devices('GPU')
+#     # if gpus:
+#     #     try:
+#     #         for gpu in gpus:
+#     #             tf.config.experimental.set_memory_growth(gpu, True)
+#     #
+#     #     except RuntimeError as e:
+#     #         print(e)
+#     sess = tf.compat.v1.Session(config=configTf)
+#
+#     print("initializing global variable...")
+#     sess.run(tf.compat.v1.global_variables_initializer())
+#     print("initializing global variable...DONE")
+#     training_dataset = make_dataset(train_blur_imgs, train_classification_mask, num_epochs=n_epoch -
+#                                                                                            tl.global_flag[
+#                                                                                                'start_from'] + 5)
+#     validation_dataset = make_dataset(valid_blur_imgs, valid_classification_mask, num_epochs=n_epoch -
+#                                                                                              tl.global_flag[
+#                                                                                                  'start_from'] + 5)
+#     training_dataset = training_dataset.map(data_aug_train, num_parallel_calls=multiprocessing.cpu_count())
+#
+#     validation_dataset = validation_dataset.map(data_aug_valid, num_parallel_calls=multiprocessing.cpu_count())
+#
+#     ### initalize weights ###
+#     # initialize weights from previous run if indicated
+#     if tl.global_flag['start_from'] != 0:
+#         print("loading initial checkpoint")
+#         tl.files.load_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
+#                            save_dir=checkpoint_dir_local, var_list=a_vars, is_latest=True, printable=True)
+#     else:
+#         # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
+#         # we are updating all of the pretrained weights up to the last layer
+#         get_weights(sess, n)
+#         get_weights(sess, m1B)
+#         get_weights(sess, m2B)
+#         get_weights(sess, m3B)
+#         get_weights(sess, m4B)
+#
+#     ### START TRAINING ###
+#     # TODO put in learning rate decay settings right now will not be used
+#     # can't figure out how to do the decay
+#     trainer = tl.distributed.Trainer(
+#         build_training_func=build_train, training_dataset=training_dataset, optimizer=tf.compat.v1.train.AdamOptimizer,
+#         optimizer_args={'learning_rate': lr_v2}, batch_size=batch_size, prefetch_size=10,
+#         log_step_size=int(len(train_blur_imgs) / batch_size),
+#         checkpoint_dir=checkpoint_dir_local, save_checkpoint_step_size=10, validation_dataset=validation_dataset,
+#         build_validation_func=build_validation, variables_to_train=var_list2)
+#
+#     # There are multiple ways to use the trainer:
+#     # 1. Easiest way to train all data: trainer.train_to_end()
+#     # 2. Train with validation in the middle: trainer.train_and_validate_to_end(validate_step_size=100)
+#     # 3. Train with full control like follows:
+#     # TODO add validation accuracy for each class
+#     # on hold for getting this working and running
+#     while not trainer.session.should_stop():
+#         try:
+#             # Run a training step synchronously.
+#             # trainer.train_on_batch()
+#             trainer.train_and_validate_to_end(
+#                 validate_step_size=do_validation_every * int(len(train_blur_imgs) / batch_size))
+#         except tf.errors.OutOfRangeError:
+#             # The dataset would throw the OutOfRangeError when it reaches the end
+#             break
+#     print("Finished Training the dataset")

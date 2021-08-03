@@ -36,6 +36,7 @@ h = config.TRAIN.height
 w = config.TRAIN.width
 
 VGG_MEAN = [103.939, 116.779, 123.68]
+g_mean = np.array(([126.88,120.24,112.19])).reshape([1,1,3])
 
 ni = int(math.ceil(np.sqrt(batch_size)))
 
@@ -378,7 +379,7 @@ def testData_return_error():
                                                                                             scope=scope2)
 
     output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs),axis=3),axis=3)
-    output = tf.nn.log_softmax(net_regression.outputs)
+    output = tf.nn.softmax(net_regression.outputs)
 
     ### DEFINE LOSS ###
     loss1 = tf.cast(tf.math.reduce_sum(1-tf.math.abs(tf.math.subtract(output_map, classification_map))),
@@ -445,32 +446,10 @@ def testData_return_error():
         # step run we run the network 100 times
         blurMap = np.squeeze(sess.run([output],{net_regression.inputs: np.expand_dims((test_image), axis=0)}))
         blur_map = np.zeros((256,256))
-
-        for i in range(blurMap.shape[0]):
-            for j in range(blurMap.shape[1]):
-
-                #all_digits_prob = []
-                highlight = False
-                histo_exp = np.exp(blurMap[i, j, :])
-                #prob = np.median(histo_exp, 50)
-                prob = histo_exp
-
-                # for k in range(5): # number of classes
-                #     histo_exp=np.exp(blurMap[i,j,k])
-                #     # now we need to check each pixel and if the mean is over 20 percent.
-                #     prob = np.percentile(histo_exp, 50)  # sampling median probability
-                #     all_digits_prob.append(prob)
-
-                if np.argwhere(np.array(prob) >= 0.2).size == 1:  # select if network thinks this sample is 20% chance of this being a label
-                    highlight = True  # possibly an answer
-                # the argmax is the predicted label
-                predicted = np.argmax(prob)
-                if highlight:
-                    blur_map[i,j] = predicted
-                else: # mark as undecided
-                    blur_map[i,j] = 5
-        # blur_map,accuracy = sess.run([output_map,loss1],{net_regression.inputs: np.expand_dims((test_image), axis=0),
-        #                                           classification_map: np.expand_dims(gt_test_image,axis=0)})
+        blur_map[np.sum(blurMap[:,:] >= .2,axis=2) == 1] = np.argmax(blurMap[np.sum(blurMap[:,:] >= .2,axis=2) == 1],
+                                                                     axis=1)
+        # uncertainty labeling
+        blur_map[np.sum(blurMap[:, :] >= .2, axis=2) != 1] = 5
 
         #np.save(save_dir_sample + '/raw_' + image_name.replace(".png", ".npy"), np.squeeze(blur_map))
         accuracy = accuracy_score(np.squeeze(gt_test_image).flatten(),np.squeeze(blur_map).flatten(),normalize=True)
