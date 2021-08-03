@@ -13,7 +13,6 @@ config.TRAIN.beta1 = 0.9
 
 ## initialize G
 config.TRAIN.n_epoch_init = 1000
-
 config.TRAIN.valid_every = 10 # TODO change to 100
 
 ## adversarial learning (SRGAN)
@@ -22,24 +21,14 @@ config.TRAIN.lr_decay = 0.1
 config.TRAIN.decay_every = 6000
 
 ## train set location
-config.TRAIN.CUHK_blur_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/image/'
-config.TRAIN.CUHK_gt_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/gt/'
-# config.TRAIN.synthetic_blur_path = '/home/mary/code/local_success_dataset/BlurTrainSyntheic/imgs/'
-# config.TRAIN.synthetic_gt_path = '/home/mary/code/local_success_dataset/BlurTrainSyntheic/GT/'
-config.TRAIN.synthetic_blur_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/image/'
-config.TRAIN.synthetic_gt_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/gt/'
-
-config.TRAIN.ssc_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized_small/image/'
-config.TRAIN.ssc_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized_small/gt/'
-
-config.TEST.ssc_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Testing_Resized_2/image/'
-config.TEST.ssc_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Testing_Resized_2/gt/'
-
 config.TRAIN.muri_blur_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Training/images/'
 config.TRAIN.muri_gt_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Training/gt/'
 
 config.VALIDATION.muri_blur_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Validation/images/'
 config.VALIDATION.muri_gt_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Validation/gt/'
+
+config.TEST.muri_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Testing_Resized_2/image/'
+config.TEST.muri_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Testing_Resized_2/gt/'
 
 ## train image size
 config.TRAIN.height = 256

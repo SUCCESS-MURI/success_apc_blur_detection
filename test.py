@@ -14,7 +14,6 @@ from tensorflow.python.training import py_checkpoint_reader
 from sklearn.metrics import f1_score, confusion_matrix, accuracy_score
 
 from config import config, log_config
-from setup.loadNPYWeightsSaveCkpt import get_weights
 from utils import *
 from model import *
 import matplotlib
@@ -61,281 +60,28 @@ def numpy_iou(y_true, y_pred, n_class=5):
 
     return np.mean(IOU)
 
-def blurmap_3classes_using_numpy_pretrainied_weights(index):
-    print("Blurmap Generation")
-
-    date = datetime.datetime.now().strftime("%y.%m.%d")
-    save_dir_sample = 'output_test'
-    tl.files.exists_or_mkdir(save_dir_sample)
-
-    #Put the input path!
-    sharp_path = './input'
-    test_sharp_img_list = os.listdir(sharp_path)
-    test_sharp_img_list.sort()
-
-    flag=0
-    i=0
-
-    for image in test_sharp_img_list:
-        if(i>=index and i<index+100):
-            print(i)
-            if (image.find('.jpg') & image.find('.png') & image.find('.JPG')& image.find('.PNG')) != -1:
-
-                sharp = os.path.join(sharp_path, image)
-                sharp_image = Image.open(sharp)
-                sharp_image.load()
-
-                sharp_image = np.asarray(sharp_image, dtype="float32")
-
-                if(len(sharp_image.shape)<3):
-                    sharp_image= np.expand_dims(np.asarray(sharp_image), 3)
-                    sharp_image=np.concatenate([sharp_image, sharp_image, sharp_image],axis=2)
-
-                if (sharp_image.shape[2] ==4):
-                    print(sharp_image.shape)
-                    sharp_image = np.expand_dims(np.asarray(sharp_image), 3)
-
-                    print(sharp_image.shape)
-                    sharp_image = np.concatenate((sharp_image[:,:,0],sharp_image[:,:,1],sharp_image[:,:,2]),axis=2)
-
-                print(sharp_image.shape)
-
-                image_h, image_w =sharp_image.shape[0:2]
-                print(image_h, image_w)
-
-                test_image = sharp_image[0: image_h - (image_h % 16), 0: 0 + image_w - (image_w % 16), :] #/ (255.)
-                red = test_image[:,:,0]
-                green = test_image[:, :, 1]
-                blue = test_image[:, :, 2]
-                bgr = np.zeros(test_image.shape)
-                bgr[:,:,0]= blue - VGG_MEAN[0]
-                bgr[:, :, 1] = green - VGG_MEAN[1]
-                bgr[:, :, 2] = red - VGG_MEAN[2]
-                #bgr = np.round(bgr).astype(np.float32)
-                # Model
-                patches_blurred = tf.compat.v1.placeholder('float32', [1, test_image.shape[0], test_image.shape[1], 3], name='input_patches')
-                if flag==0:
-                    reuse =False
+def get_weights_checkpoint(sess,network,dict_weights_trained):
+    # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
+    #dict_weights_trained = np.load('./setup/final_model.npy',allow_pickle=True)[()]
+    params = []
+    keys = dict_weights_trained.keys()
+    for weights in network.trainable_weights:
+        name = weights.name
+        splitName ='/'.join(name.split(':')[:1])
+        for key in keys:
+            keySplit = '/'.join(key.split('/'))
+            if splitName == keySplit:
+                if 'bias' in name.split('/')[-1]:
+                    params.append(dict_weights_trained[key])
                 else:
-                    reuse =True
+                    params.append(dict_weights_trained[key])
+                break
 
-                start_time = time.time()
-
-                with tf.compat.v1.variable_scope('Unified') as scope:
-                    with tf.compat.v1.variable_scope('VGG') as scope3:
-                        input, n, f0, f0_1, f1_2, f2_3= VGG19_pretrained(patches_blurred, reuse=reuse,scope=scope3)
-                    with tf.compat.v1.variable_scope('UNet') as scope1:
-                        output,m1,m2,m3= Decoder_Network_classification(input, n, f0, f0_1,
-                                                                        f1_2, f2_3, reuse = reuse,
-                                                                        scope = scope1)
-
-                #a_vars = tl.layers.get_variables_with_name('Unified', False, True)
-
-                configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-                configTf.gpu_options.allow_growth = True
-                sess = tf.compat.v1.Session(config=configTf)
-
-                tl.layers.initialize_global_variables(sess)
-
-                # Load checkpoint
-                #saver.restore(sess, "./setup/checkpoint/final_checkpoint_tf2.ckpt")
-                get_weights(sess, output)
-                print("loaded all the weights")
-                output_map = tf.nn.softmax(output.outputs)
-                output_map1 = tf.nn.softmax(m1.outputs)
-                output_map2 = tf.nn.softmax(m2.outputs)
-                output_map3 = tf.nn.softmax(m3.outputs)
-
-                start_time = time.time()
-                blur_map,_,_,_ = sess.run([output_map,output_map1,output_map2,output_map3],{output.inputs: np.expand_dims(
-                    (bgr), axis=0)})
-                blur_map = np.squeeze(blur_map)
-                # o1= np.squeeze(o1)
-                # o2 = np.squeeze(o2)
-                # o3 = np.squeeze(o3)
-
-                if ".jpg" in image:
-                    image.replace(".jpg", ".png")
-                    cv2.imwrite(save_dir_sample +  '/'+ image.replace(".jpg", ".png"), blur_map*255)
-                if ".JPG" in image:
-                    image.replace(".JPG", ".png")
-                    cv2.imwrite(save_dir_sample +  '/'+ image.replace(".JPG", ".png"), blur_map*255)
-                if ".PNG" in image:
-                    image.replace(".jpg", ".png")
-                    cv2.imwrite(save_dir_sample +  '/'+ image.replace(".jpg", ".png"), blur_map*255)
-                if ".png" in image:
-                    image.replace(".jpg", ".png")
-                    cv2.imwrite(save_dir_sample + '/' + image.replace(".jpg", ".png"), blur_map*255)
-
-                sess.close()
-                flag=1
-
-                print("5.--- %s seconds ---" % (time.time() - start_time))
-                start_time = time.time()
-                if(i==index+101-1):
-                    return 0
-        i = i + 1
-    return 0
-
-def testData(index):
-    print("Blurmap Generation and Testing")
-
-    date = datetime.datetime.now().strftime("%y.%m.%d")
-    save_dir_sample = 'output_{}'.format(tl.global_flag['mode'])
-    tl.files.exists_or_mkdir(save_dir_sample)
-
-    #Put the input path!
-    sharp_path = './input'
-    test_sharp_img_list = os.listdir(sharp_path)
-    test_sharp_img_list.sort()
-
-    flag=0
-    i=0
-
-    for image in test_sharp_img_list:
-        if(i>=index and i<index+100):
-            print(i)
-            if (image.find('.jpg') & image.find('.png') & image.find('.JPG')& image.find('.PNG')) != -1:
-
-                sharp = os.path.join(sharp_path, image)
-                sharp_image = Image.open(sharp)
-                sharp_image.load()
-
-                sharp_image = np.asarray(sharp_image, dtype="float32")
-
-                if(len(sharp_image.shape)<3):
-                    sharp_image= np.expand_dims(np.asarray(sharp_image), 3)
-                    sharp_image=np.concatenate([sharp_image, sharp_image, sharp_image],axis=2)
-
-                if (sharp_image.shape[2] ==4):
-                    print(sharp_image.shape)
-                    sharp_image = np.expand_dims(np.asarray(sharp_image), 3)
-
-                    print(sharp_image.shape)
-                    sharp_image = np.concatenate((sharp_image[:,:,0],sharp_image[:,:,1],sharp_image[:,:,2]),axis=2)
-
-                print(sharp_image.shape)
-
-                image_h, image_w =sharp_image.shape[0:2]
-                print(image_h, image_w)
-
-                test_image = sharp_image[0: image_h-(image_h%16), 0: 0 + image_w-(image_w%16), :]#/(255.)
-                red = test_image[:, :, 0]
-                green = test_image[:, :, 1]
-                blue = test_image[:, :, 2]
-                bgr = np.zeros(test_image.shape)
-                bgr[:, :, 0] = blue - VGG_MEAN[0]
-                bgr[:, :, 1] = green - VGG_MEAN[1]
-                bgr[:, :, 2] = red - VGG_MEAN[2]
-
-                # Model
-                patches_blurred = tf.compat.v1.placeholder('float32', [1, test_image.shape[0], test_image.shape[1], 3], name='input_patches')
-                if flag==0:
-                    reuse =False
-                else:
-                    reuse =True
-
-                start_time = time.time()
-
-                with tf.compat.v1.variable_scope('Unified') as scope:
-                    with tf.compat.v1.variable_scope('VGG') as scope1:
-                        input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=reuse, scope=scope1)
-                    with tf.compat.v1.variable_scope('UNet') as scope2:
-                        output, m1, m2, m3 = Decoder_Network_classification(input, n, f0, f0_1, f1_2, f2_3,reuse=reuse,
-                                                                                    scope=scope2)
-
-                    output_map = tf.nn.softmax(output.outputs)
-                    output_map1 = tf.nn.softmax(m1.outputs)
-                    output_map2 = tf.nn.softmax(m2.outputs)
-                    output_map3 = tf.nn.softmax(m3.outputs)
-
-                #a_vars = tl.layers.get_variables_with_name('Unified', False, True)
-
-                saver = tf.compat.v1.train.Saver()
-                configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-                configTf.gpu_options.allow_growth = True
-                sess = tf.compat.v1.Session(config=configTf)
-                tl.layers.initialize_global_variables(sess)
-
-                # Load checkpoint
-                #saver.restore(sess,'SA_net_{}.ckpt-500'.format(tl.global_flag['mode']))
-                # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
-                file_name = 'SA_net_{}.ckpt-500'.format(tl.global_flag['mode'])
-                reader = py_checkpoint_reader.NewCheckpointReader(file_name)
-
-                state_dict = {
-                    v: reader.get_tensor(v) for v in reader.get_variable_to_shape_map()
-                }
-                #print(tf.trainable_variables())
-                get_weights(sess,output,state_dict)
-
-                start_time = time.time()
-                blur_map,o1,o2,o3 = sess.run([output_map,output_map1,output_map2,output_map3],{patches_blurred: np.expand_dims(
-                    (bgr), axis=0)})
-                #np.argmax(sess.run(tf.nn.softmax(net_regression(imlist.astype(np.float32)))), axis=3)
-                blur_map = np.squeeze(np.argmax(blur_map,axis=3))
-                o1 = np.squeeze(np.argmax(o1,axis=3))
-                o2 = np.squeeze(np.argmax(o2,axis=3))
-                o3 = np.squeeze(np.argmax(o3,axis=3))
-
-                # now color code
-                rgb_blur_map = np.zeros(test_image.shape)
-                rgb_o1 = np.zeros((int(test_image.shape[0] / 2), int(test_image.shape[1] / 2), 3))
-                rgb_o2 = np.zeros((int(test_image.shape[0] / 4), int(test_image.shape[1] / 4), 3))
-                rgb_o3 = np.zeros((int(test_image.shape[0] / 8), int(test_image.shape[1] / 8), 3))
-                # red
-                rgb_blur_map[blur_map == 1] = [255,0,0]
-                rgb_o1[o1 == 1] = [255, 0, 0]
-                rgb_o2[o2 == 1] = [255, 0, 0]
-                rgb_o3[o3 == 1] = [255, 0, 0]
-
-                # green
-                rgb_blur_map[blur_map == 2] = [0, 255, 0]
-                rgb_o1[o1 == 2] = [0, 255, 0]
-                rgb_o2[o2 == 2] = [0, 255, 0]
-                rgb_o3[o3 == 2] = [0, 255, 0]
-
-                # blue
-                rgb_blur_map[blur_map == 3] = [0, 0, 255]
-                rgb_o1[o1 == 3] = [0, 0, 255]
-                rgb_o2[o2 == 3] = [0, 0, 255]
-                rgb_o3[o3 == 3] = [0, 0, 255]
-
-                # pink
-                rgb_blur_map[blur_map == 4] = [255, 192, 203]
-                rgb_o1[o1 == 4] = [255, 192, 203]
-                rgb_o2[o2 == 4] = [255, 192, 203]
-                rgb_o3[o3 == 4] = [255, 192, 203]
-
-                if ".jpg" in image:
-                    image.replace(".jpg", ".png")
-                    cv2.imwrite(save_dir_sample +  '/'+ image.replace(".jpg", ".png"), blur_map*255)
-                if ".JPG" in image:
-                    image.replace(".JPG", ".png")
-                    cv2.imwrite(save_dir_sample +  '/'+ image.replace(".JPG", ".png"), blur_map*255)
-                if ".PNG" in image:
-                    image.replace(".jpg", ".png")
-                    cv2.imwrite(save_dir_sample +  '/'+ image.replace(".jpg", ".png"), blur_map*255)
-                if ".png" in image:
-                    image.replace(".jpg", ".png")
-                    cv2.imwrite(save_dir_sample + '/' + image.replace(".jpg", ".png"), rgb_blur_map)
-                    cv2.imwrite(save_dir_sample + '/m1_results' + image.replace(".jpg", ".png"), rgb_o1)
-                    cv2.imwrite(save_dir_sample + '/m2_results' + image.replace(".jpg", ".png"), rgb_o2)
-                    cv2.imwrite(save_dir_sample + '/m3_results' + image.replace(".jpg", ".png"), rgb_o3)
-
-                sess.close()
-                flag=1
-
-                print("5.--- %s seconds ---" % (time.time() - start_time))
-                start_time = time.time()
-                if(i==index+101-1):
-                    return 0
-        i = i + 1
-    return 0
+    sess.run(tl.files.assign_weights(params, network))
 
 # main test function
-def testData_return_error():
-    print("Blurmap Testing")
+def test_with_muri_dataset():
+    print("MURI Testing")
 
     date = datetime.datetime.now().strftime("%y.%m.%d")
     save_dir_sample = 'output_{}'.format(tl.global_flag['mode'])
