@@ -134,3 +134,4 @@ dmypy.json
 *.npy
 test_checkpoint/
 report.txt
+model/

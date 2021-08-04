@@ -37,7 +37,7 @@ def unison_shuffled_copies(a, b):
 # get the weights for each model but leave off the last layer for label change
 def get_weights(sess,network):
     # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
-    dict_weights_trained = np.load('final_model.npy',allow_pickle=True)[()]
+    dict_weights_trained = np.load('inital_final_model.npy',allow_pickle=True)[()]
     params = []
     keys = dict_weights_trained.keys()
     for weights in network.trainable_weights:
