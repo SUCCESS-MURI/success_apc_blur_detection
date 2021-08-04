@@ -149,16 +149,19 @@ def train_with_muri_dataset():
     loss = loss1 + loss2 + loss3 + loss4
 
     with tf.compat.v1.variable_scope('learning_rate'):
-        # lr_v = tf.Variable(lr_init * 0.1 * 0.1, trainable=False)
+        lr_v = tf.Variable(lr_init, trainable=False)
         lr_v2 = tf.Variable(lr_init * 0.1, trainable=False)
 
     ### DEFINE OPTIMIZER ###
     a_vars = tl.layers.get_variables_with_name('', False, True)  # Unified
+    var_list1 = tl.layers.get_variables_with_name('VGG', True, True)  # ?
     var_list2 = tl.layers.get_variables_with_name('UNet', True, True)  # ?
+    opt1 = tf.optimizers.Adam(learning_rate=lr_v)
     opt2 = tf.optimizers.Adam(learning_rate=lr_v2)
-    grads = tf.gradients(ys=loss, xs=var_list2, unconnected_gradients='zero')
+    grads = tf.gradients(ys=loss, xs=var_list1 + var_list2, unconnected_gradients='zero')
+    train_op1 = opt2.apply_gradients(zip(grads, var_list1))
     train_op2 = opt2.apply_gradients(zip(grads, var_list2))
-    train_op = tf.group(train_op2)
+    train_op = tf.group((train_op1,train_op2))
     configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
     configTf.gpu_options.allow_growth = True
     # gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -255,7 +258,7 @@ def train_with_muri_dataset():
             # print clist.shape
             clist = np.expand_dims(clist, axis=3)
 
-            err,_ = sess.run([loss,train_op,],{net_regression.inputs: imlist,classification_map: clist})
+            err,_ = sess.run([loss,train_op],{net_regression.inputs: imlist,classification_map: clist})
             # outmap1 = np.squeeze(outmap[1,:,:,0])
             # outmap2 = np.squeeze(outmap[1, :, :, 1])
             # outmap3 = np.squeeze(outmap[1, :, :, 2])

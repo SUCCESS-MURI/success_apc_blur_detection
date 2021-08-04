@@ -1,6 +1,7 @@
 # coding=utf-8
 import csv
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import tensorlayer as tl
 import numpy as np
 import math
@@ -21,9 +22,6 @@ beta1 = config.TRAIN.beta1
 n_epoch = config.TRAIN.n_epoch
 lr_decay = config.TRAIN.lr_decay
 decay_every = config.TRAIN.decay_every
-
-h = config.TRAIN.height
-w = config.TRAIN.width
 
 VGG_MEAN = [103.939, 116.779, 123.68]
 g_mean = np.array(([126.88,120.24,112.19])).reshape([1,1,3])
@@ -79,12 +77,12 @@ def test_with_muri_dataset():
     tl.files.exists_or_mkdir(save_dir_sample)
     tl.files.exists_or_mkdir(save_dir_sample+'/gt')
 
-    test_blur_img_list = sorted(tl.files.load_file_list(path=config.TEST.ssc_blur_path, regx='/*.(png|PNG)', printable=False))
-    test_mask_img_list = sorted(tl.files.load_file_list(path=config.TEST.ssc_gt_path, regx='/*.(png|PNG)', printable=False))
+    test_blur_img_list = sorted(tl.files.load_file_list(path=config.TEST.muri_blur_path, regx='/*.(png|PNG)', printable=False))
+    test_mask_img_list = sorted(tl.files.load_file_list(path=config.TEST.muri_gt_path, regx='/*.(png|PNG)', printable=False))
 
     ###Load Testing Data ####
-    test_blur_imgs = read_all_imgs(test_blur_img_list, path=config.TEST.ssc_blur_path, n_threads=100, mode='RGB')
-    test_mask_imgs = read_all_imgs(test_mask_img_list, path=config.TEST.ssc_gt_path, n_threads=100, mode='RGB2GRAY')
+    test_blur_imgs = read_all_imgs(test_blur_img_list, path=config.TEST.muri_blur_path, n_threads=100, mode='RGB')
+    test_mask_imgs = read_all_imgs(test_mask_img_list, path=config.TEST.muri_gt_path, n_threads=100, mode='RGB2GRAY2')
 
     test_classification_mask = []
     # print train_mask_imgs
@@ -104,6 +102,9 @@ def test_with_muri_dataset():
     test_mask_imgs = test_classification_mask
     print(len(test_blur_imgs), len(test_mask_imgs))
 
+    h = test_blur_imgs[0].shape[0]
+    w = test_blur_imgs[0].shape[1]
+
     ### DEFINE MODEL ###
     patches_blurred = tf.compat.v1.placeholder('float32', [1, h, w, 3], name='input_patches')
     classification_map = tf.compat.v1.placeholder('int64', [1, h, w, 1], name='labels')
@@ -119,7 +120,7 @@ def test_with_muri_dataset():
     output = tf.nn.softmax(net_regression.outputs)
 
     ### DEFINE LOSS ###
-    loss1 = tf.cast(tf.math.reduce_sum(1-tf.math.abs(tf.math.subtract(output_map, classification_map))),
+    accuracy_run = tf.cast(tf.math.reduce_sum(1-tf.math.abs(tf.math.subtract(output_map, classification_map))),
                     dtype=tf.float32)*(1/(h*w))
     #mean_iou, update_op = tf.compat.v1.metrics.mean_iou(labels=classification_map,predictions=predictions,num_classes=5)
 
@@ -128,31 +129,13 @@ def test_with_muri_dataset():
     sess = tf.compat.v1.Session(config=configTf)
     tl.layers.initialize_global_variables(sess)
     sess.run(tf.compat.v1.global_variables_initializer())
-    sess.run(tf.compat.v1.local_variables_initializer())
 
     # Load checkpoint
     # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
-    # file_name = 'SA_net_{}.ckpt-500'.format(tl.global_flag['mode'])
-    # reader = py_checkpoint_reader.NewCheckpointReader(file_name)
-    #
-    # state_dict = {
-    #     v: reader.get_tensor(v) for v in reader.get_variable_to_shape_map()
-    # }
-    # # print(tf.trainable_variables())
-    # get_weights(sess, net_regression, state_dict)
-    saver = tf.compat.v1.train.Saver()
-    configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-    configTf.gpu_options.allow_growth = True
-    sess = tf.compat.v1.Session(config=configTf)
-    tl.layers.initialize_global_variables(sess)
-
-    # Load checkpoint
-    saver.restore(sess,'./model/SA_net_{}.ckpt'.format(tl.global_flag['mode']))
-
-    net_regression.test()
-    m1.test()
-    m2.test()
-    m3.test()
+    file_name = './model/SA_net_{}.ckpt'.format(tl.global_flag['mode'])
+    reader = py_checkpoint_reader.NewCheckpointReader(file_name)
+    state_dict = {v: reader.get_tensor(v) for v in reader.get_variable_to_shape_map()}
+    get_weights_checkpoint(sess, net_regression, state_dict)
 
     accuracy_list = []
     miou_list = []
@@ -181,22 +164,28 @@ def test_with_muri_dataset():
 
         # uncertain labeling
         # step run we run the network 100 times
-        blurMap = np.squeeze(sess.run([output],{net_regression.inputs: np.expand_dims((test_image), axis=0)}))
-        blur_map = np.zeros((256,256))
-        blur_map[np.sum(blurMap[:,:] >= .2,axis=2) == 1] = np.argmax(blurMap[np.sum(blurMap[:,:] >= .2,axis=2) == 1],
-                                                                     axis=1)
-        # uncertainty labeling
-        blur_map[np.sum(blurMap[:, :] >= .2, axis=2) != 1] = 5
+        blurMap, accuracy = sess.run([output, accuracy_run],
+                                                {net_regression.inputs: np.expand_dims(test_image, axis=0),
+                                                 classification_map: np.expand_dims(gt_test_image, axis=0)})
+        blurMap = np.squeeze(blurMap)
+        gt_test_image = np.squeeze(gt_test_image)
+        blur_map = np.argmax(blurMap,axis=2)
+        # blur_map = np.zeros((h,w))
+        # blur_map[np.sum(blurMap[:,:] >= .2,axis=2) == 1] = np.argmax(blurMap[np.sum(blurMap[:,:] >= .2,axis=2) == 1],
+        #                                                              axis=1)
+        # # uncertainty labeling
+        # blur_map[np.sum(blurMap[:, :] >= .2, axis=2) != 1] = 5
 
         #np.save(save_dir_sample + '/raw_' + image_name.replace(".png", ".npy"), np.squeeze(blur_map))
-        accuracy = accuracy_score(np.squeeze(gt_test_image).flatten(),np.squeeze(blur_map).flatten(),normalize=True)
+        #accuracy = accuracy_score(np.squeeze(gt_test_image).flatten(),np.squeeze(blur_map).flatten(),normalize=True)
 
         # calculate mean intersection of union
-        miou = numpy_iou(np.squeeze(gt_test_image),np.squeeze(blur_map))
+        miou = numpy_iou(gt_test_image,blur_map)
 
         # https://stackoverflow.com/questions/39770376/scikit-learn-get-accuracy-scores-for-each-class
-        perclass_accuracy_conf_matrix = confusion_matrix(np.squeeze(gt_test_image).flatten(),np.squeeze(blur_map).flatten(),
-                                       labels=[0,1,2,3,4],normalize="true")
+        perclass_accuracy_conf_matrix = confusion_matrix(gt_test_image.flatten(),
+                                                         blur_map.flatten(),labels=[0,1,2,3,4],
+                                                         normalize="true")
 
         perclass_accuracy = perclass_accuracy_conf_matrix.diagonal()
         for lab in range(5):
@@ -207,7 +196,7 @@ def test_with_muri_dataset():
 
         # calculate f1 score
         # https://machinelearningmastery.com/precision-recall-and-f-measure-for-imbalanced-classification/
-        f1score = f1_score(np.squeeze(gt_test_image).flatten(),np.squeeze(blur_map).flatten(), labels=[0,1,2,3,4],
+        f1score = f1_score(gt_test_image.flatten(),blur_map.flatten(), labels=[0,1,2,3,4],
                            average='micro')
 
         # record accuracy miou and f1 score in test set
@@ -215,24 +204,21 @@ def test_with_muri_dataset():
         miou_list.append(miou)
         f1score_list.append(f1score)
 
-        blur_map = np.squeeze(blur_map)
-        gt_map = np.squeeze(gt_test_image)
-
         # now color code
         rgb_blur_map = np.zeros(test_image.shape)
         rgb_gt_map = np.zeros(test_image.shape)
         # blue motion blur
         rgb_blur_map[blur_map == 1] = [255,0,0]
-        rgb_gt_map[gt_map == 1] = [255,0,0]
+        rgb_gt_map[gt_test_image == 1] = [255,0,0]
         # green focus blur
         rgb_blur_map[blur_map == 2] = [0, 255, 0]
-        rgb_gt_map[gt_map == 2] = [0, 255, 0]
+        rgb_gt_map[gt_test_image == 2] = [0, 255, 0]
         # red darkness blur
         rgb_blur_map[blur_map == 3] = [0, 0, 255]
-        rgb_gt_map[gt_map == 3] = [0, 0, 255]
+        rgb_gt_map[gt_test_image == 3] = [0, 0, 255]
         # pink brightness blur
         rgb_blur_map[blur_map == 4] = [255, 192, 203]
-        rgb_gt_map[gt_map == 4] = [255, 192, 203]
+        rgb_gt_map[gt_test_image == 4] = [255, 192, 203]
         # yellow unknown blur
         rgb_blur_map[blur_map == 5] = [0, 255, 255]
 
@@ -301,5 +287,4 @@ def test_with_muri_dataset():
         # perform file operations
         f.write(log)
         f.write(log2)
-    return 0
 

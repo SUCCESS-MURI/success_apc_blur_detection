@@ -72,12 +72,13 @@ def crop_sub_img_and_classification_fn_aug(data):
 
     image_h, image_w = np.asarray(image).shape[0:2]
     if image_w != dx and dy != image_h:
-
-        x = np.random.randint(0, image_w - dx - 1)
-        y = np.random.randint(0, image_h - dy - 1)
-        cropped_image = image[y: y+dy, x : x+dx, :]
-        #print "hi2"
-        cropped_mask  = mask[y: y + dy, x: x + dx, :]
+        # x = np.random.randint(0, image_w - dx - 1)
+        # y = np.random.randint(0, image_h - dy - 1)
+        # cropped_image = image[y: y+dy, x : x+dx, :]
+        # #print "hi2"
+        # cropped_mask  = mask[y: y + dy, x: x + dx, :]
+        cropped_image = cv2.resize(image.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)
+        cropped_mask = cv2.resize(mask.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)
     else:
         cropped_image = image
         cropped_mask = mask
@@ -112,12 +113,13 @@ def crop_sub_img_and_classification_fn(data):
     image_h, image_w = np.asarray(image).shape[0:2]
 
     if image_w != dx and dy != image_h:
-
-        x = np.random.randint(0, image_w - dx - 1)
-        y = np.random.randint(0, image_h - dy - 1)
-        cropped_image = image[y: y + dy, x: x + dx, :]
-        # print "hi2"
-        cropped_mask = mask[y: y + dy, x: x + dx, :]
+        # x = np.random.randint(0, image_w - dx - 1)
+        # y = np.random.randint(0, image_h - dy - 1)
+        # cropped_image = image[y: y+dy, x : x+dx, :]
+        # #print "hi2"
+        # cropped_mask  = mask[y: y + dy, x: x + dx, :]
+        cropped_image = cv2.resize(image.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)
+        cropped_mask = cv2.resize(mask.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)
     else:
         cropped_image = image
         cropped_mask = mask
