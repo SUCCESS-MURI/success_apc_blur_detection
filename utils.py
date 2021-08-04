@@ -78,7 +78,7 @@ def crop_sub_img_and_classification_fn_aug(data):
         # #print "hi2"
         # cropped_mask  = mask[y: y + dy, x: x + dx, :]
         cropped_image = cv2.resize(image.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)
-        cropped_mask = cv2.resize(mask.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)
+        cropped_mask = cv2.resize(mask.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)[:,:,np.newaxis]
     else:
         cropped_image = image
         cropped_mask = mask
@@ -119,7 +119,7 @@ def crop_sub_img_and_classification_fn(data):
         # #print "hi2"
         # cropped_mask  = mask[y: y + dy, x: x + dx, :]
         cropped_image = cv2.resize(image.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)
-        cropped_mask = cv2.resize(mask.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)
+        cropped_mask = cv2.resize(mask.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)[:,:,np.newaxis]
     else:
         cropped_image = image
         cropped_mask = mask

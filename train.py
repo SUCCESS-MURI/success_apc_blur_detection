@@ -37,7 +37,7 @@ def unison_shuffled_copies(a, b):
 # get the weights for each model but leave off the last layer for label change
 def get_weights(sess,network):
     # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
-    dict_weights_trained = np.load('./setup/final_model.npy',allow_pickle=True)[()]
+    dict_weights_trained = np.load('final_model.npy',allow_pickle=True)[()]
     params = []
     keys = dict_weights_trained.keys()
     for weights in network.trainable_weights:
@@ -131,20 +131,20 @@ def train_with_muri_dataset():
                                                                                             scope=scope2)
 
     ### DEFINE LOSS ###
-    loss1 = tl.cost.cross_entropy((net_regression.outputs), tf.squeeze(classification_map), name='loss1')
-    loss2 = tl.cost.cross_entropy((m1.outputs),
+    loss1 = tl.cost.cross_entropy(net_regression.outputs, tf.squeeze(classification_map), name='loss1')
+    loss2 = tl.cost.cross_entropy(m1.outputs,
                                   tf.squeeze(tf.image.resize(classification_map, [int(h / 2), int(w / 2)],
                                                              method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)),
                                   name='loss2')
-    loss3 = tl.cost.cross_entropy((m2.outputs),
+    loss3 = tl.cost.cross_entropy(m2.outputs,
                                   tf.squeeze(tf.image.resize(classification_map, [int(h / 4), int(w / 4)],
                                                              method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)),
                                   name='loss3')
-    loss4 = tl.cost.cross_entropy((m3.outputs),
+    loss4 = tl.cost.cross_entropy(m3.outputs,
                                   tf.squeeze(tf.image.resize(classification_map, [int(h / 8), int(w / 8)],
                                                              method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)),
                                   name='loss4')
-    out = (net_regression.outputs)
+    #out = (net_regression.outputs)
     output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
     loss = loss1 + loss2 + loss3 + loss4
 
@@ -153,15 +153,24 @@ def train_with_muri_dataset():
         lr_v2 = tf.Variable(lr_init * 0.1, trainable=False)
 
     ### DEFINE OPTIMIZER ###
-    a_vars = tl.layers.get_variables_with_name('', False, True)  # Unified
-    var_list1 = tl.layers.get_variables_with_name('VGG', True, True)  # ?
+    # a_vars = tl.layers.get_variables_with_name('', False, True)  # Unified
+    # var_list1 = tl.layers.get_variables_with_name('VGG', True, True)  # ?
+    # var_list2 = tl.layers.get_variables_with_name('UNet', True, True)  # ?
+    # opt1 = tf.optimizers.Adam(learning_rate=lr_v)
+    # opt2 = tf.optimizers.Adam(learning_rate=lr_v2)
+    # grads = tf.gradients(ys=loss, xs=var_list1 + var_list2, unconnected_gradients='zero')
+    # grads1 = grads[:len(var_list1)]
+    # grads2 = grads[len(var_list1):]
+    # train_op1 = opt1.apply_gradients(zip(grads1, var_list1))
+    # train_op2 = opt2.apply_gradients(zip(grads2, var_list2))
+    # train_op = tf.group(train_op1, train_op2)
+    a_vars = tl.layers.get_variables_with_name('Unified', False, True)  # Unified
     var_list2 = tl.layers.get_variables_with_name('UNet', True, True)  # ?
-    opt1 = tf.optimizers.Adam(learning_rate=lr_v)
     opt2 = tf.optimizers.Adam(learning_rate=lr_v2)
-    grads = tf.gradients(ys=loss, xs=var_list1 + var_list2, unconnected_gradients='zero')
-    train_op1 = opt2.apply_gradients(zip(grads, var_list1))
+    grads = tf.gradients(ys=loss, xs=var_list2, unconnected_gradients='zero')
     train_op2 = opt2.apply_gradients(zip(grads, var_list2))
-    train_op = tf.group((train_op1,train_op2))
+    train_op = tf.group(train_op2)
+
     configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
     configTf.gpu_options.allow_growth = True
     # gpus = tf.config.experimental.list_physical_devices('GPU')
