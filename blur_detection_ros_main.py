@@ -12,7 +12,6 @@ from sensor_msgs.msg import Image
 
 def get_weights_checkpoint(sess,network,dict_weights_trained):
     # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
-    #dict_weights_trained = np.load('./setup/final_model.npy',allow_pickle=True)[()]
     params = []
     keys = dict_weights_trained.keys()
     for weights in network.trainable_weights:
@@ -51,9 +50,9 @@ class BlurDetection:
         except CvBridgeError as e:
             print(e)
         # now run through model
-        rgb = np.expand_dims(image - self.vgg_mean,axis = 0)
+        rgb = np.expand_dims(image - self.vgg_mean, axis = 0)
         blurMap = np.squeeze(self.sess.run([self.net_outputs], {self.net_regression.inputs: rgb}))
-        blur_map = np.zeros((256,256))
+        blur_map = np.zeros((blurMap.shape[0],blurMap.shape[1]))
         # numpy array with labels 
         blur_map[np.sum(blurMap[:,:] >= .2,axis=2) == 1] = np.argmax(blurMap[np.sum(blurMap[:,:] >= .2,axis=2) == 1],
                                                                      axis=1)
