@@ -14,7 +14,7 @@ def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
     for idx in range(0, len(img_list), n_threads):
         b_imgs_list = img_list[idx : idx + n_threads]
         if mode == 'RGB':
-            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGB_fn, path=path)
+            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGB_cv2, path=path)
         elif mode == 'GRAY':
             b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_GRAY_fn, path=path)
         elif mode == 'RGB2GRAY':
@@ -26,10 +26,15 @@ def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
         print('read %d from %s' % (len(imgs), path))
     return imgs
 
-def get_imgs_RGB_fn(file_name, path):
+# def get_imgs_RGB_fn(file_name, path):
+#     """ Input an image path and name, return an image array """
+#     # return scipy.misc.imread(path + file_name).astype(np.float)
+#     return imageio.imread(path + file_name)
+
+def get_imgs_RGB_cv2(file_name, path):
     """ Input an image path and name, return an image array """
     # return scipy.misc.imread(path + file_name).astype(np.float)
-    return imageio.imread(path + file_name)
+    return cv2.imread(path+file_name,cv2.COLOR_BGR2RGB)
 
 def get_imgs_GRAY_fn(file_name, path):
     """ Input an image path and name, return an image array """
@@ -55,8 +60,8 @@ def get_imgs_RGBGRAY_2_fn(file_name, path):
     """ Input an image path and name, return an image array """
     # return scipy.misc.imread(path + file_name).astype(np.float)
     # https://www.geeksforgeeks.org/python-pil-image-convert-method/
-    image = Image.open(path + file_name)
-    return np.asarray(image)[:,:,np.newaxis]
+    image = cv2.imread(path+file_name)
+    return np.asarray(image)[:,:,0][:,:,np.newaxis]
 
 def crop_sub_img_and_classification_fn_aug(data):
 
@@ -65,20 +70,16 @@ def crop_sub_img_and_classification_fn_aug(data):
     # image = image.eval(sess)
     # mask = mask.eval(sess)
     image, mask = data
-    #print "image shape", image.shape
-    #print "mask shape", mask.shape
-    image = np.asarray(image,dtype=np.float64)
-    mask = np.asarray(mask, dtype=np.float64)
 
-    image_h, image_w = np.asarray(image).shape[0:2]
+    image_h, image_w = image.shape[0:2]
     if image_w != dx and dy != image_h:
         # x = np.random.randint(0, image_w - dx - 1)
         # y = np.random.randint(0, image_h - dy - 1)
         # cropped_image = image[y: y+dy, x : x+dx, :]
         # #print "hi2"
         # cropped_mask  = mask[y: y + dy, x: x + dx, :]
-        cropped_image = cv2.resize(image.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)
-        cropped_mask = cv2.resize(mask.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)[:,:,np.newaxis]
+        cropped_image = cv2.resize(image, [dy, dx], interpolation=cv2.INTER_NEAREST)
+        cropped_mask = cv2.resize(mask, [dy, dx], interpolation=cv2.INTER_NEAREST)[:,:,np.newaxis]
     else:
         cropped_image = image
         cropped_mask = mask
@@ -107,10 +108,8 @@ def crop_sub_img_and_classification_fn(data):
     image, mask = data
     #print "image shape", image.shape
     #print "mask shape", mask.shape
-    image = np.asarray(image,dtype=np.float64)
-    mask = np.asarray(mask, dtype=np.float64)
 
-    image_h, image_w = np.asarray(image).shape[0:2]
+    image_h, image_w = image.shape[0:2]
 
     if image_w != dx and dy != image_h:
         # x = np.random.randint(0, image_w - dx - 1)
@@ -118,8 +117,8 @@ def crop_sub_img_and_classification_fn(data):
         # cropped_image = image[y: y+dy, x : x+dx, :]
         # #print "hi2"
         # cropped_mask  = mask[y: y + dy, x: x + dx, :]
-        cropped_image = cv2.resize(image.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)
-        cropped_mask = cv2.resize(mask.astype(np.uint8), [dy, dx], interpolation=cv2.INTER_NEAREST).astype(np.float32)[:,:,np.newaxis]
+        cropped_image = cv2.resize(image, [dy, dx], interpolation=cv2.INTER_NEAREST)
+        cropped_mask = cv2.resize(mask, [dy, dx], interpolation=cv2.INTER_NEAREST)[:,:,np.newaxis]
     else:
         cropped_image = image
         cropped_mask = mask
@@ -127,10 +126,10 @@ def crop_sub_img_and_classification_fn(data):
     return format_VGG_image(cropped_image), cropped_mask
 
 def format_VGG_image(image):
-    #rgb_scaled = image * 255.0
-    red = image[:, :, 0]
-    green = image[:, :, 1]
-    blue = image[:, :, 2]
+    rgb_scaled = image * 1.0
+    red = rgb_scaled[:, :, 0]
+    green = rgb_scaled[:, :, 1]
+    blue = rgb_scaled[:, :, 2]
     bgr = np.zeros(image.shape)
     bgr[:, :, 0] = blue - VGG_MEAN[0]
     bgr[:, :, 1] = green - VGG_MEAN[1]
