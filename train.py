@@ -95,8 +95,8 @@ def train_with_muri_dataset():
 
         train_classification_mask.append(tmp_class)
 
-    train_blur_imgs = np.array(train_blur_imgs, dtype=object)
-    train_classification_mask = np.array(train_classification_mask, dtype=object)
+    train_blur_imgs = np.array(train_blur_imgs)
+    train_classification_mask = np.array(train_classification_mask)
 
     valid_classification_mask = []
     # img_n = 0
@@ -112,8 +112,8 @@ def train_with_muri_dataset():
 
         valid_classification_mask.append(tmp_class)
 
-    valid_blur_imgs = np.array(valid_blur_imgs, dtype=object)
-    valid_classification_mask = np.array(valid_classification_mask, dtype=object)
+    valid_blur_imgs = np.array(valid_blur_imgs)
+    valid_classification_mask = np.array(valid_classification_mask)
 
     print("Number of training images " + str(len(train_blur_imgs)))
     print("Number of validation images " + str(len(valid_blur_imgs)))

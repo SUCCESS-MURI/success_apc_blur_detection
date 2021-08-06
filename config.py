@@ -21,11 +21,11 @@ config.TRAIN.lr_decay = 0.1
 config.TRAIN.decay_every = 6000
 
 ## train set location
-config.TRAIN.muri_blur_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Training/images/'
-config.TRAIN.muri_gt_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Training/gt/'
+config.TRAIN.muri_blur_path = '/home/mary/code/local_success_dataset/muri_dataset/Testing_2/images/'
+config.TRAIN.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dataset/Testing_2/gt/'
 
-config.VALIDATION.muri_blur_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Validation/images/'
-config.VALIDATION.muri_gt_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Validation/gt/'
+config.VALIDATION.muri_blur_path = '/home/mary/code/local_success_dataset/muri_dataset/Validation_2/images/'
+config.VALIDATION.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dataset/Validation_2/gt/'
 
 config.TEST.muri_blur_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Testing/images/'
 config.TEST.muri_gt_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Testing/gt/'
