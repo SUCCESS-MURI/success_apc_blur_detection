@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
   message_generation
+  #tensorflow_ros_cpp
 )
 
 ## System dependencies are found with CMake's conventions
@@ -119,6 +120,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
+  #${tensorflow_ros_cpp_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
 
