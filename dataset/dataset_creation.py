@@ -8,10 +8,11 @@ import random
 import cv2
 import numpy as np
 import saliency_detection
-from PIL import Image as im
+from PIL import Image as im, ImageEnhance
 import tensorlayer as tl
 
 # create motion blur
+# https://stackoverflow.com/questions/40305933/how-to-add-motion-blur-to-numpy-array
 def apply_motion_blur(image, size, angle):
     k = np.zeros((size, size), dtype=np.float32)
     k[ (size-1)// 2 , :] = np.ones(size, dtype=np.float32)
@@ -19,7 +20,7 @@ def apply_motion_blur(image, size, angle):
     k = k * ( 1.0 / np.sum(k) )
     return cv2.filter2D(image, -1, k)
 
-# create oout of focus blur for 3 channel images
+# create out of focus blur for 3 channel images
 def create_out_of_focus_blur(image,kernelsize):
     image_blurred = cv2.blur(image,(kernelsize,kernelsize))
     return image_blurred
@@ -28,7 +29,7 @@ def create_out_of_focus_blur(image,kernelsize):
 def create_brightness_blur(image,alpha,beta):
     new_image = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
     # enhancer = ImageEnhance.Brightness(im.fromarray(np.uint8(image)))
-    # new_image = np.array(enhancer.enhance(beta))
+    #new_image = np.array(enhancer.enhance(alpha))
     return new_image
 
 def convert_whiten_and_crop_image(image,darkness):

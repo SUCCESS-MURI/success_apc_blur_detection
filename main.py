@@ -2,7 +2,8 @@
 import argparse
 import tensorlayer as tl
 from train import train_with_muri_dataset
-from test import test_with_muri_dataset
+from test import test_with_muri_dataset, test_with_muri_dataset_origonal_model
+
 
 # https://intellipaat.com/community/4920/parsing-boolean-values-with-argparse
 def t_or_f(arg):
@@ -32,4 +33,5 @@ if __name__ == '__main__':
         train_with_muri_dataset()
     else:
         test_with_muri_dataset()
+        #test_with_muri_dataset_origonal_model()
 
