@@ -34,7 +34,7 @@ def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
 def get_imgs_RGB_cv2(file_name, path):
     """ Input an image path and name, return an image array """
     # return scipy.misc.imread(path + file_name).astype(np.float)
-    return cv2.imread(path+file_name,cv2.COLOR_BGR2RGB)
+    return cv2.imread(path+file_name) #cv2.COLORBGRTORGB
 
 def get_imgs_GRAY_fn(file_name, path):
     """ Input an image path and name, return an image array """
@@ -123,6 +123,9 @@ def crop_sub_img_and_classification_fn(data):
         cropped_image = image
         cropped_mask = mask
     cropped_mask = np.concatenate((cropped_mask, cropped_mask, cropped_mask), axis=2)
+    from matplotlib import pyplot
+    pyplot.imshow(cropped_image)
+    pyplot.show()
     return format_VGG_image(cropped_image), cropped_mask
 
 def format_VGG_image(image):

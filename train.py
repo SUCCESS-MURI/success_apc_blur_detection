@@ -71,8 +71,8 @@ def train_with_muri_dataset():
     train_mask_img_list = sorted(tl.files.load_file_list(path=gt_path, regx='/*.(png|PNG)', printable=False))
     valid_input_path = config.VALIDATION.muri_blur_path
     valid_gt_path = config.VALIDATION.muri_gt_path
-    validation_blur_img_list = sorted(
-        tl.files.load_file_list(path=valid_input_path, regx='/*.(png|PNG)', printable=False))
+    validation_blur_img_list = sorted(tl.files.load_file_list(path=valid_input_path, regx='/*.(png|PNG)',
+                                                              printable=False))
     validation_mask_img_list = sorted(tl.files.load_file_list(path=valid_gt_path, regx='/*.(png|PNG)', printable=False))
 
     ###Load Training Data ####
