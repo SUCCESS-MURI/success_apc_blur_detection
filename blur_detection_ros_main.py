@@ -2,10 +2,12 @@
 import argparse
 import rospy
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import tensorlayer as tl
 from tensorflow.python.training import py_checkpoint_reader
 from model import Decoder_Network_classification, VGG19_pretrained
 from cv_bridge import CvBridge, CvBridgeError
+from success_apc_blur_detection.msg import BlurDetectionOutput
 import cv2
 import numpy as np
 from sensor_msgs.msg import Image
@@ -31,16 +33,16 @@ def get_weights_checkpoint(sess,network,dict_weights_trained):
 # class for executing the blur detection algorithm
 class BlurDetection:
 
-    def __init__(self,model_checkpoint, height, width):
-        self.model_checkpoint = model_checkpoint
+    def __init__(self,args):
+        self.model_checkpoint = args.model_checkpoint
         self.vgg_mean = np.array(([103.939, 116.779, 123.68])).reshape([1,1,3])
         # initialize the model and its weights
-        self.setup_model(height, width)
+        self.setup_model(args.height, args.width)
         # setup the callback for the blur detection model
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/head_camera/rgb/image_raw",Image,self.callback)
         # if needed https://docs.ros.org/en/melodic/api/rospy/html/rospy.numpy_msg-module.html
-
+        self.blur_detection_pub = rospy.Publisher('/blur_detection_output',BlurDetectionOutput)
         rospy.loginfo("Done Setting up Blur Detection")
 
     def callback(self,data):
@@ -53,14 +55,24 @@ class BlurDetection:
         rgb = np.expand_dims(image - self.vgg_mean, axis = 0)
         blurMap = np.squeeze(self.sess.run([self.net_outputs], {self.net_regression.inputs: rgb}))
         blur_map = np.zeros((blurMap.shape[0],blurMap.shape[1]))
-        # numpy array with labels 
-        blur_map[np.sum(blurMap[:,:] >= .2,axis=2) == 1] = np.argmax(blurMap[np.sum(blurMap[:,:] >= .2,axis=2) == 1],
-                                                                     axis=1)
-        # uncertainty labeling
-        blur_map[np.sum(blurMap[:, :] >= .2, axis=2) != 1] = 5
+        blur_map = np.argmax(blurMap,axis=2)
+        #TODO need to add uncertanity 
+        # # numpy array with labels 
+        # blur_map[np.sum(blurMap[:,:] >= .2,axis=2) == 1] = np.argmax(blurMap[np.sum(blurMap[:,:] >= .2,axis=2) == 1],
+        #                                                              axis=1)
+        # # uncertainty labeling
+        # blur_map[np.sum(blurMap[:, :] >= .2, axis=2) != 1] = 5
         # publish softmax output and image labeling
         # might need to create a message need to talk about this with alvika
         # https://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv#Creating_a_msg
+        publish_BlurDetectionOutput(image,blur_map,blurMap)
+    
+    def publish_BlurDetectionOutput(self,input_image,output_image,softmax_image_output):
+        msg = BlurDetectionOutput()
+        msg.softmax_output = softmax_image_output
+        msg.image_with_uncertanity = output_image
+        msg.input_image = input_image
+        self.blur_detection_pub.publish(msg)
 
     def setup_model(self, h, w):
         ### DEFINE MODEL ###
@@ -88,11 +100,13 @@ class BlurDetection:
 if __name__ == "__main__":
     rospy.init_node("Blur_Detection")
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_checkpoint', type=str, help='model checkpoint name and location for using')
+    parser.add_argument('--model_checkpoint', type=str, help='model checkpoint name and location for using',default='./model/Test_Final_MURI_Model.ckpt')
+    parser.add_argument('--height', type=int,default=256)
+    parser.add_argument('--width', type=int,default=256)
     args = parser.parse_args()
 
     tl.global_flag['model_checkpoint'] = args.model_checkpoint
-    blur_detection = BlurDetection(args.model_checkpoint)
+    blur_detection = BlurDetection(args)
     # Make sure sim time is working
     while not rospy.Time.now():
         pass
