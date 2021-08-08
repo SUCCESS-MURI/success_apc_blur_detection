@@ -404,9 +404,9 @@ def create_muri_dataset_for_training(args):
 def create_muri_dataset_for_training_2(args):
     # angles range for dataset
     angles = np.arange(start=0, stop=190, step=30)
-    kernalSize = np.array([7, 9, 13, 15])
+    kernalSize = np.array([13, 15,17,19])
     # kernal
-    kernal = np.array([7, 9, 13, 15])
+    kernal = np.array([13, 15,17,19])
     # alpha
     alpha_darkness = np.arange(start=0.1, stop=0.5, step=0.1)
     #alpha_brightness = np.arange(start=1.8, stop=2.3, step=0.05)
@@ -426,6 +426,7 @@ def create_muri_dataset_for_training_2(args):
         image = cv2.imread(imageFileName)
         imageNameSplit = imageFileName.split('/')
         imageNameSplit2 = imageNameSplit[-1].split(".")
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         # store all of the images and the mask of the saliency image with the image name
         imagesAll.append(image)
         # cv2.imshow('BrightnessImage', image)
@@ -757,9 +758,9 @@ def create_muri_dataset_for_training_2(args):
 def create_muri_dataset_for_testing_and_validation(args):
     # angles range for dataset
     angles = np.arange(start=0,stop=190,step=30)
-    kernalSize = np.array([7,9,13,15])
+    kernalSize = np.array([13,15,17,19])
     # kernal
-    kernal = np.array([7,9,13,15])
+    kernal = np.array([13,15,17,19])
     # alpha
     alpha_darkness = np.arange(start=0.1, stop=0.5, step=0.1)
     #alpha_brightness = np.arange(start=1.8, stop=2.3, step=0.05)
@@ -777,6 +778,7 @@ def create_muri_dataset_for_testing_and_validation(args):
     saliency = saliency_detection.Saliency_NN()
     for imageFileName in glob.glob(args.data_dir + '/*'+ args.data_extension):
         image = cv2.imread(imageFileName)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         # r, g, b = cv2.split(image)
         # r_avg = cv2.mean(r)[0]
         # g_avg = cv2.mean(g)[0]
@@ -803,7 +805,7 @@ def create_muri_dataset_for_testing_and_validation(args):
             continue
         imagesOrigonal.append(image)
         imageNames.append(''.join(imageNameSplit2[0:2]))
-        saliency_image = saliency.compute_saliency_NN(copy.deepcopy(image))
+        saliency_image = saliency.compute_saliency_NN(cv2.cvtColor(image,cv2.COLOR_RGB2BGR))
         imageOrigMask.append(saliency_image)
         # cv2.imshow('saliency_image', image*saliency_image[:,:,np.newaxis])
         # cv2.waitKey(0)

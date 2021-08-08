@@ -123,9 +123,6 @@ def crop_sub_img_and_classification_fn(data):
         cropped_image = image
         cropped_mask = mask
     cropped_mask = np.concatenate((cropped_mask, cropped_mask, cropped_mask), axis=2)
-    from matplotlib import pyplot
-    pyplot.imshow(cropped_image)
-    pyplot.show()
     return format_VGG_image(cropped_image), cropped_mask
 
 def format_VGG_image(image):
