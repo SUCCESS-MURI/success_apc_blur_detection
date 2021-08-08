@@ -65,7 +65,7 @@ class BlurDetection:
         # publish softmax output and image labeling
         # might need to create a message need to talk about this with alvika
         # https://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv#Creating_a_msg
-        publish_BlurDetectionOutput(image,blur_map,blurMap)
+        self.publish_BlurDetectionOutput(image,blur_map,blurMap)
     
     def publish_BlurDetectionOutput(self,input_image,output_image,softmax_image_output):
         msg = BlurDetectionOutput()
