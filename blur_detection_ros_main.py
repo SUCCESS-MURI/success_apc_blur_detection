@@ -40,22 +40,25 @@ class BlurDetection:
         self.setup_model(args.height, args.width)
         # setup the callback for the blur detection model
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/head_camera/rgb/image_raw",Image,self.callback)
+        #self.image_sub = rospy.Subscriber("/head_camera/rgb/image_raw",Image,self.callback)
+        self.image_sub = rospy.Subscriber("/camera/color/image_raw",Image,self.callback)
         # if needed https://docs.ros.org/en/melodic/api/rospy/html/rospy.numpy_msg-module.html
         self.blur_detection_pub = rospy.Publisher('/blur_detection_output',BlurDetectionOutput)
+        self.count = 0
         rospy.loginfo("Done Setting up Blur Detection")
 
     def callback(self,data):
         # convert to RGB image
         try:
-            image = self.bridge.imgmsg_to_cv2(data, "rgb8")
+            image = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
         # now run through model
-        rgb = np.expand_dims(image - self.vgg_mean, axis = 0)
+        #rospy.loginfo("I came here")
+        rgb = np.expand_dims(image*1.0 - self.vgg_mean, axis=0)
         blurMap = np.squeeze(self.sess.run([self.net_outputs], {self.net_regression.inputs: rgb}))
         blur_map = np.zeros((blurMap.shape[0],blurMap.shape[1]))
-        blur_map = np.argmax(blurMap,axis=2)
+        blur_map = np.argmax(blurMap,axis=2)[:,:,np.newaxis].astype(np.int32)
         #TODO need to add uncertanity 
         # # numpy array with labels 
         # blur_map[np.sum(blurMap[:,:] >= .2,axis=2) == 1] = np.argmax(blurMap[np.sum(blurMap[:,:] >= .2,axis=2) == 1],
@@ -65,15 +68,16 @@ class BlurDetection:
         # publish softmax output and image labeling
         # might need to create a message need to talk about this with alvika
         # https://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv#Creating_a_msg
-        publish_BlurDetectionOutput(image,blur_map,blurMap)
+        self.publish_BlurDetectionOutput(image,blur_map,blurMap)
     
     def publish_BlurDetectionOutput(self,input_image,output_image,softmax_image_output):
         msg = BlurDetectionOutput()
-        msg.softmax_output = softmax_image_output
-        msg.image_with_uncertanity = output_image
-        msg.input_image = input_image
+        #rospy.loginfo(type([softmax_image_output.astype(np.uint32)]))
+        msg.softmax_output=self.bridge.cv2_to_imgmsg(softmax_image_output, encoding="passthrough")
+        msg.image_with_uncertanity = self.bridge.cv2_to_imgmsg(output_image, encoding="passthrough")
+        msg.input_image = self.bridge.cv2_to_imgmsg(input_image, encoding="passthrough")
         self.blur_detection_pub.publish(msg)
-
+    
     def setup_model(self, h, w):
         ### DEFINE MODEL ###
         patches_blurred = tf.compat.v1.placeholder('float32', [1, h, w, 3], name='input_patches')
@@ -100,9 +104,9 @@ class BlurDetection:
 if __name__ == "__main__":
     rospy.init_node("Blur_Detection")
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_checkpoint', type=str, help='model checkpoint name and location for using',default='./model/Test_Final_MURI_Model.ckpt')
-    parser.add_argument('--height', type=int,default=256)
-    parser.add_argument('--width', type=int,default=256)
+    parser.add_argument('--model_checkpoint', type=str, help='model checkpoint name and location for using',default='/home/mary/catkin_ws/src/success_apc_blur_detection/model/SA_net_muri_Run_5.ckpt')
+    parser.add_argument('--height', type=int,default=480)
+    parser.add_argument('--width', type=int,default=640)
     args = parser.parse_args()
 
     tl.global_flag['model_checkpoint'] = args.model_checkpoint
