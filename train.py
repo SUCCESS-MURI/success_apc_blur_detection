@@ -153,7 +153,7 @@ def train_with_muri_dataset():
         lr_v2 = tf.Variable(lr_init * 0.1, trainable=False)
 
     ### DEFINE OPTIMIZER ###
-    # a_vars = tl.layers.get_variables_with_name('', False, True)  # Unified
+    # a_vars = tl.layers.get_variables_with_name('Unified', False, True)  # Unified
     # var_list1 = tl.layers.get_variables_with_name('VGG', True, True)  # ?
     # var_list2 = tl.layers.get_variables_with_name('UNet', True, True)  # ?
     # opt1 = tf.optimizers.Adam(learning_rate=lr_v)

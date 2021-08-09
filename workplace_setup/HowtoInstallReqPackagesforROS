@@ -1,5 +1,6 @@
 How to install on ROS
-git clone the repo in the catkin_ws/src folder. 
+git clone the repo in the catkin_ws/src folder.
+copy into model the weights https://drive.google.com/drive/folders/145iWLhZA10qACcsR0gLZ1d9t43EcnBpN?usp=sharing
 run
 chmod +x blur_detection_ros_main.py
 # packages for python that need to be installed 
