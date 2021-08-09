@@ -28,11 +28,11 @@ class image_converter:
             softmax_image = self.bridge.imgmsg_to_cv2(data.softmax_output,"passthrough")
         except CvBridgeError as e:
             print(e)
-        filename = "/home/mary/code/local_success_dataset/muri/muri_images_run/block_perception_0.5_1/block_perception_0.5_1_rgb_image_input-{}.png".format(self.count)
+        filename = "/home/mary/code/local_success_dataset/muri/muri_images_run/BYU_image_data/BYU_image_data_rgb_image_input-{}.png".format(self.count)
         cv2.imwrite(filename, image_input) 
-        filename = "/home/mary/code/local_success_dataset/muri/muri_images_run/block_perception_0.5_1/block_perception_0.5_1_rgb_image_output-{}.png".format(self.count)
+        filename = "/home/mary/code/local_success_dataset/muri/muri_images_run/BYU_image_data/BYU_image_data_rgb_image_output-{}.png".format(self.count)
         cv2.imwrite(filename, image_w_uncertanity) 
-        filename = "/home/mary/code/local_success_dataset/muri/muri_images_run/block_perception_0.5_1/block_perception_0.5_1_rgb_image_softmax_output-{}.npy".format(self.count)
+        filename = "/home/mary/code/local_success_dataset/muri/muri_images_run/BYU_image_data/BYU_image_data_rgb_image_softmax_output-{}.npy".format(self.count)
         np.save(filename, softmax_image)
         self.count += 1
 

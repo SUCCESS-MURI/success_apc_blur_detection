@@ -105,8 +105,12 @@ if __name__ == "__main__":
     rospy.init_node("Blur_Detection")
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_checkpoint', type=str, help='model checkpoint name and location for using',default='/home/mary/catkin_ws/src/success_apc_blur_detection/model/SA_net_muri_Run_5.ckpt')
-    parser.add_argument('--height', type=int,default=480)
-    parser.add_argument('--width', type=int,default=640)
+    # CMU
+    # parser.add_argument('--height', type=int,default=480)
+    # parser.add_argument('--width', type=int,default=640)
+    # BYU
+    parser.add_argument('--height', type=int,default=720)
+    parser.add_argument('--width', type=int,default=1280)
     args = parser.parse_args()
 
     tl.global_flag['model_checkpoint'] = args.model_checkpoint
