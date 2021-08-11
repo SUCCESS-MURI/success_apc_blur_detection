@@ -11,6 +11,7 @@ from success_apc_blur_detection.msg import BlurDetectionOutput
 import cv2
 import numpy as np
 from sensor_msgs.msg import Image
+import time
 
 def get_weights_checkpoint(sess,network,dict_weights_trained):
     # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
@@ -55,18 +56,18 @@ class BlurDetection:
             print(e)
         # now run through model
         #rospy.loginfo("I came here")
-        rgb = np.expand_dims(image*1.0 - self.vgg_mean, axis=0)
+        #self.epoch_time = time.time()
+        rgb = np.expand_dims(cv2.resize(image, (256, 256), interpolation=cv2.INTER_NEAREST)*1.0 - self.vgg_mean, axis=0)
         blurMap = np.squeeze(self.sess.run([self.net_outputs], {self.net_regression.inputs: rgb}))
         blur_map = np.zeros((blurMap.shape[0],blurMap.shape[1]))
-        blur_map = np.argmax(blurMap,axis=2)[:,:,np.newaxis].astype(np.int32)
-        #TODO need to add uncertanity 
-        # # numpy array with labels 
-        # blur_map[np.sum(blurMap[:,:] >= .2,axis=2) == 1] = np.argmax(blurMap[np.sum(blurMap[:,:] >= .2,axis=2) == 1],
-        #                                                              axis=1)
-        # # uncertainty labeling
-        # blur_map[np.sum(blurMap[:, :] >= .2, axis=2) != 1] = 5
+        #blur_map = np.argmax(blurMap,axis=2)[:,:,np.newaxis].astype(np.int32)
+        # numpy array with labels 
+        # .4 was found from validation data results with different uncertanity levels tested
+        blur_map[np.sum(blurMap[:,:] >= .4,axis=2) == 1] = np.argmax(blurMap[np.sum(blurMap[:,:] >= .4,axis=2) == 1],
+                                                                     axis=1)
+        # uncertainty labeling
+        blur_map[np.sum(blurMap[:, :] >= .4, axis=2) != 1] = 5
         # publish softmax output and image labeling
-        # might need to create a message need to talk about this with alvika
         # https://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv#Creating_a_msg
         self.publish_BlurDetectionOutput(image,blur_map,blurMap)
     
@@ -77,6 +78,7 @@ class BlurDetection:
         msg.image_with_uncertanity = self.bridge.cv2_to_imgmsg(output_image, encoding="passthrough")
         msg.input_image = self.bridge.cv2_to_imgmsg(input_image, encoding="passthrough")
         self.blur_detection_pub.publish(msg)
+        #rospy.loginfo(str(np.round(time.time()-self.epoch_time,8)))
     
     def setup_model(self, h, w):
         ### DEFINE MODEL ###
@@ -104,13 +106,15 @@ class BlurDetection:
 if __name__ == "__main__":
     rospy.init_node("Blur_Detection")
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_checkpoint', type=str, help='model checkpoint name and location for using',default='/home/mary/catkin_ws/src/success_apc_blur_detection/model/SA_net_muri_Run_5.ckpt')
+    parser.add_argument('--model_checkpoint', type=str, help='model checkpoint name and location for using',default='/home/mary/catkin_ws/src/success_apc_blur_detection/model/Final_MURI_Model.ckpt')
+    parser.add_argument('--height', type=int,default=256)
+    parser.add_argument('--width', type=int,default=256)
     # CMU
     # parser.add_argument('--height', type=int,default=480)
     # parser.add_argument('--width', type=int,default=640)
     # BYU
-    parser.add_argument('--height', type=int,default=720)
-    parser.add_argument('--width', type=int,default=1280)
+    # parser.add_argument('--height', type=int,default=720)
+    # parser.add_argument('--width', type=int,default=1280)
     args = parser.parse_args()
 
     tl.global_flag['model_checkpoint'] = args.model_checkpoint
