@@ -44,8 +44,11 @@ class BlurDetection:
         #self.image_sub = rospy.Subscriber("/head_camera/rgb/image_raw",Image,self.callback)
         self.image_sub = rospy.Subscriber("/camera/color/image_raw",Image,self.callback)
         # if needed https://docs.ros.org/en/melodic/api/rospy/html/rospy.numpy_msg-module.html
-        self.blur_detection_pub = rospy.Publisher('/blur_detection_output',BlurDetectionOutput)
-        self.count = 0
+        self.blur_detection_input_pub = rospy.Publisher('/blur_detection_output/input_image',Image,queue_size=1)
+        self.blur_detection_output_pub = rospy.Publisher('/blur_detection_output/output_image',Image,queue_size=1)
+        self.blur_detection_softmax_pub = rospy.Publisher('/blur_detection_output/softmax_output',Image,queue_size=1)
+        self.blur_detection_rgb_pub = rospy.Publisher('/blur_detection_output/rgb_output_image',Image,queue_size=1)
+        #self.count = 0
         rospy.loginfo("Done Setting up Blur Detection")
 
     def callback(self,data):
@@ -57,7 +60,8 @@ class BlurDetection:
         # now run through model
         #rospy.loginfo("I came here")
         #self.epoch_time = time.time()
-        rgb = np.expand_dims(cv2.resize(image, (256, 256), interpolation=cv2.INTER_NEAREST)*1.0 - self.vgg_mean, axis=0)
+        #cv2.resize(image, (self.height, self.width), interpolation=cv2.INTER_NEAREST)
+        rgb = np.expand_dims(image*1.0 - self.vgg_mean, axis=0)
         blurMap = np.squeeze(self.sess.run([self.net_outputs], {self.net_regression.inputs: rgb}))
         blur_map = np.zeros((blurMap.shape[0],blurMap.shape[1]))
         #blur_map = np.argmax(blurMap,axis=2)[:,:,np.newaxis].astype(np.int32)
@@ -67,22 +71,49 @@ class BlurDetection:
                                                                      axis=1)
         # uncertainty labeling
         blur_map[np.sum(blurMap[:, :] >= .4, axis=2) != 1] = 5
+        blur_map = blur_map.astype(np.uint8)
+        # now make rgb image 
+        # now color code
+        rgb_blur_map = np.zeros((blur_map.shape[0],blur_map.shape[1],3))
+        # blue motion blur
+        rgb_blur_map[blur_map == 1] = [255, 0, 0]
+        # green focus blur
+        rgb_blur_map[blur_map == 2] = [0, 255, 0]
+        # red darkness blur
+        rgb_blur_map[blur_map == 3] = [0, 0, 255]
+        # pink brightness blur
+        rgb_blur_map[blur_map == 4] = [255, 192, 203]
+        # yellow unknown blur
+        rgb_blur_map[blur_map == 5] = [0, 255, 255]
+        rgb_blur_map = rgb_blur_map.astype(np.uint8)
         # publish softmax output and image labeling
         # https://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv#Creating_a_msg
-        self.publish_BlurDetectionOutput(image,blur_map,blurMap)
+        self.publish_BlurDetectionOutput(image,blur_map,blurMap,rgb_blur_map)
     
-    def publish_BlurDetectionOutput(self,input_image,output_image,softmax_image_output):
-        msg = BlurDetectionOutput()
+    def publish_BlurDetectionOutput(self,input_image,output_image,softmax_image_output,rgb_output):
+        #msg = Image()
+        time = rospy.Time.now()
+        #msg.header.stamp = rospy.get_rostime()
         #rospy.loginfo(type([softmax_image_output.astype(np.uint32)]))
-        msg.softmax_output=self.bridge.cv2_to_imgmsg(softmax_image_output, encoding="passthrough")
-        msg.image_with_uncertanity = self.bridge.cv2_to_imgmsg(output_image, encoding="passthrough")
-        msg.input_image = self.bridge.cv2_to_imgmsg(input_image, encoding="passthrough")
-        self.blur_detection_pub.publish(msg)
+        msg = self.bridge.cv2_to_imgmsg(input_image, encoding="bgr8")
+        msg.header.stamp = time
+        self.blur_detection_input_pub.publish(msg)
+        msg =self.bridge.cv2_to_imgmsg(output_image, encoding="passthrough")
+        msg.header.stamp = time
+        self.blur_detection_output_pub.publish(msg)
+        msg =self.bridge.cv2_to_imgmsg(softmax_image_output, encoding="passthrough")
+        msg.header.stamp = time
+        self.blur_detection_softmax_pub.publish(msg)
+        msg =self.bridge.cv2_to_imgmsg(rgb_output, encoding="bgr8")
+        msg.header.stamp = time
+        self.blur_detection_rgb_pub.publish(msg)
         #rospy.loginfo(str(np.round(time.time()-self.epoch_time,8)))
     
     def setup_model(self, h, w):
+        self.height = h
+        self.width = w
         ### DEFINE MODEL ###
-        patches_blurred = tf.compat.v1.placeholder('float32', [1, h, w, 3], name='input_patches')
+        patches_blurred = tf.compat.v1.placeholder('float32', [1, self.height, self.width, 3], name='input_patches')
         with tf.compat.v1.variable_scope('Unified'):
             with tf.compat.v1.variable_scope('VGG') as scope1:
                 input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
@@ -107,11 +138,11 @@ if __name__ == "__main__":
     rospy.init_node("Blur_Detection")
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_checkpoint', type=str, help='model checkpoint name and location for using',default='/home/mary/catkin_ws/src/success_apc_blur_detection/model/Final_MURI_Model.ckpt')
-    parser.add_argument('--height', type=int,default=256)
-    parser.add_argument('--width', type=int,default=256)
+    # parser.add_argument('--height', type=int,default=256)
+    # parser.add_argument('--width', type=int,default=256)
     # CMU
-    # parser.add_argument('--height', type=int,default=480)
-    # parser.add_argument('--width', type=int,default=640)
+    parser.add_argument('--height', type=int,default=480)
+    parser.add_argument('--width', type=int,default=640)
     # BYU
     # parser.add_argument('--height', type=int,default=720)
     # parser.add_argument('--width', type=int,default=1280)
