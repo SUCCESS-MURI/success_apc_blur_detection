@@ -34,7 +34,7 @@ def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
 def get_imgs_RGB_cv2(file_name, path):
     """ Input an image path and name, return an image array """
     # return scipy.misc.imread(path + file_name).astype(np.float)
-    return cv2.imread(path+file_name) #cv2.COLORBGRTORGB
+    return cv2.cvtColor(cv2.imread(path+file_name),cv2.COLOR_BGR2RGB) #cv2.COLORBGRTORGB
 
 def get_imgs_GRAY_fn(file_name, path):
     """ Input an image path and name, return an image array """

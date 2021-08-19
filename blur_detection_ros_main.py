@@ -46,6 +46,7 @@ class BlurDetection:
         self.blur_detection_pub = rospy.Publisher('/blur_detection_output',BlurDetectionOutput)
         self.count = 0
         rospy.loginfo("Done Setting up Blur Detection")
+        cv2.COLOR_BGR2RGB
 
     def callback(self,data):
         # convert to RGB image
