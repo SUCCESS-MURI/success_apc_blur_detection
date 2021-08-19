@@ -14,3 +14,4 @@ source devel/setup.bash
 rosrun success_apc_blur_detection blur_detection_ros_main.py
 
 NOTE: image sizes are different for byu and cmu. change this is blur_detection_ros_main.py height and width comment out the lines for cmu vs byu 
+New change : use 256 for real time run

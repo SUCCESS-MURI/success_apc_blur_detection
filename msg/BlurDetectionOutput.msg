@@ -1,3 +1,4 @@
 sensor_msgs/Image softmax_output
 sensor_msgs/Image image_with_uncertanity
 sensor_msgs/Image input_image
+sensor_msgs/Image rgb_blur_output_image
