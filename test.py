@@ -211,8 +211,8 @@ def test_with_muri_dataset():
         perclass_accuracy_conf_matrix = confusion_matrix(gt_test_image.flatten(),
                                                          blur_map.flatten(),labels=[0,1,2,3,4],
                                                          normalize="true")
-        perclass_accuracy_conf_matrix_1 = confusion_matrix(gt_test_image.flatten(),
-                                                         blur_map.flatten(), labels=[0, 1, 2, 3, 4])
+        # perclass_accuracy_conf_matrix_1 = confusion_matrix(gt_test_image.flatten(),
+        #                                                  blur_map.flatten(), labels=[0, 1, 2, 3, 4])
 
         perclass_accuracy = perclass_accuracy_conf_matrix.diagonal()
         for lab in range(5):

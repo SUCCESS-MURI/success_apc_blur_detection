@@ -32,7 +32,7 @@ if __name__ == '__main__':
     if tl.global_flag['is_train']:
         train_with_muri_dataset()
     else:
-        #test_with_muri_dataset()
-        test_with_muri_dataset_blur_noblur()
+        test_with_muri_dataset()
+        #test_with_muri_dataset_blur_noblur()
         #test_with_muri_dataset_origonal_model()
 
