@@ -37,7 +37,6 @@ if __name__ == '__main__':
     parser.add_argument('--is_train', type=str , default='false', help='whether train or not')
     parser.add_argument('--is_synthetic', type=str, default='false', help='whether synthetic train or not')
     parser.add_argument('--is_ssc_dataset', type=str, default='false', help='whether ssc dataset train or not')
-    parser.add_argument('--is_muri_dataset', type=str, default='false', help='whether muri dataset train')
     parser.add_argument('--index', type=int, default='0', help='index range 50')
     parser.add_argument('--start_from', type=int, default='0', help='start from')
     parser.add_argument('--uncertainty_label', type=str, default='false', help='whether testing result should have an uncertanity label. default is false')
@@ -47,7 +46,6 @@ if __name__ == '__main__':
     tl.global_flag['is_train'] = t_or_f(args.is_train)
     tl.global_flag['is_synthetic'] = t_or_f(args.is_synthetic)
     tl.global_flag['is_ssc_dataset'] = t_or_f(args.is_ssc_dataset)
-    tl.global_flag['is_muri_dataset'] = t_or_f(args.is_muri_dataset)
     tl.global_flag['start_from'] = int(args.start_from)
     tl.global_flag['uncertainty_label'] = t_or_f(args.uncertainty_label)
 
@@ -58,10 +56,8 @@ if __name__ == '__main__':
             train_with_ssc_dataset()
             # BACKBURNNNER right now this has alot to work out with not alot of gain. currently i think i am the most optimized i can be for now.
             # UPDATED_train_with_ssc_dataset()
-        elif tl.global_flag['is_muri_dataset']:
-            train_with_muri_dataset()
         else:
-            train_with_CUHK()
+            train_with_chuk_updated_dataset()
     else:
         #blurmap_3classes(args.index) #pg test
         #blurmap_3classes_using_numpy_pretrainied_weights(args.index)

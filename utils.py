@@ -39,6 +39,8 @@ def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
 def get_imgs_RGB_fn(file_name, path):
     """ Input an image path and name, return an image array """
     # return scipy.misc.imread(path + file_name).astype(np.float)
+    # deafult imageio will bring in rgb image
+    #https://www.codementor.io/@innat_2k14/image-data-analysis-using-numpy-opencv-part-1-kfadbafx6
     return imageio.imread(path + file_name)
 
 def get_imgs_GRAY_fn(file_name, path):
@@ -58,14 +60,14 @@ def get_imgs_RGBGRAY_fn(file_name, path):
     """ Input an image path and name, return an image array """
     # return scipy.misc.imread(path + file_name).astype(np.float)
     # https://www.geeksforgeeks.org/python-pil-image-convert-method/
-    image = Image.open(path + file_name)
+    image = cv2.imread(path + file_name, cv2.IMREAD_GRAYSCALE)
     return np.asarray(image)[:,:,0][:,:,np.newaxis]
 
 def get_imgs_RGBGRAY_2_fn(file_name, path):
     """ Input an image path and name, return an image array """
     # return scipy.misc.imread(path + file_name).astype(np.float)
     # https://www.geeksforgeeks.org/python-pil-image-convert-method/
-    image = Image.open(path + file_name)
+    image = cv2.imread(path + file_name, cv2.IMREAD_GRAYSCALE)
     return np.asarray(image)[:,:,np.newaxis]
 
 def data_aug_train(image,mask):
