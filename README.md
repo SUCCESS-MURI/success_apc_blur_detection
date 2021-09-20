@@ -1,12 +1,9 @@
 ## NEED TO UPDATE THIS 
 previous project's readme 
 
-# deep_blur_detection_and_classification
+# Blur Detection and Classifcation that includes Brightness and Darkness Blur
 
-
-%![input2](./input/out_of_focus0607.jpg) ![output2](./output/out_of_focus0607.png)
-
-This repository contains a test code and sythetic dataset, which consists of scenes including motion and defocus blurs together in each scene.
+This repository contains the training, test code and links to the sythetic dataset, which consists of scenes including motion, defocus, brightness and darkness blurs together in each scene.
 
 --------------------------
 
@@ -31,18 +28,15 @@ This repository contains a test code and sythetic dataset, which consists of sce
 ```bash
 python main.py
 ```
-## Synthetic Dataset
+## Evaluation Details
+
+## CUHK Dataset
+
+## Kim et al. Dataset
 - download [synthetic train set](https://drive.google.com/file/d/1QUygL2nalHldcJMwFJPfPFWokMoIbI9L/view?usp=sharing)(337MB) and [synthetic test set](https://drive.google.com/file/d/1-lV3CS_6rI_by6StkGQYsdn0SeOxwepu/view?usp=sharing)(11.5MB) from google drive
 - Note that sharp pixels, motion-blurred pixels, and defocus-blurred pixels in GT blur maps are labeled as 0, 100, and 200, respectively, in the [0,255] range.
 
-## Sample output 
-in the folder sample_blur_output there are 3 folders:
-
-gt_images - rgb ground truth images for blur detection (pink-brightness, red - darkness, green - focus, blue - motion)
-
-output_images - rgb images for that were outputed by blur detection (pink-brightness, red - darkness, green - focus, blue - motion) 
-
-raw_npy_output - softmax blur output (size (256,256,5)) the indexs indicate the following: 0: no blur 1: motion blur 2: focus blur 3: darkness blur 4: brightness blur
+## Brightness and Darkness Dataset
 
 ## License ##
 NEED to Update for MURI/CMU
