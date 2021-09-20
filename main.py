@@ -59,7 +59,7 @@ if __name__ == '__main__':
         else:
             train_with_chuk_updated_dataset()
     else:
-        #blurmap_3classes(args.index) #pg test
-        #blurmap_3classes_using_numpy_pretrainied_weights(args.index)
-        testData_return_error()
+        #blurmap_3classes_using_numpy_pretrainied_weights()
+        #testData_return_error()
+        blurmap_3classes_using_numpy_pretrainied_weights_newds()
 

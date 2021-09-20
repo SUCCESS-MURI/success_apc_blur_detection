@@ -20,7 +20,7 @@ tf.compat.v1.disable_eager_execution()
 
 def get_weights(sess,network):
     # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
-    dict_weights_trained = np.load('./setup/final_model.npy',allow_pickle=True)[()]
+    dict_weights_trained = np.load('/home/mary/code/NN_Blur_Detection_apc/inital_final_model.npy',allow_pickle=True)[()]
     params = []
     keys = dict_weights_trained.keys()
     for weights in network.trainable_weights:
@@ -43,7 +43,6 @@ def get_weights(sess,network):
 
 def get_weights_checkpoint(sess,network,dict_weights_trained):
     # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
-    #dict_weights_trained = np.load('./setup/final_model.npy',allow_pickle=True)[()]
     params = []
     keys = dict_weights_trained.keys()
     for weights in network.trainable_weights:

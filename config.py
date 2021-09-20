@@ -22,18 +22,18 @@ config.TRAIN.lr_decay = 0.1
 config.TRAIN.decay_every = 6000
 
 ## train set location
-config.TRAIN.CUHK_blur_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/image/'
-config.TRAIN.CUHK_gt_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/gt/'
+config.TRAIN.CUHK_blur_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_20_2021/smaller_dataset/images/'
+config.TRAIN.CUHK_gt_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_20_2021/smaller_dataset/gt/'
 # config.TRAIN.synthetic_blur_path = '/home/mary/code/local_success_dataset/BlurTrainSyntheic/imgs/'
 # config.TRAIN.synthetic_gt_path = '/home/mary/code/local_success_dataset/BlurTrainSyntheic/GT/'
 config.TRAIN.synthetic_blur_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/image/'
 config.TRAIN.synthetic_gt_path = '/home/mary/code/local_success_dataset/CUHK_Split_Dataset/Training/gt/'
 
-config.TRAIN.ssc_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized_small/image/'
+config.TRAIN.ssc_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized_small/images/'
 config.TRAIN.ssc_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Training_Resized_small/gt/'
 
-config.TEST.ssc_blur_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Testing_Resized_2/image/'
-config.TEST.ssc_gt_path = '/home/mary/code/local_success_dataset/BlurDetectionDataset/Testing_Resized_2/gt/'
+config.TEST.ssc_blur_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_25_2021/Testing_bd/images/'
+config.TEST.ssc_gt_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_25_2021/Testing_bd/gt/'
 
 config.TRAIN.muri_blur_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Training/images/'
 config.TRAIN.muri_gt_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Training/gt/'
