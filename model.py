@@ -8,38 +8,12 @@ import numpy as np
 from tensorlayer.layers import *
 from tensorlayer.models import Model
 
-def VGG19_pretrained(t_image,reuse = False,scope="VGG"):
-    # VGG_MEAN = [103.939, 116.779, 123.68]
-    # """
-    #     Build the VGG 19 Model
-    #     Parameters
-    #     -----------
-    #     rgb : rgb image placeholder [batch, height, width, 3] values scaled [0, 1]
-    #     """
-    # print("build model started")
-    # rgb_scaled = t_image * 255.0
-    # # Convert RGB to BGR
-    # if tf.__version__ <= '0.11':
-    #     red, green, blue = tf.split(3, 3, rgb_scaled)
-    # else:  # TF 1.0
-    #     print(rgb_scaled)
-    #     red, green, blue = tf.split(rgb_scaled, 3, 3)
-    #
-    # if tf.__version__ <= '0.11':
-    #     bgr = tf.concat(3, [
-    #         blue - VGG_MEAN[0],
-    #         green - VGG_MEAN[1],
-    #         red - VGG_MEAN[2],
-    #     ])
-    # else:
-    #     bgr = tf.concat(
-    #         [
-    #             blue - VGG_MEAN[0],
-    #             green - VGG_MEAN[1],
-    #             red - VGG_MEAN[2],
-    #         ], axis=3)
-    with tf.compat.v1.variable_scope(scope, reuse=reuse) as vs:
+# model definition for neural network
+# needs to be the same as the kim et al for loading the weights with the same names
 
+# kim et al encoder
+def VGG19_pretrained(t_image,reuse = False,scope="VGG"):
+    with tf.compat.v1.variable_scope(scope, reuse=reuse) as vs:
         # input layer
         net_in = Input(t_image.shape, name='input') #tf.keras.layers.InputLayer(bgr, name='input')
         # conv1
@@ -97,13 +71,10 @@ def VGG19_pretrained(t_image,reuse = False,scope="VGG"):
 
     return net_in, n, f0, f0_1,f1_2,f2_3
 
+# updated decoder
 def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=False, scope = "UNet"):
     # xavier_initializer was discontinued
     w_init1 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
-    # w_init1 = tf.truncated_normal_initializer()
-    # w_init2 = tf.truncated_normal_initializer()
-    # w_init3 = tf.truncated_normal_initializer()
-    # w_init4 = tf.truncated_normal_initializer()
     w_init2 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
     w_init3 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
     w_init4 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
@@ -227,13 +198,10 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
 
     return network, n_m1, n_m2, n_m3,m1BModel,m2BModel,m3BModel,m4BModel
 
+# kim et al version used for testing and getting weights
 def Origional_Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=False, scope = "UNet"):
     # xavier_initializer was discontinued
     w_init1 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
-    # w_init1 = tf.truncated_normal_initializer()
-    # w_init2 = tf.truncated_normal_initializer()
-    # w_init3 = tf.truncated_normal_initializer()
-    # w_init4 = tf.truncated_normal_initializer()
     w_init2 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
     w_init3 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
     w_init4 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")

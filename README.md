@@ -1,12 +1,9 @@
-## NEED TO UPDATE THIS 
-previous project's readme 
-
 # Blur Detection and Classifcation that includes Brightness and Darkness Blur
 
-This repository contains the training, test code and links to the sythetic dataset, which consists of scenes including motion, defocus, brightness and darkness blurs together in each scene.
+This repository contains the training and test code for running our blur detection model based on the Kim et al. model with the additional 2 output labels for brightness and darkness blur definition. 
+Links to our dataset include motion, defocus, brightness and darkness blurs together in each scene.
 
 --------------------------
-
 ## Prerequisites (tested)
 - Ubuntu 20.04
 - Tensorflow-gpu 2.2.0
@@ -15,19 +12,27 @@ This repository contains the training, test code and links to the sythetic datas
 - Listed in the document Packages_Requirements
 - Using Ananconda Virtual Enviornment
 
-## Train Details
-- We used [CUHK blur detection dataset](http://www.cse.cuhk.edu.hk/~leojia/projects/dblurdetect/dataset.html) for training our network and generating our synthetic dataset
-- Train and test set lists are uploaded in 'dataset' folder
-- Need to modify some options and paths in 'main.py' and 'config.py' for training
+### Note with Tensorflow update
+read the tensorflow_issues_and_solutions document for code solutions for errors that might arise with updating tensorflow
+
+## Kim et al. Train and Testing Details
+- Go to XXXX to run the original Kim et al. Training and Testing code using CHUK and syntheic 
+
+## Our Train Details 
+- We updated the [CUHK blur detection dataset](http://www.cse.cuhk.edu.hk/~leojia/projects/dblurdetect/dataset.html) by adding brightness and darkness blur to the dataset
+- We updated the Training and testing lists in the config.py.
+- Run the following line in the environment:
+  
+```bash
+python main.py --is_train true
+```
 
 ## Test Details
 - download [model weights](https://drive.google.com/file/d/11FBVmAIfeHDHpOjLXewzpA2lgcOOqo2_/view?usp=sharing) from google drive and save the model into 'model' folder.
 - specify a path of input folder in 'main.py' at line #39
-- run 'main.py'
+- run 'main.py --is_train false'
 
-```bash
-python main.py
-```
+
 ## Evaluation Details
 
 ## CUHK Dataset
