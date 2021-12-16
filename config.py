@@ -27,8 +27,11 @@ config.TRAIN.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dataset/
 config.VALIDATION.muri_blur_path = '/home/mary/code/local_success_dataset/muri_dataset/Validation_2/images/'
 config.VALIDATION.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dataset/Validation_2/gt/'
 
-config.TEST.muri_blur_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Testing/images/'
-config.TEST.muri_gt_path = '/home/mary/code/local_success_dataset/muri/muri_dataset/Testing/gt/'
+config.TEST.muri_blur_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/09_23_2021/Testing/images/'
+config.TEST.muri_gt_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/09_23_2021/Testing/gt/'
+
+config.TEST.cuhk_blur_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_25_2021/Testing/images/'
+config.TEST.cuhk_gt_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_25_2021/Testing/gt/'
 
 ## train image size
 config.TRAIN.height = 256

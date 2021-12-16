@@ -23,30 +23,9 @@ from utils import read_all_imgs
 
 #gamma = 2.5
 gamma = 2.2
+# for muri
+# gamma = 1.766666667
 
-# def apply_motion_blur(image, size, angle):
-#     k = np.zeros((size, size), dtype=np.float32)
-#     k[(size - 1) // 2, :] = np.ones(size, dtype=np.float32)
-#     k = cv2.warpAffine(k, cv2.getRotationMatrix2D((size / 2 - 0.5, size / 2 - 0.5), angle, 1.0), (size, size))
-#     k = k * (1.0 / np.sum(k))
-#     return cv2.filter2D(image, -1, k)
-#
-# # create out of focus blur for 3 channel images
-# def create_out_of_focus_blur(image,kernelsize):
-#     image_blurred = cv2.blur(image,(kernelsize,kernelsize))
-#     return image_blurred
-#
-# def create_brightness_and_darkness_blur(image, alpha, beta):
-#     return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
-#
-# def alpha_blending(defocus,motion,alpha):
-#     f_defocus = defocus.astype("float32")
-#     f_motion = motion.astype("float32")
-#     f_blended = f_defocus*(1-alpha) + f_motion * alpha
-#     return f_blended#.astype("uint8")
-
-######## motion blur #########
-# https://github.com/Imalne/Defocus-and-Motion-Blur-Detection-with-Deep-Contextual-Features/blob/a368a3e0a8869011ec167bb1f8eb82ceff091e0c/DataCreator/Blend.py#L14
 def apply_motion_blur(image, size, angle):
     Motion = cv2.getRotationMatrix2D((size / 2, size / 2), angle, 1)
     kernel = np.diag(np.ones(size))
@@ -83,6 +62,10 @@ def random_brightness_value(amin=1.9,amax=2.6,bmin=40,bmax=200):
     alpha = random.uniform(amin,amax)
     beta = random.uniform(bmin,bmax)
     return alpha,beta
+
+def random_focus_blur_kernel(dmin=3, dmax=50):
+    random_kernal_size = uniform_random_int(dmin, dmax)
+    return random_kernal_size
 
 # create out of focus blur for 3 channel images
 def create_out_of_focus_blur(image,kernelsize):
@@ -141,7 +124,7 @@ def overlay_image_alpha(img, img_overlay, x, y, alpha_mask):
     img_crop[:] = alpha * img_overlay_crop + alpha_inv * img_crop
     return img,y1o,y2o,x1o,x2o
 
-def create_cuhk_muri_dataset_for_training(args):
+def create_cuhk_dataset_for_training(args):
     final_shape = (480, 640)
     tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
     tl.files.exists_or_mkdir(args.output_data_dir + "/gt/")
@@ -335,7 +318,7 @@ def create_cuhk_muri_dataset_for_training(args):
             nMask[nMask == 4] = 255
             cv2.imwrite(saveNameGt, nMask)
 
-def create_cuhk_muri_dataset_for_testing(args):
+def create_cuhk_dataset_for_testing(args):
     final_shape = (480, 640)
     tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
     tl.files.exists_or_mkdir(args.output_data_dir + "/gt/")
@@ -380,36 +363,6 @@ def create_cuhk_muri_dataset_for_testing(args):
         define_brightness_and_darkness_blur(imagesOrigonal[i], new_mask)
         gtOrigonal[i] = new_mask
 
-    # for i in range(len(saliencyImages)):
-    #     if saliencyImages[i].shape[0] > saliencyImages[i].shape[1]:
-    #         saliencyImages[i] = cv2.rotate(saliencyImages[i], 0)
-    #         saliencyMask[i] = cv2.rotate(saliencyMask[i], 0)[:, :, np.newaxis]
-    #     y1, y2 = max(0, int((final_shape[0] + 1 - saliencyImages[i].shape[0]) / 2)), \
-    #              min(saliencyImages[i].shape[0] + int((final_shape[0] + 1 - saliencyImages[i].shape[0]) / 2),
-    #                  final_shape[0])
-    #     x1, x2 = max(0, int((final_shape[1] + 1 - saliencyImages[i].shape[1]) / 2)), \
-    #              min(saliencyImages[i].shape[1] + int((final_shape[1] + 1 - saliencyImages[i].shape[1]) / 2),
-    #                  final_shape[1])
-    #     y1o, y2o = 0, min(saliencyImages[i].shape[0], final_shape[0])
-    #     x1o, x2o = 0, min(saliencyImages[i].shape[1], final_shape[1])
-    #
-    #     new_image = np.zeros((final_shape[0], final_shape[1], 3))
-    #     new_image[y1:y2, x1:x2] = saliencyImages[i][y1o:y2o, x1o:x2o]
-    #     gtMask = np.ones((final_shape[0], final_shape[1], 1))
-    #     gtMask[y1:y2, x1:x2] = saliencyMask[i][y1o:y2o, x1o:x2o]
-    #     saliencyImages[i] = 255.0 * np.power((new_image * 1.) / 255.0, gamma)
-    #     new_mask = np.zeros(gtMask.shape)
-    #     new_mask[gtMask == 0] = 0
-    #     new_mask[gtMask == 1] = 3
-    #     if 'motion' in images_list[i]:
-    #         new_mask[gtMask == 255] = 1
-    #     else:
-    #         new_mask[gtMask == 255] = 2
-    #     mask = np.zeros(new_mask.shape)
-    #     mask[new_mask > 0] = 1
-    #     saliencyImages[i] = saliencyImages[i] * np.logical_not(mask)
-    #     saliencyMask[i] = new_mask * 3
-
     # save baseline images
     count = 0
     for i in range(len(imagesOrigonal)):
@@ -449,13 +402,13 @@ def create_cuhk_muri_dataset_for_testing(args):
             # cv2.waitKey(0)
             # save just the darkness
             # save final image
-            saveName = args.output_data_dir + "/images/" + baseImageName + '_' + str(count) + args.data_extension
+            saveName = args.output_data_dir + "/images/darkness_" + baseImageName + '_' + str(count) + args.data_extension
             final_masked_blurred_image = np.round(np.power((np.array(dark_blurred_overlay_img)[:, :, 0:3] * 1.)
                                                   / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
             # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
             imageio.imwrite(saveName, final_masked_blurred_image)
             # create and save ground truth mask
-            saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_' + str(count) + args.data_extension
+            saveNameGt = args.output_data_dir + "/gt/darkness_" + baseImageName + '_' + str(count) + args.data_extension
             nMask[nMask == 1] = 64
             nMask[nMask == 2] = 128
             nMask[nMask == 3] = 192
@@ -465,8 +418,6 @@ def create_cuhk_muri_dataset_for_testing(args):
             # create brightness blur
             alpha, beta = random_brightness_value()
             image = copy.deepcopy(imagesOrigonal[i])
-            # https://stackoverflow.com/questions/12138339/finding-the-x-y-indexes-of-specific-r-g-b-color-values-from-images-stored-in
-            image[np.all(image == 0, axis=-1)] = [255, 255, 255]
             bright_blurred_overlay_img = create_brightness_and_darkness_blur(image, alpha, beta)
             # cv2.imshow('BrightnessImage', dark_blur)
             # cv2.waitKey(0)
@@ -475,638 +426,1581 @@ def create_cuhk_muri_dataset_for_testing(args):
             nMask = np.zeros(final_shape)
             define_brightness_and_darkness_blur(bright_blurred_overlay_img, nMask)
             # save final image
-            saveName = args.output_data_dir + "/images/" + baseImageName + '_' + str(count) + args.data_extension
+            saveName = args.output_data_dir + "/images/brightness_" + baseImageName + '_' + str(count) + args.data_extension
             final_masked_blurred_image = np.round(np.power((np.array(bright_blurred_overlay_img)[:, :, 0:3] * 1.)
                                                   / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
             # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
             imageio.imwrite(saveName, final_masked_blurred_image)
             # create and save ground truth mask
-            saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_' + str(count) + args.data_extension
+            saveNameGt = args.output_data_dir + "/gt/brightness_" + baseImageName + '_' + str(count) + args.data_extension
             nMask[nMask == 1] = 64
             nMask[nMask == 2] = 128
             nMask[nMask == 3] = 192
             nMask[nMask == 4] = 255
             cv2.imwrite(saveNameGt, nMask)
 
-def create_muri_dataset_for_training(args):
-    # angles range for dataset
-    angles = np.arange(start=0, stop=190, step=30)
-    kernal = np.arange(start=9, stop=26, step=4)
-    # alpha
-    alpha_darkness = np.arange(start=0.1, stop=0.6, step=0.1)
-    alpha_brightness = np.arange(start=1.9, stop=2.5, step=0.1)
-    # beta
-    #beta = np.arange(start=0,stop=1,step=1) # 110 step 10
-    final_shape = (480,640)
-    tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
-    tl.files.exists_or_mkdir(args.output_data_dir + "/gt/")
-    # list of all original Images
-    images_list = sorted(tl.files.load_file_list(path=args.data_dir, regx='/*.(png|PNG)', printable=False))
-    saliency_images_list = sorted(tl.files.load_file_list(path=args.salinecy_data_dir, regx='/*.(png|PNG)',
-                                                          printable=False))
-    imagesOrigonal = read_all_imgs(images_list, path=args.data_dir, n_threads=100, mode='RGB')
-    SaliencyImages = read_all_imgs(saliency_images_list, path=args.salinecy_data_dir, n_threads=100, mode='RGB2GRAY2')
-    maskSaliency = []
-    for i in range(len(imagesOrigonal)):
-        new_image = np.zeros((final_shape[0],final_shape[1],3))
-        new_mask = np.zeros((final_shape[0],final_shape[1],1))
-        padd_h = int((final_shape[0] +1 - imagesOrigonal[i].shape[0])/2)
-        padd_w = int((final_shape[1] +1- imagesOrigonal[i].shape[1])/2)
-        new_image[padd_h:imagesOrigonal[i].shape[0]+padd_h,padd_w:imagesOrigonal[i].shape[1]+padd_w] = imagesOrigonal[i]
-        new_mask[padd_h:imagesOrigonal[i].shape[0]+padd_h,padd_w:imagesOrigonal[i].shape[1]+padd_w] = SaliencyImages[i]
-        # gamma correction
-        imagesOrigonal[i] = 255.0*np.power((new_image*1.)/255,gamma)
-        (T, saliency) = cv2.threshold(new_mask, 1, 1, cv2.THRESH_BINARY)
-        SaliencyImages[i] = saliency
-        maskSaliency.append(saliency[:, :, np.newaxis] * imagesOrigonal[i])
-        images_list[i] = images_list[i].split('.')[0]
-
-    # now we will go through all of the images and make the dataset
-    indexs = np.arange(start=0,stop=len(imagesOrigonal),step=1)
-    np.random.shuffle(indexs)
-    idxs = np.arange(start=0,stop=4,step=1)
-    # this already makes a huge dataset
-    for i in range(1):
-        tempIdxs = indexs[indexs != i]
-        baseImage = imagesOrigonal[i]
-        baseImageName = images_list[i]
-        for s in kernal:
-            for a in angles:
-                for k in kernal:
-                    for al_d in alpha_darkness:
-                        for al_b in alpha_brightness:
-                            # need to study this more if training will be affected
-                            final_masked_blurred_image = np.copy(baseImage)
-                            nMask = np.zeros(final_shape)
-                            np.random.shuffle(idxs)
-                            for j in idxs:
-                                # motion blur
-                                if j == 0:
-                                    overlayImageIdx = np.random.choice(tempIdxs, 1, replace=False)[0]
-                                    motion_blurred_overlay_img = apply_motion_blur(
-                                        np.copy(maskSaliency[overlayImageIdx]),s,a)
-                                    # cv2.imshow('MotionImage1', motion_blurred_overlay_img)
-                                    # cv2.waitKey(0)
-                                    blur_mask = apply_motion_blur(np.copy(SaliencyImages[overlayImageIdx])*255,s,a)
-                                    motion_blur_mask = np.copy(blur_mask)
-                                    motion_blur_mask[np.round(blur_mask,4) > 0] = 255
-                                    alpha = blur_mask / 255.
-                                    # https://stackoverflow.com/questions/31273592/valueerror-bad-transparency-mask-when-pasting-one-image-onto-another-with-pyt
-                                    # https://stackoverflow.com/questions/10965417/how-to-convert-a-numpy-array-to-pil-image-applying-matplotlib-colormap
-                                    # motion_blurred_imgPIL,alpha_PIL = convert_whiten_image(motion_blurred_overlay_img,
-                                    #                                         im.fromarray(alpha).convert('RGBA'))
-                                    placement = (np.random.randint(-final_shape[0]*.75,final_shape[0]*.75,1)[0],
-                                         np.random.randint(-final_shape[1]*.75,final_shape[1]*.75,1)[0])
-                                    final_masked_blurred_image,y1o,y2o,x1o,x2o = overlay_image_alpha(
-                                        final_masked_blurred_image,motion_blurred_overlay_img,placement[1],placement[0],
-                                        alpha)
-                                    # # https://note.nkmk.me/en/python-pillow-paste/
-                                    # final_masked_blurred_image.paste(motion_blurred_imgPIL, placement, mask=alpha_PIL)
-                                    # cv2.imshow('MotionImage', final_masked_blurred_image)
-                                    # cv2.waitKey(0)
-                                    nMask[max(0,placement[0])+np.argwhere(motion_blur_mask[y1o:y2o,x1o:x2o]==255)[:,0],
-                                        max(0,placement[1])+np.argwhere(motion_blur_mask[y1o:y2o,x1o:x2o]==255)[:,1]]=64
-                                    # cv2.imshow('BrightnessImage', nMask)
-                                    # cv2.waitKey(0)
-                                    # focus blur
-                                elif j == 1:
-                                    # now do out of focus blur
-                                    overlayImageIdx = np.random.choice(tempIdxs, 1, replace=False)[0]
-                                    focus_blurred_overlay_img = create_out_of_focus_blur(
-                                        np.copy(maskSaliency[overlayImageIdx]),k)
-                                    blur_mask = create_out_of_focus_blur(np.copy(SaliencyImages[overlayImageIdx])*255,k)
-                                    focus_blur_mask = np.copy(blur_mask)
-                                    focus_blur_mask[np.round(blur_mask, 4) > 0] = 255
-                                    alpha = blur_mask / 255.
-                                    # focus_blurred_imgPIL, alpha_PIL = convert_whiten_image(focus_blurred_overlay_img,
-                                    #                                        im.fromarray(alpha).convert('RGBA'))
-                                    placement = (np.random.randint(-final_shape[0] * .75, final_shape[0] * .75, 1)[0],
-                                                 np.random.randint(-final_shape[1] * .75, final_shape[1] * .75, 1)[0])
-                                    final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(
-                                        final_masked_blurred_image,focus_blurred_overlay_img,placement[1],placement[0],
-                                        alpha)
-                                    # final_masked_blurred_image.paste(focus_blurred_imgPIL, placement,
-                                    #                                  mask=alpha_PIL)
-                                    # cv2.imshow('FocusImage',final_masked_blurred_image)
-                                    # cv2.waitKey(0)
-                                    # add focus identification to mask
-                                    #idx = np.where(np.array(alpha_PIL)[:, :, 3] == 255)
-                                    nMask[max(0,placement[0])+np.argwhere(focus_blur_mask[y1o:y2o,x1o:x2o]==255)[:,0],
-                                        max(0,placement[1])+np.argwhere(focus_blur_mask[y1o:y2o,x1o:x2o]==255)[:,1]]=128
-                                # darkness blur
-                                elif j == 2:
-                                    #create darkness blur
-                                    overlayImageIdx = np.random.choice(tempIdxs, 1, replace=False)[0]
-                                    dark_blurred_overlay_img = create_brightness_and_darkness_blur(
-                                        np.copy(maskSaliency[overlayImageIdx]), al_d, 0)
-                                    # cv2.imshow('BrightnessImage', dark_blur)
-                                    # cv2.waitKey(0)
-                                    dark_blur_mask = np.copy(SaliencyImages[overlayImageIdx])
-                                    dark_blur_mask[dark_blur_mask > 0] = 255
-                                    alpha = (np.copy(SaliencyImages[overlayImageIdx]) * 255.0) / 255.
-                                    # cv2.imshow('BrightnessImage_mask', dark_blur_masked)
-                                    # cv2.waitKey(0)
-                                    #darkness = True
-                                    # dark_blurred_imgPIL,alpha_PIL = convert_whiten_image(dark_blurred_overlay_img,
-                                    #                                             im.fromarray(alpha).convert('RGBA'))
-                                    # # cv2.imshow('BrightnessImage2', np.array(dark_blurred_imgPIL)[:,:,0:3])
-                                    # # cv2.waitKey(0)
-                                    placement = (np.random.randint(-final_shape[0] * .75, final_shape[0] * .75, 1)[0],
-                                                 np.random.randint(-final_shape[1] * .75, final_shape[1] * .75, 1)[0])
-                                    final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(
-                                        final_masked_blurred_image, dark_blurred_overlay_img, placement[1],placement[0],
-                                        alpha)
-                                    # final_masked_blurred_image.paste(dark_blurred_imgPIL, placement,
-                                    #                                 mask=alpha_PIL)
-
-                                    # cv2.imshow('DarknessImage', final_masked_blurred_image)
-                                    # cv2.waitKey(0)
-                                    # add brightness and/or darkness blur to mask image
-                                    # indicator for dark blur
-                                    nMask[max(0,placement[0])+np.argwhere(dark_blur_mask[y1o:y2o,x1o:x2o]==255)[:,0],
-                                          max(0,placement[1])+np.argwhere(dark_blur_mask[y1o:y2o,x1o:x2o]==255)[:,1]]=192
-                                # brightness blur
-                                elif j == 3:
-                                    # create brightness blur
-                                    overlayImageIdx = np.random.choice(tempIdxs, 1, replace=False)[0]
-                                    bright_blurred_overlay_img = create_brightness_and_darkness_blur(
-                                        np.copy(maskSaliency[overlayImageIdx]), al_b, 0)
-                                    # cv2.imshow('BrightnessImage', dark_blur)
-                                    # cv2.waitKey(0)
-                                    bright_blur_mask = np.copy(SaliencyImages[overlayImageIdx])
-                                    bright_blur_mask[bright_blur_mask > 0] = 255
-                                    alpha = (np.copy(SaliencyImages[overlayImageIdx]) * 255.0) / 255.
-                                    # bright_blurred_imgPIL, alpha_PIL = convert_whiten_image(bright_blurred_overlay_img,
-                                    #                                         im.fromarray(alpha).convert('RGBA'))
-                                    placement = (np.random.randint(-final_shape[0] * .75, final_shape[0] * .75, 1)[0],
-                                                 np.random.randint(-final_shape[1] * .75, final_shape[1] * .75, 1)[0])
-                                    final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(
-                                        final_masked_blurred_image, bright_blurred_overlay_img, placement[1],
-                                        placement[0],alpha)
-                                    #final_masked_blurred_image.paste(bright_blurred_imgPIL, placement,mask=alpha_PIL)
-                                    # cv2.imshow('BrightnessImage', final_masked_blurred_image)
-                                    # cv2.waitKey(0)
-                                    # add brightness and/or darkness blur to mask image
-                                    #idx = np.where(np.array(alpha_PIL)[:, :, 3] == 255)
-                                    # indicator for brightness
-                                    nMask[max(0,placement[0])+np.argwhere(bright_blur_mask[y1o:y2o,x1o:x2o]==255)[:,0],
-                                          max(0,placement[1])+np.argwhere(bright_blur_mask[y1o:y2o,x1o:x2o]==255)[:,1]]=255
-                            # save final image
-                            saveName = args.output_data_dir + "/images/" + baseImageName + "_motion_blur" \
-                                    + "_a_" + str(a)  + "_s_" + str(s) + "_focus_blur_k_" + str(k) \
-                                    + "_darkness_blur_al_" + str(al_d) + "_brightness_blur_al_" + str(al_b) + \
-                                   args.data_extension
-                            final_masked_blurred_image = np.power((np.array(final_masked_blurred_image)[:, :, 0:3]*1.)
-                                                                  /255,(1/gamma))*255.0
-                            cv2.imwrite(saveName, final_masked_blurred_image)
-                            # create and save ground truth mask
-                            saveNameGt = args.output_data_dir + "/gt/" + baseImageName + "_motion_blur" \
-                                    + "_a_" + str(a)  + "_s_" + str(s) + "_focus_blur_k_" + str(k) \
-                                    + "_darkness_blur_al_" + str(al_d) + "_brightness_blur_al_" + str(al_b) + \
-                                   args.data_extension
-                            cv2.imwrite(saveNameGt, nMask)
-    # random chose the next 5 index
-    # TODO need to figure this out (might just want to do the whole image)
-    for i in range(len(imagesOrigonal)):
-        idx = indexs[i]
-        baseImageName = images_list[idx]
-        for s in kernal:
-            for a in angles:
-                # motion blur
-                motion_blurred_overlay_img = apply_motion_blur(np.copy(maskSaliency[idx]), s, a)
-                blur_mask = apply_motion_blur(np.copy(SaliencyImages[idx]) * 255, s, a)
-                motion_blur_mask = np.copy(blur_mask)
-                motion_blur_mask[np.round(blur_mask,4) > 0] = 255
-                alpha = blur_mask / 255.0
-                final_masked_blurred_image = alpha_blending(np.copy(imagesOrigonal[idx]),motion_blurred_overlay_img,
-                                                            alpha[:,:,np.newaxis])
-                # now save the image
-                saveName = args.output_data_dir + "/images/" + baseImageName + "_motion_blur_a_" + str(a) + "_s_" + \
-                           str(s) + args.data_extension
-                cv2.imwrite(saveName,np.power((final_masked_blurred_image*1.)/255,(1/gamma))*255.0)
-                saveName = args.output_data_dir + "/gt/" + baseImageName + "_motion_blur_a_" + str(a) + "_s_" + \
-                           str(s) + args.data_extension
-                # cv2.imshow('BrightnessImage', final_masked_blurred_image)
-                # cv2.waitKey(0)
-                nMask = np.zeros(final_shape)
-                nMask[motion_blur_mask == 255] = 64
-                cv2.imwrite(saveName, nMask)
-                # cv2.imshow('BrightnessImage', nMask)
-                # cv2.waitKey(0)
-        ### out of focus blur
-        for k in kernal:
-            focus_blur_overlay_img = create_out_of_focus_blur(np.copy(maskSaliency[idx]), k)
-            blur_mask = create_out_of_focus_blur(np.copy(SaliencyImages[idx]) * 255.0, k)
-            focus_blur_mask = np.copy(blur_mask)
-            focus_blur_mask[np.round(blur_mask,4) > 0] = 255
-            alpha = blur_mask / 255.
-            final_masked_blurred_image = alpha_blending(np.copy(imagesOrigonal[idx]), focus_blur_overlay_img,
-                                                        alpha[:,:,np.newaxis])
-            saveName = args.output_data_dir + "/images/" + baseImageName + "_focus_blur_k_" + str(k) + \
-                       args.data_extension
-            cv2.imwrite(saveName,np.power((final_masked_blurred_image*1.)/255,(1/gamma))*255.0)
-            # get ground truth mask
-            saveName = args.output_data_dir + "/gt/" + baseImageName + "_focus_blur_k_" + str(k) + \
-                       args.data_extension
-            # add focus identification to mask
-            nMask = np.zeros(final_shape)
-            nMask[focus_blur_mask == 255] = 128
-            cv2.imwrite(saveName, nMask)
-        # next we go to darkness blur
-        for a in alpha_darkness:
-            # create darkness blur
-            dark_blur = create_brightness_and_darkness_blur(np.copy(maskSaliency[idx]), a, 0)
-            dark_blur_mask = np.copy(SaliencyImages[idx])
-            dark_blur_mask[dark_blur_mask > 0] = 255
-            alpha = (np.copy(SaliencyImages[idx]) * 255.0) / 255.
-            final_masked_blurred_image = alpha_blending(np.copy(imagesOrigonal[idx]), dark_blur, alpha[:,:,np.newaxis])
-            # save the image
-            saveName = args.output_data_dir + "/images/" + baseImageName + "_darkness_blur_al_" + str(a) + \
-                       args.data_extension
-            cv2.imwrite(saveName, np.power((final_masked_blurred_image*1.)/255,(1/gamma))*255.0)
-            # get ground truth mask
-            saveName = args.output_data_dir + "/gt/" + baseImageName + "_darkness_blur_al_" + str(a) + \
-                       args.data_extension
-            # add darkness blur to mask image
-            nMask = np.zeros(final_shape)
-            nMask[dark_blur_mask == 255] = 192
-            cv2.imwrite(saveName, nMask)
-        # next we go to brightness blur
-        for a in alpha_brightness:
-            # create brightness blur
-            bright_blur = create_brightness_and_darkness_blur(np.copy(maskSaliency[idx]), a, 0)
-            bright_blur_mask = np.copy(SaliencyImages[idx])
-            bright_blur_mask[bright_blur_mask > 0] = 255
-            alpha = (np.copy(SaliencyImages[idx]) * 255.0) / 255.
-            final_masked_blurred_image = alpha_blending(np.copy(imagesOrigonal[idx]),bright_blur,alpha[:,:,np.newaxis])
-            # save the image
-            saveName = args.output_data_dir + "/images/" + baseImageName + "_brightness_blur_al_" + str(a) + \
-                       args.data_extension
-            cv2.imwrite(saveName, np.power((final_masked_blurred_image*1.)/255,(1/gamma))*255.0)
-            # get ground truth mask
-            saveName = args.output_data_dir + "/gt/" + baseImageName + "_brightness_blur_al_" + str(a) + \
-                       args.data_extension
-            # add brightness blur to mask image
-            nMask = np.zeros(final_shape)
-            nMask[bright_blur_mask == 255] = 255
-            cv2.imwrite(saveName, nMask)
-    # save control / no blur images
-    for n in range(500):
-        for i in range(len(imagesOrigonal)):
-            # always remember gamma correction
-            baseImage = np.power((imagesOrigonal[i]*1.)/255,(1/gamma))*255.0
-            baseImageName = images_list[i]
-            saveName = args.output_data_dir + "/images/" + baseImageName + "_no_blur_" + str(
-                n + 1) + args.data_extension
-            cv2.imwrite(saveName, baseImage)
-            # get ground truth mask
-            saveName = args.output_data_dir + "/gt/" + baseImageName + "_no_blur_" + str(
-                n + 1) + args.data_extension
-            nMask = np.zeros(final_shape)
-            cv2.imwrite(saveName, nMask)
-
-def create_muri_dataset_for_testing_and_validation(args):
-    # angles range for dataset
-    angles = np.arange(start=0, stop=190, step=30)
-    kernal = np.arange(start=9, stop=26, step=2)
-    # alpha
-    alpha_darkness = np.arange(start=0.05, stop=0.5, step=0.05)
-    alpha_brightness = np.arange(start=1.8, stop=2.5, step=0.05)
-    # beta
-    # beta = np.arange(start=0,stop=1,step=1) # 110 step 10
-    final_shape = (480, 640)
-    tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
-    tl.files.exists_or_mkdir(args.output_data_dir + "/gt/")
-    # list of all original Images
-    images_list = sorted(tl.files.load_file_list(path=args.data_dir, regx='/*.(png|PNG)', printable=False))
-    saliency_images_list = sorted(tl.files.load_file_list(path=args.salinecy_data_dir, regx='/*.(png|PNG)',
-                                                          printable=False))
-    imagesOrigonal = read_all_imgs(images_list, path=args.data_dir, n_threads=100, mode='RGB')
-    SaliencyImages = read_all_imgs(saliency_images_list, path=args.salinecy_data_dir, n_threads=100, mode='RGB2GRAY2')
-    maskSaliency = []
-    for i in range(len(imagesOrigonal)):
-        new_image = np.zeros((final_shape[0], final_shape[1], 3))
-        new_mask = np.zeros((final_shape[0], final_shape[1], 1))
-        padd_h = int((final_shape[0] + 1 - imagesOrigonal[i].shape[0]) / 2)
-        padd_w = int((final_shape[1] + 1 - imagesOrigonal[i].shape[1]) / 2)
-        new_image[padd_h:imagesOrigonal[i].shape[0] + padd_h, padd_w:imagesOrigonal[i].shape[1] + padd_w] = \
-        imagesOrigonal[i]
-        new_mask[padd_h:imagesOrigonal[i].shape[0] + padd_h, padd_w:imagesOrigonal[i].shape[1] + padd_w] = \
-        SaliencyImages[i]
-        # gamma correction
-        imagesOrigonal[i] = 255.0 * np.power((new_image * 1.) / 255, gamma)
-        (T, saliency) = cv2.threshold(new_mask, 1, 1, cv2.THRESH_BINARY)
-        SaliencyImages[i] = saliency
-        maskSaliency.append(saliency[:, :, np.newaxis] * imagesOrigonal[i])
-        images_list[i] = images_list[i].split('.')[0]
-
-    # now we will go through all of the images and make the dataset
-    indexs = np.arange(start=0, stop=len(imagesOrigonal), step=1)
-    # TODO need to figure this out (might just want to do the whole image)
-    for i in range(len(imagesOrigonal)):
-        idx = indexs[i]
-        baseImageName = images_list[idx]
-        for s in kernal:
-            for a in angles:
-                # motion blur
-                motion_blurred_overlay_img = apply_motion_blur(np.copy(maskSaliency[idx]), s, a)
-                blur_mask = apply_motion_blur(np.copy(SaliencyImages[idx]) * 255, s, a)
-                motion_blur_mask = np.copy(blur_mask)
-                motion_blur_mask[np.round(blur_mask, 4) > 0] = 255
-                alpha = blur_mask / 255.0
-                final_masked_blurred_image = alpha_blending(np.copy(imagesOrigonal[idx]), motion_blurred_overlay_img,
-                                                            alpha[:, :, np.newaxis])
-                # now save the image
-                saveName = args.output_data_dir + "/images/" + baseImageName + "_motion_blur_a_" + str(a) + "_s_" + \
-                           str(s) + args.data_extension
-                cv2.imwrite(saveName, np.power((final_masked_blurred_image * 1.) / 255, (1 / gamma)) * 255.0)
-                saveName = args.output_data_dir + "/gt/" + baseImageName + "_motion_blur_a_" + str(a) + "_s_" + \
-                           str(s) + args.data_extension
-                # cv2.imshow('BrightnessImage', final_masked_blurred_image)
-                # cv2.waitKey(0)
-                nMask = np.zeros(final_shape)
-                nMask[motion_blur_mask == 255] = 64
-                cv2.imwrite(saveName, nMask)
-                # cv2.imshow('BrightnessImage', nMask)
-                # cv2.waitKey(0)
-        ### out of focus blur
-        for k in kernal:
-            focus_blur_overlay_img = create_out_of_focus_blur(np.copy(maskSaliency[idx]), k)
-            blur_mask = create_out_of_focus_blur(np.copy(SaliencyImages[idx]) * 255.0, k)
-            focus_blur_mask = np.copy(blur_mask)
-            focus_blur_mask[np.round(blur_mask, 4) > 0] = 255
-            alpha = blur_mask / 255.
-            final_masked_blurred_image = alpha_blending(np.copy(imagesOrigonal[idx]), focus_blur_overlay_img,
-                                                        alpha[:, :, np.newaxis])
-            saveName = args.output_data_dir + "/images/" + baseImageName + "_focus_blur_k_" + str(k) + \
-                       args.data_extension
-            cv2.imwrite(saveName, np.power((final_masked_blurred_image * 1.) / 255, (1 / gamma)) * 255.0)
-            # get ground truth mask
-            saveName = args.output_data_dir + "/gt/" + baseImageName + "_focus_blur_k_" + str(k) + \
-                       args.data_extension
-            # add focus identification to mask
-            nMask = np.zeros(final_shape)
-            nMask[focus_blur_mask == 255] = 128
-            cv2.imwrite(saveName, nMask)
-        # next we go to darkness blur
-        for a in alpha_darkness:
-            # create darkness blur
-            dark_blur = create_brightness_and_darkness_blur(np.copy(maskSaliency[idx]), a, 0)
-            dark_blur_mask = np.copy(SaliencyImages[idx])
-            dark_blur_mask[dark_blur_mask > 0] = 255
-            alpha = (np.copy(SaliencyImages[idx]) * 255.0) / 255.
-            final_masked_blurred_image = alpha_blending(np.copy(imagesOrigonal[idx]), dark_blur,
-                                                        alpha[:, :, np.newaxis])
-            # save the image
-            saveName = args.output_data_dir + "/images/" + baseImageName + "_darkness_blur_al_" + str(a) + \
-                       args.data_extension
-            cv2.imwrite(saveName, np.power((final_masked_blurred_image * 1.) / 255, (1 / gamma)) * 255.0)
-            # get ground truth mask
-            saveName = args.output_data_dir + "/gt/" + baseImageName + "_darkness_blur_al_" + str(a) + \
-                       args.data_extension
-            # add darkness blur to mask image
-            nMask = np.zeros(final_shape)
-            nMask[dark_blur_mask == 255] = 192
-            cv2.imwrite(saveName, nMask)
-        # next we go to brightness blur
-        for a in alpha_brightness:
-            # create brightness blur
-            bright_blur = create_brightness_and_darkness_blur(np.copy(maskSaliency[idx]), a, 0)
-            bright_blur_mask = np.copy(SaliencyImages[idx])
-            bright_blur_mask[bright_blur_mask > 0] = 255
-            alpha = (np.copy(SaliencyImages[idx]) * 255.0) / 255.
-            final_masked_blurred_image = alpha_blending(np.copy(imagesOrigonal[idx]), bright_blur,
-                                                        alpha[:, :, np.newaxis])
-            # save the image
-            saveName = args.output_data_dir + "/images/" + baseImageName + "_brightness_blur_al_" + str(a) + \
-                       args.data_extension
-            cv2.imwrite(saveName, np.power((final_masked_blurred_image * 1.) / 255, (1 / gamma)) * 255.0)
-            # get ground truth mask
-            saveName = args.output_data_dir + "/gt/" + baseImageName + "_brightness_blur_al_" + str(a) + \
-                       args.data_extension
-            # add brightness blur to mask image
-            nMask = np.zeros(final_shape)
-            nMask[bright_blur_mask == 255] = 255
-            cv2.imwrite(saveName, nMask)
-    # save control / no blur images
-    for n in range(2):
-        for i in range(len(imagesOrigonal)):
-            # always remember gamma correction
-            baseImage = np.power((imagesOrigonal[i] * 1.) / 255, (1 / gamma)) * 255.0
-            baseImageName = images_list[i]
-            saveName = args.output_data_dir + "/images/" + baseImageName + "_no_blur_" + str(
-                n + 1) + args.data_extension
-            cv2.imwrite(saveName, baseImage)
-            # get ground truth mask
-            saveName = args.output_data_dir + "/gt/" + baseImageName + "_no_blur_" + str(
-                n + 1) + args.data_extension
-            nMask = np.zeros(final_shape)
-            cv2.imwrite(saveName, nMask)
-
-# def create_muri_dataset_for_sensitivity(args):
-#     # angles range for dataset
-#     angles = np.arange(start=0,stop=190,step=10)
-#     kernalSize = np.array([3,5,7,9,13,15,17,19,21,23])
-#     # kernal
-#     kernal = np.array([3,5,7,9,13,15,17,19,21,23])
-#     # alpha
-#     alpha_darkness = np.arange(start=0.05, stop=0.7, step=0.05)
-#     alpha_brightness = np.arange(start=1.6, stop=2.0, step=0.05)
-#     #alpha_brightness = np.arange(start=1.8, stop=2.3, step=0.05)
-#     #alpha_brightness = np.arange(start=200, stop=255, step=10)
-#     # beta
-#     #beta = np.arange(start=0,stop=1,step=1) # 110 step 10
+# def create_cuhk_dataset_for_sensitivity(args):
+#     motion_degree = np.array([30,60,90,120,150,180])
+#     motion_kernal_size = np.array([3,5,7,9,25,33,47])
+#     focus_kernal_size = np.array([3,5,7,9,25,33,47])
+#     darkness_alpha = np.array([0.1,0.4,0.6,0.9])
+#     darkness_beta = np.array([0,-50,-100,-200])
+#     brightness_alpha = np.array([1.1,1.4,1.6,1.9])
+#     brightness_beta = np.array([0,50,100,200])
+#     # all ranges of motion, focus, darkness and brightness images are created
+#     final_shape = (480, 640)
+#     # make it with respect to aspect ratio
+#     scale = 30
+#     width = int(480 * scale / 100)
+#     height = int(640 * scale / 100)
+#     half_shape = (width, height)
+#     scale = 60
+#     width = int(480 * scale / 100)
+#     height = int(640 * scale / 100)
+#     small_shape = (width, height)
 #     tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
 #     tl.files.exists_or_mkdir(args.output_data_dir + "/gt/")
 #     # list of all original Images
-#     imagesOrigonal = []
-#     imageNames = []
-#     imageOrigMask = []
-#     imagesAll = []
-#     imagesAllNames = []
-#     saliency = saliency_detection.Saliency_NN()
-#     for imageFileName in glob.glob(args.data_dir + '/*'+ args.data_extension):
-#         image = cv2.imread(imageFileName)
-#         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-#         imageNameSplit = imageFileName.split('/')
-#         imageNameSplit2 = imageNameSplit[-1].split(".")
-#         # store all of the images and the mask of the saliency image with the image name
-#         imagesAll.append(image)
-#         # cv2.imshow('BrightnessImage', image)
-#         # cv2.waitKey(0)
-#         # https://stackoverflow.com/questions/67258207/how-can-i-join-strings-within-a-list-python
-#         imagesAllNames.append(''.join(imageNameSplit2[0:2]))
-#         if 'noblock' in imageFileName:
+#     images_list = sorted(tl.files.load_file_list(path=args.data_dir + '/image', regx='/*.(jpg|JPG)', printable=False))
+#     images_gt_list = sorted(tl.files.load_file_list(path=args.data_dir + '/gt', regx='/*.(png|PNG)', printable=False))
+#     # these images have out of focus blur already
+#     imagesOrigonal = read_all_imgs(images_list, path=args.data_dir + '/image/', n_threads=100, mode='RGB')
+#     gtOrigonal = read_all_imgs(images_gt_list, path=args.data_dir + '/gt/', n_threads=100, mode='RGB2GRAY2')
+#     saliencyImages = copy.deepcopy(imagesOrigonal)
+#     saliencyMask = copy.deepcopy(gtOrigonal)
+#     origionalSaliencyMask = copy.deepcopy(saliencyMask)
+#
+#     for i in range(len(saliencyImages)):
+#         if saliencyImages[i].shape[0] > saliencyImages[i].shape[1]:
+#             saliencyImages[i] = cv2.rotate(saliencyImages[i], 0)
+#             saliencyMask[i] = cv2.rotate(saliencyMask[i], 0)[:, :, np.newaxis]
+#         y1, y2 = max(0, int((final_shape[0] + 1 - saliencyImages[i].shape[0]) / 2)), \
+#                  min(saliencyImages[i].shape[0] + int((final_shape[0] + 1 - saliencyImages[i].shape[0]) / 2),
+#                          final_shape[0])
+#         x1, x2 = max(0, int((final_shape[1] + 1 - saliencyImages[i].shape[1]) / 2)), \
+#                 min(saliencyImages[i].shape[1] + int((final_shape[1] + 1 - saliencyImages[i].shape[1]) / 2),
+#                          final_shape[1])
+#         y1o, y2o = 0, min(saliencyImages[i].shape[0], final_shape[0])
+#         x1o, x2o = 0, min(saliencyImages[i].shape[1], final_shape[1])
+#
+#         new_image = np.zeros((final_shape[0], final_shape[1], 3))
+#         new_image[y1:y2, x1:x2] = saliencyImages[i][y1o:y2o, x1o:x2o]
+#         gtMask = np.ones((final_shape[0], final_shape[1], 1))
+#         gtMask[y1:y2, x1:x2] = saliencyMask[i][y1o:y2o, x1o:x2o]
+#         saliencyImages[i] = 255.0 * np.power((new_image * 1.) / 255.0, gamma)
+#         new_mask = np.zeros(gtMask.shape)
+#         new_mask[gtMask == 0] = 0
+#         new_mask[gtMask == 1] = 3
+#         images_list[i] = images_list[i].split('.')[0]
+#         if 'motion' in images_list[i]:
+#             new_mask[gtMask == 255] = 1
+#         else:
+#             new_mask[gtMask == 255] = 2
+#         mask = np.zeros(new_mask.shape)
+#         mask[new_mask > 0] = 1
+#         saliencyMask[i] = np.logical_not(mask) * 1.0
+#         # # define brightness and darkness in images
+#         define_brightness_and_darkness_blur(saliencyImages[i], new_mask)
+#         origionalSaliencyMask[i] = new_mask
+#     # now we will go through all of the images and make the dataset to make brightness and darkness blurs
+#     index = np.arange(0,len(saliencyImages),1)
+#     np.random.shuffle(index)
+#     # this already makes a huge dataset
+#     # for i in range(100):
+#     #     baseImageName = images_list[i]
+#     #     if 'focus' in baseImageName:
+#     #         for angle in motion_degree:
+#     #             for kernal_size in motion_kernal_size:
+#     #                 # create motion blur
+#     #                 motion_blurred_overlay_img = apply_motion_blur(copy.deepcopy(saliencyImages[i]), kernal_size,
+#     #                                                                    angle)
+#     #                 # cv2.imshow('MotionImage1', motion_blurred_overlay_img)
+#     #                 # cv2.waitKey(0)
+#     #                 # Define brightness and darkness in image
+#     #                 maskdummy = np.squeeze(np.zeros(final_shape))
+#     #                 define_brightness_and_darkness_blur(motion_blurred_overlay_img, maskdummy)
+#     #
+#     #                 blur_mask = apply_motion_blur(copy.deepcopy(saliencyMask[i]) * 255, kernal_size, angle)
+#     #                 motion_blur_mask = copy.deepcopy(blur_mask)
+#     #                 motion_blur_mask[np.round(blur_mask, 4) > 0] = 255
+#     #                 alpha_mask = motion_blur_mask / 255.
+#     #                 final_masked_blurred_image = alpha_blending(copy.deepcopy(saliencyImages[i]),
+#     #                                                                 motion_blurred_overlay_img,
+#     #                                                                 alpha_mask[:, :, np.newaxis])
+#     #                 # cv2.imshow('MotionImage', final_masked_blurred_image)
+#     #                 # cv2.waitKey(0)
+#     #                 nMask = copy.deepcopy(origionalSaliencyMask[i])
+#     #                 #define_brightness_and_darkness_blur(saliencyImages[i], nMask)
+#     #                 nMask[motion_blur_mask == 255] = 1
+#     #                 maskdummy[np.squeeze(motion_blur_mask) != 255] = 255
+#     #                 nMask[maskdummy == 3] = 3
+#     #                 nMask[maskdummy == 4] = 4
+#     #                 nMask[nMask == 1] = 64
+#     #                 nMask[nMask == 2] = 128
+#     #                 nMask[nMask == 3] = 192
+#     #                 nMask[nMask == 4] = 255
+#     #                 saveName = args.output_data_dir + "/images/" + baseImageName + '_motion_angle_' + str(angle) + \
+#     #                                "_kernal_size_" + str(kernal_size) + args.data_extension
+#     #                 final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+#     #                                  / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+#     #                 # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+#     #                 imageio.imwrite(saveName, final_masked_blurred_image)
+#     #                 # create and save ground truth mask
+#     #                 saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_motion_angle_' + str(angle) + \
+#     #                                  "_kernal_size_" + str(kernal_size) + args.data_extension
+#     #                 cv2.imwrite(saveNameGt, nMask)
+#     #     else:
+#     #         # create out of focus blur
+#     #         for kernal_size in focus_kernal_size:
+#     #             focus_blurred_overlay_img = create_out_of_focus_blur(copy.deepcopy(saliencyImages[i]), kernal_size)
+#     #
+#     #             # # Define brightness and darkness in image
+#     #             maskdummy = np.squeeze(np.zeros(final_shape))
+#     #             define_brightness_and_darkness_blur(focus_blurred_overlay_img, maskdummy)
+#     #
+#     #             # now make the mask
+#     #             blur_mask = create_out_of_focus_blur(copy.deepcopy(saliencyMask[i]) * 255., kernal_size)
+#     #             focus_blur_mask = copy.deepcopy(blur_mask)
+#     #             focus_blur_mask[np.round(blur_mask / 255., 1) > 0] = 255
+#     #             alpha_mask = focus_blur_mask / 255.
+#     #             final_masked_blurred_image = alpha_blending(copy.deepcopy(saliencyImages[i]),focus_blurred_overlay_img,
+#     #                                                             alpha_mask)
+#     #             nMask = copy.deepcopy(origionalSaliencyMask[i])
+#     #             #define_brightness_and_darkness_blur(saliencyImages[i], nMask)
+#     #             nMask[focus_blur_mask == 255] = 2
+#     #             maskdummy[np.squeeze(focus_blur_mask) != 255] = 255
+#     #             nMask[maskdummy == 3] = 3
+#     #             nMask[maskdummy == 4] = 4
+#     #             nMask[nMask == 1] = 64
+#     #             nMask[nMask == 2] = 128
+#     #             nMask[nMask == 3] = 192
+#     #             nMask[nMask == 4] = 255
+#     #             saveName = args.output_data_dir + "/images/" + baseImageName + '_focus_kernal_size_' + str(kernal_size) \
+#     #                            + args.data_extension
+#     #             final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+#     #                              / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+#     #             # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+#     #             imageio.imwrite(saveName, final_masked_blurred_image)
+#     #             # create and save ground truth mask
+#     #             saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_focus_kernal_size_' + str(kernal_size) \
+#     #                              + args.data_extension
+#     #             cv2.imwrite(saveNameGt, nMask)
+#     #     if i % 2 == 0:
+#     #         # create darkness blur
+#     #         for alpha in darkness_alpha:
+#     #             for beta in darkness_beta:
+#     #                 dark_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(saliencyImages[i]),
+#     #                                                                                    alpha, beta)
+#     #                 # # Define brightness and darkness in image
+#     #                 # maskdummy = np.squeeze(np.zeros(final_shape))
+#     #                 # define_brightness_and_darkness_blur(dark_blurred_overlay_img, maskdummy)
+#     #                 # cv2.imshow('BrightnessImage', dark_blur)
+#     #                 # cv2.waitKey(0)
+#     #                 # indicator for dark blur
+#     #                 dark_mask = copy.deepcopy(saliencyMask[i]) * 255
+#     #                 dark_mask[np.round(dark_mask, 4) > 0] = 255
+#     #                 alpha_mask = dark_mask / 255.
+#     #                 nMask = np.zeros(final_shape)
+#     #                 define_brightness_and_darkness_blur(dark_blurred_overlay_img, nMask)
+#     #                 #nMask[dark_mask == 255] = 3
+#     #                 # maskdummy[np.squeeze(dark_mask) != 255] = 255
+#     #                 # nMask[maskdummy == 3] = 3
+#     #                 # nMask[maskdummy == 4] = 4
+#     #                 nMask[nMask == 1] = 64
+#     #                 nMask[nMask == 2] = 128
+#     #                 nMask[nMask == 3] = 192
+#     #                 nMask[nMask == 4] = 255
+#     #                 final_masked_blurred_image = alpha_blending(copy.deepcopy(saliencyImages[i]),dark_blurred_overlay_img,
+#     #                                                                 alpha_mask)
+#     #                 # cv2.imshow('DarknessImage', final_masked_blurred_image)
+#     #                 # cv2.waitKey(0)
+#     #                 # save just the darkness
+#     #                 # save final image
+#     #                 saveName = args.output_data_dir + "/images/" + baseImageName + '_darkness_alpha_' + str(alpha) + \
+#     #                                "_beta_" + str(beta) + args.data_extension
+#     #                 final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+#     #                                  / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+#     #                 # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+#     #                 imageio.imwrite(saveName, final_masked_blurred_image)
+#     #                 # create and save ground truth mask
+#     #                 saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_darkness_alpha_' + str(alpha) + \
+#     #                                  "_beta_" + str(beta) + args.data_extension
+#     #                 cv2.imwrite(saveNameGt, nMask)
+#     #     else:
+#     #         # create brightness blur
+#     #         for alpha in brightness_alpha:
+#     #             for beta in brightness_beta:
+#     #                 bright_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(saliencyImages[i]),
+#     #                         alpha, beta)
+#     #                 # # Define brightness and darkness in image
+#     #                 # maskdummy = np.squeeze(np.zeros(final_shape))
+#     #                 # define_brightness_and_darkness_blur(bright_blurred_overlay_img, maskdummy)
+#     #                 # cv2.imshow('BrightnessImage', dark_blur)
+#     #                 # cv2.waitKey(0)
+#     #                 # indicator for bright blur
+#     #                 bright_mask = copy.deepcopy(saliencyMask[i]) * 255
+#     #                 bright_mask[np.round(bright_mask, 4) > 0] = 255
+#     #                 alpha_mask = bright_mask / 255.
+#     #                 nMask = np.zeros(final_shape)
+#     #                 define_brightness_and_darkness_blur(bright_blurred_overlay_img, nMask)
+#     #                 nMask[nMask == 1] = 64
+#     #                 nMask[nMask == 2] = 128
+#     #                 nMask[nMask == 3] = 192
+#     #                 nMask[nMask == 4] = 255
+#     #                 final_masked_blurred_image = alpha_blending(copy.deepcopy(saliencyImages[i]),bright_blurred_overlay_img,
+#     #                                                                 alpha_mask)
+#     #                 # cv2.imshow('DarknessImage', final_masked_blurred_image)
+#     #                 # cv2.waitKey(0)
+#     #                 # save final image
+#     #                 saveName = args.output_data_dir + "/images/" + baseImageName + '_brightness_alpha_' + str(alpha) + \
+#     #                                "_beta_" + str(beta) + args.data_extension
+#     #                 final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+#     #                                  / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+#     #                 # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+#     #                 imageio.imwrite(saveName, final_masked_blurred_image)
+#     #                 # create and save ground truth mask
+#     #                 saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_brightness_alpha_' + str(alpha) + \
+#     #                                  "_beta_" + str(beta) + args.data_extension
+#     #                 cv2.imwrite(saveNameGt, nMask)
+#
+#     count = 1
+#     # now resize the images to half of the current resolution
+#     for ind in range(40):
+#         i = index[ind]
+#         baseImageName = images_list[i]
+#         # trying to get 20 focus and 20 motion images even count
+#         if 'focus' in baseImageName and count > 40:
 #             continue
-#         imagesOrigonal.append(image)
-#         imageNames.append(''.join(imageNameSplit2[0:2]))
-#         saliency_image = saliency.compute_saliency_NN(cv2.cvtColor(image,cv2.COLOR_RGB2BGR))
-#         imageOrigMask.append(saliency_image)
-#         # cv2.imshow('saliency_image', image*saliency_image[:,:,np.newaxis])
-#         # cv2.waitKey(0)
-#     # now we will go through all of the images and make the dataset
-#     indexs = np.arange(start=0,stop=len(imagesOrigonal),step=1)
-#     np.random.shuffle(indexs)
-#     for i in range(len(imagesOrigonal)):
-#         #tempIdxs = indexs[indexs != i]
-#         idx = indexs[i]
-#         baseImageName = imageNames[idx]
-#         for s in kernalSize:
-#             for a in angles:
-#                 # motion blur
-#                 overlayImageIdx = idx  # np.random.choice(tempIdxs, 1, replace=False)[0]
-#                 overlayImage = copy.deepcopy(imagesOrigonal[overlayImageIdx])
-#                 motion_blurred_overlay_img = apply_motion_blur(overlayImage, s, a)
-#                 mask = imageOrigMask[overlayImageIdx]
-#                 # saliency.compute_saliency_NN(copy.deepcopy(motion_blurred_overlay_img))
-#                 motion_blurred_img = motion_blurred_overlay_img * mask[:, :, np.newaxis]
-#                 maskedImageRemoved = imagesOrigonal[overlayImageIdx] * np.logical_not(mask[:, :, np.newaxis])
-#                 final_masked_blurred_image = maskedImageRemoved + motion_blurred_img
-#                 # https://stackoverflow.com/questions/31273592/valueerror-bad-transparency-mask-when-pasting-one-image-onto-another-with-pyt
-#                 # https://stackoverflow.com/questions/10965417/how-to-convert-a-numpy-array-to-pil-image-applying-matplotlib-colormap
-#                 # maskedImageRemovedPIL = im.fromarray(np.uint8(baseImage)).convert('RGBA')
-#                 # motion_blurred_imgPIL = convert_whiten_and_crop_image(motion_blurred_img, False)
-#                 # placement = (np.random.randint(0, baseImage.shape[0] * .50, 1)[0],
-#                 #             np.random.randint(0, baseImage.shape[1] * .50, 1)[0])
-#                 # maskedImageRemovedPIL.paste(motion_blurred_imgPIL, placement, mask=motion_blurred_imgPIL)
-#                 # final_masked_blurred_image = np.array(maskedImageRemovedPIL)[:, :, 0:3]  # + motion_blurred_img
-#                 # now save the image
-#                 saveName = args.output_data_dir + "/images/" + baseImageName + "_motion_blur_a_" + str(a) + "_s_" + \
-#                            str(s) + args.data_extension
-#                 cv2.imwrite(saveName, final_masked_blurred_image)
-#                 saveName = args.output_data_dir + "/gt/" + baseImageName + "_gt_motion_blur_a_" + str(a) + "_s_" + \
-#                            str(s) + args.data_extension
-#                 # cv2.imshow('BrightnessImage', final_masked_blurred_image)
-#                 # cv2.waitKey(0)
-#                 nMask = np.zeros(mask.shape)
-#                 nMask[mask == 1] = 64
-#                 # idx = np.where(np.array(motion_blurred_imgPIL)[:, :, 3] == 255)
-#                 # idx_x = np.minimum(placement[1] + idx[0], np.ones(idx[0].shape[0]) * (nMask.shape[0] - 1)).astype(int)
-#                 # idx_y = np.minimum(placement[0] + idx[1], np.ones(idx[1].shape[0]) * (nMask.shape[1] - 1)).astype(int)
-#                 # nMask[idx_x, idx_y] = 64
-#                 cv2.imwrite(saveName, nMask)
-#                 # cv2.imshow('BrightnessImage', nMask)
-#                 # cv2.waitKey(0)
-#         ### out of focus blur
-#         for k in kernal:
-#             overlayImageIdx = idx  # np.random.choice(tempIdxs, 1, replace=False)[0]
-#             overlayImage = copy.deepcopy(imagesOrigonal[overlayImageIdx])
-#             focus_blur = create_out_of_focus_blur(overlayImage, k)
-#             mask = imageOrigMask[overlayImageIdx]
-#             focus_blurred_img = focus_blur * mask[:, :, np.newaxis]
-#             maskedImageRemoved = imagesOrigonal[overlayImageIdx] * np.logical_not(mask[:, :, np.newaxis])
-#             final_masked_blurred_image = maskedImageRemoved + focus_blurred_img
-#             # maskedImageRemovedPIL = im.fromarray(np.uint8(baseImage)).convert('RGBA')
-#             # focus_blurred_imgPIL = convert_whiten_and_crop_image(focus_blurred_img, False)
-#             # placement = (np.random.randint(0, baseImage.shape[0] * .50, 1)[0],
-#             #              np.random.randint(0, baseImage.shape[1] * .50, 1)[0])
-#             # maskedImageRemovedPIL.paste(focus_blurred_imgPIL, placement, mask=focus_blurred_imgPIL)
-#             # final_masked_blurred_image = np.array(maskedImageRemovedPIL)[:, :, 0:3]
-#             # cv2.imshow('BrightnessImage',final_masked_blurred_image)
-#             # cv2.waitKey(0)
-#             saveName = args.output_data_dir + "/images/" + baseImageName + "_focus_blur_k_" + str(k) + \
-#                        args.data_extension
-#             cv2.imwrite(saveName, final_masked_blurred_image)
-#             # get ground truth mask
-#             saveName = args.output_data_dir + "/gt/" + baseImageName + "_gt_focus_blur_k_" + str(k) + \
-#                        args.data_extension
-#             # add focus identification to mask
-#             nMask = np.zeros(mask.shape)
-#             nMask[mask == 1] = 128
-#             # idx = np.where(np.array(focus_blurred_imgPIL)[:, :, 3] == 255)
-#             # idx_x = np.minimum(placement[1] + idx[0],
-#             #                    np.ones(idx[0].shape[0]) * (nMask.shape[0] - 1)).astype(int)
-#             # idx_y = np.minimum(placement[0] + idx[1],
-#             #                    np.ones(idx[1].shape[0]) * (nMask.shape[1] - 1)).astype(int)
-#             # nMask[idx_x, idx_y] = 128
-#             cv2.imwrite(saveName, nMask)
-#         # next we go to darkness blur
-#         for a in alpha_darkness:
-#             # create brightness/darkness blur
-#             overlayImageIdx = idx
-#             overlayImage = copy.deepcopy(imagesOrigonal[overlayImageIdx])
-#             mask = imageOrigMask[overlayImageIdx]
-#             dark_blur = create_darkness_blur(overlayImage, a, 0)
-#             dark_blur_masked = dark_blur * mask[:, :, np.newaxis]
-#             maskedImageRemoved = imagesOrigonal[overlayImageIdx] * np.logical_not(mask[:, :, np.newaxis])
-#             final_masked_blurred_image = maskedImageRemoved + dark_blur_masked
-#             # dark_blur_masked[imageMask == 0] = 255
-#             # darkness = True
-#             # maskedImageRemovedPIL = im.fromarray(np.uint8(baseImage)).convert('RGBA')
-#             # dark_blurred_imgPIL = convert_whiten_and_crop_image(dark_blur_masked, darkness)
-#             # placement = (np.random.randint(0, baseImage.shape[0] * .50, 1)[0],
-#             #              np.random.randint(0, baseImage.shape[1] * .50, 1)[0])
-#             # maskedImageRemovedPIL.paste(dark_blurred_imgPIL, placement, mask=dark_blurred_imgPIL)
-#             # final_masked_blurred_image = np.array(maskedImageRemovedPIL)[:, :, 0:3]
-#             # cv2.imshow('BrightnessImage', final_masked_blurred_image)
-#             # cv2.waitKey(0)
-#             # save the image
-#             saveName = args.output_data_dir + "/images/" + baseImageName + "_darkness_blur_al_" + str(a) + \
-#                        args.data_extension
-#             cv2.imwrite(saveName, final_masked_blurred_image)
-#             # get ground truth mask
-#             saveName = args.output_data_dir + "/gt/" + baseImageName + "_gt_" + "_darkness_blur_al_" + str(a) + \
-#                        args.data_extension
-#             nMask = np.zeros(mask.shape)
-#             nMask[mask == 1] = 192
-#             # add brightness and/or darkness blur to mask image
-#             # idx = np.where(np.array(dark_blurred_imgPIL)[:, :, 3] == 255)
-#             # idx_x = np.minimum(placement[1] + idx[0],
-#             #                    np.ones(idx[0].shape[0]) * (nMask.shape[0] - 1)).astype(int)
-#             # idx_y = np.minimum(placement[0] + idx[1],
-#             #                    np.ones(idx[1].shape[0]) * (nMask.shape[1] - 1)).astype(int)
-#             # indicator for dark blur
-#             # nMask[idx_x, idx_y] = 192
-#             # else:  # indicator for brightness
-#             #     nMask[idx_x, idx_y] = 255
-#             cv2.imwrite(saveName, nMask)
-#         # next we go to brightness blur
-#         for a in alpha_brightness:
+#         baseImageResized = cv2.resize(saliencyImages[i],(half_shape[1],half_shape[0]),interpolation=cv2.INTER_NEAREST)
+#         saliencyMaskResized = np.round(cv2.resize(saliencyMask[i],(half_shape[1],half_shape[0]),
+#                                                   interpolation=cv2.INTER_NEAREST)[:,:,np.newaxis])
+#         origionalMaskResized = np.round(cv2.resize(origionalSaliencyMask[i],(half_shape[1],half_shape[0]),
+#                                                    interpolation=cv2.INTER_NEAREST)[:,:,np.newaxis])
+#         if 'focus' in baseImageName:
+#             for angle in motion_degree:
+#                 for kernal_size in motion_kernal_size:
+#                     # create motion blur
+#                     motion_blurred_overlay_img = apply_motion_blur(copy.deepcopy(baseImageResized), kernal_size,
+#                                                                        angle)
+#                     # cv2.imshow('MotionImage1', motion_blurred_overlay_img)
+#                     # cv2.waitKey(0)
+#                     # Define brightness and darkness in image
+#                     maskdummy = np.squeeze(np.zeros(half_shape))
+#                     define_brightness_and_darkness_blur(motion_blurred_overlay_img, maskdummy)
+#
+#                     blur_mask = apply_motion_blur(copy.deepcopy(saliencyMaskResized) * 255, kernal_size, angle)
+#                     motion_blur_mask = copy.deepcopy(blur_mask)
+#                     motion_blur_mask[np.round(blur_mask, 4) > 0] = 255
+#                     alpha_mask = motion_blur_mask / 255.
+#                     final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),
+#                                                                     motion_blurred_overlay_img,
+#                                                                     alpha_mask[:, :, np.newaxis])
+#                     # cv2.imshow('MotionImage', final_masked_blurred_image)
+#                     # cv2.waitKey(0)
+#                     nMask = copy.deepcopy(origionalMaskResized)
+#                     #define_brightness_and_darkness_blur(saliencyImages[i], nMask)
+#                     nMask[motion_blur_mask == 255] = 1
+#                     maskdummy[np.squeeze(motion_blur_mask) != 255] = 255
+#                     nMask[maskdummy == 3] = 3
+#                     nMask[maskdummy == 4] = 4
+#                     nMask[nMask == 1] = 64
+#                     nMask[nMask == 2] = 128
+#                     nMask[nMask == 3] = 192
+#                     nMask[nMask == 4] = 255
+#                     saveName = args.output_data_dir + "/images/Resized_halforigional_" + baseImageName + \
+#                                '_motion_angle_' + str(angle) + "_kernal_size_" + str(kernal_size) + args.data_extension
+#                     final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+#                                      / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+#                     # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+#                     imageio.imwrite(saveName, final_masked_blurred_image)
+#                     # create and save ground truth mask
+#                     saveNameGt = args.output_data_dir + "/gt/Resized_halforigional_" + baseImageName + \
+#                                  '_motion_angle_' + str(angle) + "_kernal_size_" + str(kernal_size) + \
+#                                  args.data_extension
+#                     imageio.imwrite(saveNameGt, nMask)
+#         else:
+#             # create out of focus blur
+#             for kernal_size in focus_kernal_size:
+#                 focus_blurred_overlay_img = create_out_of_focus_blur(copy.deepcopy(baseImageResized), kernal_size)
+#
+#                 # # Define brightness and darkness in image
+#                 maskdummy = np.squeeze(np.zeros(half_shape))
+#                 define_brightness_and_darkness_blur(focus_blurred_overlay_img, maskdummy)
+#
+#                 # now make the mask
+#                 blur_mask = create_out_of_focus_blur(copy.deepcopy(saliencyMaskResized) * 255., kernal_size)
+#                 focus_blur_mask = copy.deepcopy(blur_mask)
+#                 focus_blur_mask[np.round(blur_mask / 255., 1) > 0] = 255
+#                 alpha_mask = focus_blur_mask / 255.
+#                 final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),focus_blurred_overlay_img,
+#                                                                 alpha_mask)
+#                 nMask = copy.deepcopy(origionalMaskResized)
+#                 #define_brightness_and_darkness_blur(saliencyImages[i], nMask)
+#                 nMask[focus_blur_mask == 255] = 2
+#                 maskdummy[np.squeeze(focus_blur_mask) != 255] = 255
+#                 nMask[maskdummy == 3] = 3
+#                 nMask[maskdummy == 4] = 4
+#                 nMask[nMask == 1] = 64
+#                 nMask[nMask == 2] = 128
+#                 nMask[nMask == 3] = 192
+#                 nMask[nMask == 4] = 255
+#                 saveName = args.output_data_dir + "/images/Resized_halforigional_" + baseImageName + \
+#                            '_focus_kernal_size_' + str(kernal_size) + args.data_extension
+#                 final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+#                                  / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+#                 # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+#                 imageio.imwrite(saveName, final_masked_blurred_image)
+#                 # create and save ground truth mask
+#                 saveNameGt = args.output_data_dir + "/gt/Resized_halforigional_" + baseImageName + \
+#                              '_focus_kernal_size_' + str(kernal_size) + args.data_extension
+#                 imageio.imwrite(saveNameGt, nMask)
+#                 count += 1
+#         if i % 2 == 0:
+#             # create darkness blur
+#             for alpha in darkness_alpha:
+#                 for beta in darkness_beta:
+#                     dark_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(baseImageResized),
+#                                                                                        alpha, beta)
+#                     # Define brightness and darkness in image
+#                     # maskdummy = np.squeeze(np.zeros(half_shape))
+#                     # define_brightness_and_darkness_blur(dark_blurred_overlay_img, maskdummy)
+#                     # cv2.imshow('BrightnessImage', dark_blur)
+#                     # cv2.waitKey(0)
+#                     # indicator for dark blur
+#                     dark_mask = copy.deepcopy(saliencyMaskResized) * 255
+#                     dark_mask[np.round(dark_mask, 4) > 0] = 255
+#                     alpha_mask = dark_mask / 255.
+#                     nMask = np.zeros(half_shape)
+#                     define_brightness_and_darkness_blur(dark_blurred_overlay_img, nMask)
+#                     nMask[nMask == 1] = 64
+#                     nMask[nMask == 2] = 128
+#                     nMask[nMask == 3] = 192
+#                     nMask[nMask == 4] = 255
+#                     final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),dark_blurred_overlay_img,
+#                                                                     alpha_mask)
+#                     # cv2.imshow('DarknessImage', final_masked_blurred_image)
+#                     # cv2.waitKey(0)
+#                     # save just the darkness
+#                     # save final image
+#                     saveName = args.output_data_dir + "/images/Resized_halforigional_" + baseImageName + \
+#                                '_darkness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+#                     final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+#                                      / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+#                     # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+#                     imageio.imwrite(saveName, final_masked_blurred_image)
+#                     # create and save ground truth mask
+#                     saveNameGt = args.output_data_dir + "/gt/Resized_halforigional_" + baseImageName + \
+#                                  '_darkness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+#                     imageio.imwrite(saveNameGt, nMask)
+#         else:
 #             # create brightness blur
-#             overlayImageIdx = idx  # np.random.choice(tempIdxs, 1, replace=False)[0]
-#             overlayImage = copy.deepcopy(imagesOrigonal[overlayImageIdx])
-#             mask = imageOrigMask[overlayImageIdx]
-#             bright_blur = create_darkness_blur(overlayImage, a, 0)
-#             bright_blur_masked = bright_blur * mask[:, :, np.newaxis]
-#             maskedImageRemoved = imagesOrigonal[overlayImageIdx] * np.logical_not(mask[:, :, np.newaxis])
-#             final_masked_blurred_image = maskedImageRemoved + bright_blur_masked
-#             # darkness = False
-#             # maskedImageRemovedPIL = im.fromarray(np.uint8(baseImage)).convert('RGBA')
-#             # bright_blurred_imgPIL = convert_whiten_and_crop_image(bright_blur_masked, darkness)
-#             # placement = (np.random.randint(0, baseImage.shape[0] * .50, 1)[0],
-#             #              np.random.randint(0, baseImage.shape[1] * .50, 1)[0])
-#             # maskedImageRemovedPIL.paste(bright_blurred_imgPIL, placement, mask=bright_blurred_imgPIL)
-#             # final_masked_blurred_image = np.array(maskedImageRemovedPIL)[:, :, 0:3]
-#             # cv2.imshow('BrightnessImage', final_masked_blurred_image)
-#             # cv2.waitKey(0)
-#             # save the image
-#             saveName = args.output_data_dir + "/images/" + baseImageName + "_brightness_blur_al_" + str(a) + \
-#                        args.data_extension
-#             cv2.imwrite(saveName, final_masked_blurred_image)
-#             # get ground truth mask
-#             saveName = args.output_data_dir + "/gt/" + baseImageName + "_gt_" + "_brightness_blur_al_" + str(a) + \
-#                        args.data_extension
-#             nMask = np.zeros(mask.shape)
-#             nMask[mask == 1] = 255
-#             # add brightness and/or darkness blur to mask image
-#             # idx = np.where(np.array(bright_blurred_imgPIL)[:, :, 3] == 255)
-#             # idx_x = np.minimum(placement[1] + idx[0],
-#             #                    np.ones(idx[0].shape[0]) * (nMask.shape[0] - 1)).astype(int)
-#             # idx_y = np.minimum(placement[0] + idx[1],
-#             #                    np.ones(idx[1].shape[0]) * (nMask.shape[1] - 1)).astype(int)
-#             # indicator for brightness
-#             # nMask[idx_x, idx_y] = 255
-#             cv2.imwrite(saveName, nMask)
-#     # save control / no blur images
-#     for i in range(len(imagesAll)):
-#         baseImage = imagesAll[i]
-#         baseImageName = imagesAllNames[i]
-#         saveName = args.output_data_dir + "/images/" + baseImageName + "_no_blur" + args.data_extension
-#         cv2.imwrite(saveName, baseImage)
-#         # get ground truth mask
-#         saveName = args.output_data_dir + "/gt/" + baseImageName + "_gt_" + "_no_blur" + args.data_extension
-#         nMask = np.zeros(mask.shape)
-#         cv2.imwrite(saveName, nMask)
+#             for alpha in brightness_alpha:
+#                 for beta in brightness_beta:
+#                     bright_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(baseImageResized),
+#                             alpha, beta)
+#                     # Define brightness and darkness in image
+#                     # maskdummy = np.squeeze(np.zeros(half_shape))
+#                     # define_brightness_and_darkness_blur(bright_blurred_overlay_img, maskdummy)
+#                     # cv2.imshow('BrightnessImage', dark_blur)
+#                     # cv2.waitKey(0)
+#                     # indicator for bright blur
+#                     bright_mask = copy.deepcopy(saliencyMaskResized) * 255
+#                     bright_mask[np.round(bright_mask, 4) > 0] = 255
+#                     alpha_mask = bright_mask / 255.
+#                     nMask = np.zeros(half_shape)
+#                     define_brightness_and_darkness_blur(bright_blurred_overlay_img, nMask)
+#                     nMask[nMask == 1] = 64
+#                     nMask[nMask == 2] = 128
+#                     nMask[nMask == 3] = 192
+#                     nMask[nMask == 4] = 255
+#                     final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),
+#                                                                 bright_blurred_overlay_img,alpha_mask)
+#                     # cv2.imshow('DarknessImage', final_masked_blurred_image)
+#                     # cv2.waitKey(0)
+#                     # save final image
+#                     saveName = args.output_data_dir + "/images/Resized_halforigional_" + baseImageName + \
+#                                '_brightness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+#                     final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+#                                      / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+#                     # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+#                     imageio.imwrite(saveName, final_masked_blurred_image)
+#                     # create and save ground truth mask
+#                     saveNameGt = args.output_data_dir + "/gt/Resized_halforigional_" + baseImageName + \
+#                                  '_brightness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+#                     imageio.imwrite(saveNameGt, nMask)
+#
+#     count = 1
+#     # now resize the images to small resolution
+#     for ind in range(40):
+#         i = index[ind]
+#         baseImageName = images_list[i]
+#         # trying to get 20 focus and 20 motion images even count
+#         if 'focus' in baseImageName and count > 40:
+#             continue
+#         # https://idiotdeveloper.com/cv2-resize-resizing-image-using-opencv-python/
+#         baseImageResized = cv2.resize(saliencyImages[i],(small_shape[1],small_shape[0]),interpolation=cv2.INTER_NEAREST)
+#         #TODO make sure this doesnt affect truth labels
+#         saliencyMaskResized = np.round(cv2.resize(saliencyMask[i],(small_shape[1],small_shape[0]),
+#                                                   interpolation=cv2.INTER_NEAREST))[:,:,np.newaxis]
+#
+#         origionalMaskResized = np.round(cv2.resize(origionalSaliencyMask[i],(small_shape[1],small_shape[0]),
+#                                                    interpolation=cv2.INTER_NEAREST))[:,:,np.newaxis]
+#         if 'focus' in baseImageName:
+#             for angle in motion_degree:
+#                 for kernal_size in motion_kernal_size:
+#                     # create motion blur
+#                     motion_blurred_overlay_img = apply_motion_blur(copy.deepcopy(baseImageResized), kernal_size,
+#                                                                        angle)
+#                     # cv2.imshow('MotionImage1', motion_blurred_overlay_img)
+#                     # cv2.waitKey(0)
+#                     # # Define brightness and darkness in image
+#                     maskdummy = np.squeeze(np.zeros(small_shape))
+#                     define_brightness_and_darkness_blur(motion_blurred_overlay_img, maskdummy)
+#
+#                     blur_mask = apply_motion_blur(copy.deepcopy(saliencyMaskResized) * 255, kernal_size, angle)
+#                     motion_blur_mask = copy.deepcopy(blur_mask)
+#                     motion_blur_mask[np.round(blur_mask, 4) > 0] = 255
+#                     alpha_mask = motion_blur_mask / 255.
+#                     final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),
+#                                                                     motion_blurred_overlay_img,
+#                                                                     alpha_mask[:, :, np.newaxis])
+#                     # cv2.imshow('MotionImage', final_masked_blurred_image)
+#                     # cv2.waitKey(0)
+#                     nMask = copy.deepcopy(origionalMaskResized)
+#                     #define_brightness_and_darkness_blur(saliencyImages[i], nMask)
+#                     nMask[motion_blur_mask == 255] = 1
+#                     maskdummy[np.squeeze(motion_blur_mask) != 255] = 255
+#                     nMask[maskdummy == 3] = 3
+#                     nMask[maskdummy == 4] = 4
+#                     nMask[nMask == 1] = 64
+#                     nMask[nMask == 2] = 128
+#                     nMask[nMask == 3] = 192
+#                     nMask[nMask == 4] = 255
+#                     saveName = args.output_data_dir + "/images/Resized_small_" + baseImageName + \
+#                                '_motion_angle_' + str(angle) + "_kernal_size_" + str(kernal_size) + args.data_extension
+#                     final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+#                                      / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+#                     # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+#                     imageio.imwrite(saveName, final_masked_blurred_image)
+#                     # create and save ground truth mask
+#                     saveNameGt = args.output_data_dir + "/gt/Resized_small_" + baseImageName + \
+#                                  '_motion_angle_' + str(angle) + "_kernal_size_" + str(kernal_size) + \
+#                                  args.data_extension
+#                     cv2.imwrite(saveNameGt, nMask)
+#         else:
+#             # create out of focus blur
+#             for kernal_size in focus_kernal_size:
+#                 focus_blurred_overlay_img = create_out_of_focus_blur(copy.deepcopy(baseImageResized), kernal_size)
+#
+#                 # # Define brightness and darkness in image
+#                 maskdummy = np.squeeze(np.zeros(small_shape))
+#                 define_brightness_and_darkness_blur(focus_blurred_overlay_img, maskdummy)
+#
+#                 # now make the mask
+#                 blur_mask = create_out_of_focus_blur(copy.deepcopy(saliencyMaskResized) * 255., kernal_size)
+#                 focus_blur_mask = copy.deepcopy(blur_mask)
+#                 focus_blur_mask[np.round(blur_mask / 255., 1) > 0] = 255
+#                 alpha_mask = focus_blur_mask / 255.
+#                 final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),focus_blurred_overlay_img,
+#                                                                 alpha_mask)
+#                 nMask = copy.deepcopy(origionalMaskResized)
+#                 #define_brightness_and_darkness_blur(saliencyImages[i], nMask)
+#                 nMask[focus_blur_mask == 255] = 2
+#                 maskdummy[np.squeeze(focus_blur_mask) != 255] = 255
+#                 nMask[maskdummy == 3] = 3
+#                 nMask[maskdummy == 4] = 4
+#                 nMask[nMask == 1] = 64
+#                 nMask[nMask == 2] = 128
+#                 nMask[nMask == 3] = 192
+#                 nMask[nMask == 4] = 255
+#                 saveName = args.output_data_dir + "/images/Resized_small_" + baseImageName + \
+#                            '_focus_kernal_size_' + str(kernal_size) + args.data_extension
+#                 final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+#                                  / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+#                 # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+#                 imageio.imwrite(saveName, final_masked_blurred_image)
+#                 # create and save ground truth mask
+#                 saveNameGt = args.output_data_dir + "/gt/Resized_small_" + baseImageName + \
+#                              '_focus_kernal_size_' + str(kernal_size) + args.data_extension
+#                 cv2.imwrite(saveNameGt, nMask)
+#                 count += 1
+#         if i % 2 == 0:
+#             # create darkness blur
+#             for alpha in darkness_alpha:
+#                 for beta in darkness_beta:
+#                     dark_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(baseImageResized),
+#                                                                                        alpha, beta)
+#                     # Define brightness and darkness in image
+#                     # maskdummy = np.squeeze(np.zeros(small_shape))
+#                     # define_brightness_and_darkness_blur(dark_blurred_overlay_img, maskdummy)
+#                     # cv2.imshow('BrightnessImage', dark_blur)
+#                     # cv2.waitKey(0)
+#                     # indicator for dark blur
+#                     dark_mask = copy.deepcopy(saliencyMaskResized) * 255
+#                     dark_mask[np.round(dark_mask, 4) > 0] = 255
+#                     alpha_mask = dark_mask / 255.
+#                     nMask = np.zeros(small_shape)
+#                     define_brightness_and_darkness_blur(dark_blurred_overlay_img, nMask)
+#                     nMask[nMask == 1] = 64
+#                     nMask[nMask == 2] = 128
+#                     nMask[nMask == 3] = 192
+#                     nMask[nMask == 4] = 255
+#                     final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),dark_blurred_overlay_img,
+#                                                                     alpha_mask)
+#                     # cv2.imshow('DarknessImage', final_masked_blurred_image)
+#                     # cv2.waitKey(0)
+#                     # save just the darkness
+#                     # save final image
+#                     saveName = args.output_data_dir + "/images/Resized_small_" + baseImageName + \
+#                                '_darkness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+#                     final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+#                                      / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+#                     # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+#                     imageio.imwrite(saveName, final_masked_blurred_image)
+#                     # create and save ground truth mask
+#                     saveNameGt = args.output_data_dir + "/gt/Resized_small_" + baseImageName + \
+#                                  '_darkness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+#                     cv2.imwrite(saveNameGt, nMask)
+#         else:
+#             # create brightness blur
+#             for alpha in brightness_alpha:
+#                 for beta in brightness_beta:
+#                     bright_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(baseImageResized),
+#                             alpha, beta)
+#                     # Define brightness and darkness in image
+#                     # maskdummy = np.squeeze(np.zeros(small_shape))
+#                     # define_brightness_and_darkness_blur(bright_blurred_overlay_img, maskdummy)
+#                     # cv2.imshow('BrightnessImage', dark_blur)
+#                     # cv2.waitKey(0)
+#                     # indicator for bright blur
+#                     bright_mask = copy.deepcopy(saliencyMaskResized) * 255
+#                     bright_mask[np.round(bright_mask, 4) > 0] = 255
+#                     alpha_mask = bright_mask / 255.
+#                     nMask = np.zeros(small_shape)
+#                     define_brightness_and_darkness_blur(bright_blurred_overlay_img, nMask)
+#                     nMask[nMask == 1] = 64
+#                     nMask[nMask == 2] = 128
+#                     nMask[nMask == 3] = 192
+#                     nMask[nMask == 4] = 255
+#                     final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),
+#                                                                 bright_blurred_overlay_img,alpha_mask)
+#                     # cv2.imshow('DarknessImage', final_masked_blurred_image)
+#                     # cv2.waitKey(0)
+#                     # save final image
+#                     saveName = args.output_data_dir + "/images/Resized_small_" + baseImageName + \
+#                                '_brightness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+#                     final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+#                                      / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+#                     # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+#                     imageio.imwrite(saveName, final_masked_blurred_image)
+#                     # create and save ground truth mask
+#                     saveNameGt = args.output_data_dir + "/gt/Resized_small_" + baseImageName + \
+#                                  '_brightness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+#                     cv2.imwrite(saveNameGt, nMask)
+
+def create_cuhk_dataset_for_sensitivity(args):
+    # angles range for dataset
+    motion_degree = np.array([30, 60, 90, 120, 150, 180])
+    motion_kernal_size = np.array([3,5,7,9,25,33,47])
+    focus_kernal_size = np.array([3,5,7,9,25,33,47])
+    darkness_alpha = np.array([0.1,0.4,0.6,0.9])
+    darkness_beta = np.array([0,-50,-100,-200])
+    brightness_alpha = np.array([1.1,1.4,1.6,1.9])
+    brightness_beta = np.array([0,50,100,200])
+    # all ranges of motion, focus, darkness and brightness images are created
+    final_shape = (480, 640)
+    # make it with respect to aspect ratio
+    scale = 60
+    width = int(480 * scale / 100)
+    height = int(640 * scale / 100)
+    percent60_shape = (width, height)
+    scale = 30
+    width = int(480 * scale / 100)
+    height = int(640 * scale / 100)
+    percent30_shape = (width, height)
+    tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
+    tl.files.exists_or_mkdir(args.output_data_dir + "/gt/")
+    # list of all original Images
+    images_list = sorted(tl.files.load_file_list(path=args.data_dir + '/image', regx='/*.(jpg|JPG)', printable=False))
+    images_gt_list = sorted(tl.files.load_file_list(path=args.data_dir + '/gt', regx='/*.(png|PNG)', printable=False))
+    # these images have out of focus blur already
+    imagesOrigonal = read_all_imgs(images_list, path=args.data_dir + '/image/', n_threads=100, mode='RGB')
+    gtOrigonal = read_all_imgs(images_gt_list, path=args.data_dir + '/gt/', n_threads=100, mode='RGB2GRAY2')
+    saliencyImages = copy.deepcopy(imagesOrigonal)
+    saliencyMask = copy.deepcopy(gtOrigonal)
+    origionalSaliencyMask = copy.deepcopy(saliencyMask)
+
+    for i in range(len(saliencyImages)):
+        if saliencyImages[i].shape[0] > saliencyImages[i].shape[1]:
+            saliencyImages[i] = cv2.rotate(saliencyImages[i], 0)
+            saliencyMask[i] = cv2.rotate(saliencyMask[i], 0)[:, :, np.newaxis]
+        y1, y2 = max(0, int((final_shape[0] + 1 - saliencyImages[i].shape[0]) / 2)), \
+                         min(saliencyImages[i].shape[0] + int((final_shape[0] + 1 - saliencyImages[i].shape[0]) / 2),
+                                 final_shape[0])
+        x1, x2 = max(0, int((final_shape[1] + 1 - saliencyImages[i].shape[1]) / 2)), \
+                        min(saliencyImages[i].shape[1] + int((final_shape[1] + 1 - saliencyImages[i].shape[1]) / 2),
+                                 final_shape[1])
+        y1o, y2o = 0, min(saliencyImages[i].shape[0], final_shape[0])
+        x1o, x2o = 0, min(saliencyImages[i].shape[1], final_shape[1])
+
+        new_image = np.zeros((final_shape[0], final_shape[1], 3))
+        new_image[y1:y2, x1:x2] = saliencyImages[i][y1o:y2o, x1o:x2o]
+        gtMask = np.ones((final_shape[0], final_shape[1], 1))
+        gtMask[y1:y2, x1:x2] = saliencyMask[i][y1o:y2o, x1o:x2o]
+        saliencyImages[i] = 255.0 * np.power((new_image * 1.) / 255.0, gamma)
+        new_mask = np.zeros(gtMask.shape)
+        new_mask[gtMask == 0] = 0
+        new_mask[gtMask == 1] = 3
+        images_list[i] = images_list[i].split('.')[0]
+        if 'motion' in images_list[i]:
+            new_mask[gtMask == 255] = 1
+        else:
+            new_mask[gtMask == 255] = 2
+        mask = np.zeros(new_mask.shape)
+        mask[new_mask > 0] = 1
+        saliencyMask[i] = np.logical_not(mask) * 1.0
+        origionalSaliencyMask[i] = new_mask
+
+    # now we will go through all of the images and make the dataset
+    index = np.arange(start=0,stop=len(saliencyImages),step=1)
+    np.random.shuffle(index)
+    done = False
+    ind = 0
+    countf = 0
+    countm = 0
+    while ~done:
+        i = index[ind]
+        baseImageName = images_list[i]
+        ind += 1
+        if countf == 30 and countm == 30:
+            done = True
+            break
+        # trying to get 20 focus and 20 motion images even count
+        if 'focus' in baseImageName and countm == 30:
+            continue
+        if 'motion' in baseImageName and countf == 30:
+            continue
+        if 'focus' in baseImageName:
+            for angle in motion_degree:
+                for kernal_size in motion_kernal_size:
+                    # create motion blur
+                    motion_blurred_overlay_img = apply_motion_blur(copy.deepcopy(saliencyImages[i]), kernal_size,
+                                                                       angle)
+                    blur_mask = apply_motion_blur(copy.deepcopy(saliencyMask[i]) * 255, kernal_size, angle)
+                    motion_blur_mask = copy.deepcopy(blur_mask)
+                    motion_blur_mask[np.round(blur_mask, 4) > 0] = 255
+                    alpha_mask = motion_blur_mask / 255.
+                    final_masked_blurred_image = alpha_blending(copy.deepcopy(saliencyImages[i]),
+                                                                    motion_blurred_overlay_img,
+                                                                    alpha_mask[:, :, np.newaxis])
+                    # cv2.imshow('MotionImage', final_masked_blurred_image)
+                    # cv2.waitKey(0)
+                    nMask = copy.deepcopy(origionalSaliencyMask[i])
+                    #define_brightness_and_darkness_blur(saliencyImages[i], nMask)
+                    nMask[motion_blur_mask == 255] = 1
+                    nMask[nMask == 1] = 64
+                    nMask[nMask == 2] = 128
+                    nMask[nMask == 3] = 192
+                    nMask[nMask == 4] = 255
+                    saveName = args.output_data_dir + "/images/" + baseImageName + '_motion_angle_' + str(angle) + \
+                                   "_kernal_size_" + str(kernal_size) + args.data_extension
+                    final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+                                     / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                    final_masked_blurred_image[np.isnan(final_masked_blurred_image)] = 0
+                    # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                    imageio.imwrite(saveName, final_masked_blurred_image)
+                    # create and save ground truth mask
+                    saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_motion_angle_' + str(angle) + \
+                                     "_kernal_size_" + str(kernal_size) + args.data_extension
+                    cv2.imwrite(saveNameGt, nMask.astype(np.uint8))
+            countm += 1
+        else:
+            # create out of focus blur
+            for kernal_size in focus_kernal_size:
+                focus_blurred_overlay_img = create_out_of_focus_blur(copy.deepcopy(saliencyImages[i]), kernal_size)
+
+                # now make the mask
+                blur_mask = create_out_of_focus_blur(copy.deepcopy(saliencyMask[i]) * 255., kernal_size)
+                focus_blur_mask = copy.deepcopy(blur_mask)
+                focus_blur_mask[np.round(blur_mask / 255., 1) > 0] = 255
+                alpha_mask = focus_blur_mask / 255.
+                final_masked_blurred_image = alpha_blending(copy.deepcopy(saliencyImages[i]),focus_blurred_overlay_img,
+                                                                alpha_mask)
+                nMask = copy.deepcopy(origionalSaliencyMask[i])
+                #define_brightness_and_darkness_blur(saliencyImages[i], nMask)
+                nMask[focus_blur_mask == 255] = 2
+                nMask[nMask == 1] = 64
+                nMask[nMask == 2] = 128
+                nMask[nMask == 3] = 192
+                nMask[nMask == 4] = 255
+                saveName = args.output_data_dir + "/images/" + baseImageName + '_focus_kernal_size_' + str(kernal_size) \
+                               + args.data_extension
+                final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+                                 / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                final_masked_blurred_image[np.isnan(final_masked_blurred_image)] = 0
+                # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                imageio.imwrite(saveName, final_masked_blurred_image)
+                # create and save ground truth mask
+                saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_focus_kernal_size_' + str(kernal_size) \
+                                 + args.data_extension
+                cv2.imwrite(saveNameGt, nMask.astype(np.uint8))
+            countf += 1
+        if i % 2 == 0:
+            # create darkness blur
+            for alpha in darkness_alpha:
+                for beta in darkness_beta:
+                    dark_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(saliencyImages[i]),
+                                                                                       alpha, beta)
+                    # cv2.waitKey(0)
+                    # indicator for dark blur
+                    dark_mask = copy.deepcopy(saliencyMask[i]) * 255
+                    dark_mask[np.round(dark_mask, 4) > 0] = 255
+                    alpha_mask = dark_mask / 255.
+                    nMask = copy.deepcopy(origionalSaliencyMask[i])#np.zeros(final_shape)
+                    nMask[np.squeeze(dark_mask) == 255] = 3
+                    nMask[nMask == 1] = 64
+                    nMask[nMask == 2] = 128
+                    nMask[nMask == 3] = 192
+                    nMask[nMask == 4] = 255
+                    final_masked_blurred_image = alpha_blending(copy.deepcopy(saliencyImages[i]),dark_blurred_overlay_img,
+                                                                    alpha_mask)
+                    # cv2.imshow('DarknessImage', final_masked_blurred_image)
+                    # cv2.waitKey(0)
+                    # save just the darkness
+                    # save final image
+                    saveName = args.output_data_dir + "/images/" + baseImageName + '_darkness_alpha_' + str(alpha) + \
+                                   "_beta_" + str(beta) + args.data_extension
+                    final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+                                     / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                    final_masked_blurred_image[np.isnan(final_masked_blurred_image)] = 0
+                    # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                    imageio.imwrite(saveName, final_masked_blurred_image)
+                    # create and save ground truth mask
+                    saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_darkness_alpha_' + str(alpha) + \
+                                     "_beta_" + str(beta) + args.data_extension
+                    cv2.imwrite(saveNameGt, nMask.astype(np.uint8))
+        else:
+            # create brightness blur
+            for alpha in brightness_alpha:
+                for beta in brightness_beta:
+                    bright_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(saliencyImages[i]),
+                            alpha, beta)
+                    # # Define brightness and darkness in image
+                    # maskdummy = np.squeeze(np.zeros(final_shape))
+                    # define_brightness_and_darkness_blur(bright_blurred_overlay_img, maskdummy)
+                    # cv2.imshow('BrightnessImage', dark_blur)
+                    # cv2.waitKey(0)
+                    # indicator for bright blur
+                    bright_mask = copy.deepcopy(saliencyMask[i]) * 255
+                    bright_mask[np.round(bright_mask, 4) > 0] = 255
+                    alpha_mask = bright_mask / 255.
+                    nMask = copy.deepcopy(origionalSaliencyMask[i])#np.zeros(final_shape)
+                    nMask[np.squeeze(bright_mask) == 255] = 4
+                    nMask[nMask == 1] = 64
+                    nMask[nMask == 2] = 128
+                    nMask[nMask == 3] = 192
+                    nMask[nMask == 4] = 255
+                    final_masked_blurred_image = alpha_blending(copy.deepcopy(saliencyImages[i]),bright_blurred_overlay_img,
+                                                                    alpha_mask)
+                    # cv2.imshow('DarknessImage', final_masked_blurred_image)
+                    # cv2.waitKey(0)
+                    # save final image
+                    saveName = args.output_data_dir + "/images/" + baseImageName + '_brightness_alpha_' + str(alpha) + \
+                                   "_beta_" + str(beta) + args.data_extension
+                    final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+                                     / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                    final_masked_blurred_image[np.isnan(final_masked_blurred_image)] = 0
+                    # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                    imageio.imwrite(saveName, final_masked_blurred_image)
+                    # create and save ground truth mask
+                    saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_brightness_alpha_' + str(alpha) + \
+                                     "_beta_" + str(beta) + args.data_extension
+                    cv2.imwrite(saveNameGt, nMask.astype(np.uint8))
+
+    #index = index[40:]
+    np.random.shuffle(index)
+    # now resize the images to half of the current resolution
+    done = False
+    ind = 0
+    countf = 0
+    countm = 0
+    while ~done:
+        i = index[ind]
+        baseImageName = images_list[i]
+        ind += 1
+        if countf == 30 and countm == 30:
+            done = True
+            break
+        # trying to get 20 focus and 20 motion images even count
+        if 'focus' in baseImageName and countm == 30:
+            continue
+        if 'motion' in baseImageName and countf == 30:
+            continue
+        baseImageResized = cv2.resize(saliencyImages[i], (percent60_shape[1], percent60_shape[0]))
+        saliencyMaskResized = np.round(cv2.resize(saliencyMask[i], (percent60_shape[1], percent60_shape[0]))[:,:,np.newaxis])
+        origionalMaskResized = np.round(cv2.resize(origionalSaliencyMask[i], (percent60_shape[1], percent60_shape[0]))[:,:,np.newaxis])
+        if 'focus' in baseImageName:
+            for angle in motion_degree:
+                for kernal_size in motion_kernal_size:
+                    # create motion blur
+                    motion_blurred_overlay_img = apply_motion_blur(copy.deepcopy(baseImageResized), kernal_size,
+                                                                       angle)
+
+                    blur_mask = apply_motion_blur(copy.deepcopy(saliencyMaskResized) * 255, kernal_size, angle)
+                    motion_blur_mask = copy.deepcopy(blur_mask)
+                    motion_blur_mask[np.round(blur_mask, 4) > 0] = 255
+                    alpha_mask = motion_blur_mask / 255.
+                    final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),
+                                                                    motion_blurred_overlay_img,
+                                                                    alpha_mask[:, :, np.newaxis])
+                    # cv2.imshow('MotionImage', final_masked_blurred_image)
+                    # cv2.waitKey(0)
+                    nMask = copy.deepcopy(origionalMaskResized)
+                    nMask[motion_blur_mask == 255] = 1
+                    nMask[nMask == 1] = 64
+                    nMask[nMask == 2] = 128
+                    nMask[nMask == 3] = 192
+                    nMask[nMask == 4] = 255
+                    saveName = args.output_data_dir + "/images/Resized_60percent_" + baseImageName + \
+                               '_motion_angle_' + str(angle) + "_kernal_size_" + str(kernal_size) + args.data_extension
+                    final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+                                     / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                    final_masked_blurred_image[np.isnan(final_masked_blurred_image)] = 0
+                    # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                    imageio.imwrite(saveName, final_masked_blurred_image)
+                    # create and save ground truth mask
+                    saveNameGt = args.output_data_dir + "/gt/Resized_60percent_" + baseImageName + \
+                                 '_motion_angle_' + str(angle) + "_kernal_size_" + str(kernal_size) + \
+                                 args.data_extension
+                    imageio.imwrite(saveNameGt, nMask.astype(np.uint8))
+            countm += 1
+        else:
+            # create out of focus blur
+            for kernal_size in focus_kernal_size:
+                focus_blurred_overlay_img = create_out_of_focus_blur(copy.deepcopy(baseImageResized), kernal_size)
+                # now make the mask
+                blur_mask = create_out_of_focus_blur(copy.deepcopy(saliencyMaskResized) * 255., kernal_size)
+                focus_blur_mask = copy.deepcopy(blur_mask)
+                focus_blur_mask[np.round(blur_mask / 255., 1) > 0] = 255
+                alpha_mask = focus_blur_mask / 255.
+                final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),focus_blurred_overlay_img,
+                                                                alpha_mask)
+                nMask = copy.deepcopy(origionalMaskResized)
+                nMask[focus_blur_mask == 255] = 2
+                nMask[nMask == 1] = 64
+                nMask[nMask == 2] = 128
+                nMask[nMask == 3] = 192
+                nMask[nMask == 4] = 255
+                saveName = args.output_data_dir + "/images/Resized_60percent_" + baseImageName + \
+                           '_focus_kernal_size_' + str(kernal_size) + args.data_extension
+                final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+                                 / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                final_masked_blurred_image[np.isnan(final_masked_blurred_image)] = 0
+                # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                imageio.imwrite(saveName, final_masked_blurred_image)
+                # create and save ground truth mask
+                saveNameGt = args.output_data_dir + "/gt/Resized_60percent_" + baseImageName + \
+                             '_focus_kernal_size_' + str(kernal_size) + args.data_extension
+                imageio.imwrite(saveNameGt, nMask.astype(np.uint8))
+            countf += 1
+        if i % 2 == 0:
+            # create darkness blur
+            for alpha in darkness_alpha:
+                for beta in darkness_beta:
+                    dark_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(baseImageResized),
+                                                                                       alpha, beta)
+                    # indicator for dark blur
+                    dark_mask = copy.deepcopy(saliencyMaskResized) * 255
+                    dark_mask[np.round(dark_mask, 4) > 0] = 255
+                    alpha_mask = dark_mask / 255.
+                    nMask = copy.deepcopy(origionalMaskResized)
+                    nMask[np.squeeze(dark_mask) == 255] = 3
+                    nMask[nMask == 1] = 64
+                    nMask[nMask == 2] = 128
+                    nMask[nMask == 3] = 192
+                    nMask[nMask == 4] = 255
+                    final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),
+                                                                dark_blurred_overlay_img,alpha_mask)
+                    # cv2.imshow('DarknessImage', final_masked_blurred_image)
+                    # cv2.waitKey(0)
+                    # save just the darkness
+                    # save final image
+                    saveName = args.output_data_dir + "/images/Resized_60percent_" + baseImageName + \
+                               '_darkness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+                    final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+                                     / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                    final_masked_blurred_image[np.isnan(final_masked_blurred_image)] = 0
+                    # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                    imageio.imwrite(saveName, final_masked_blurred_image)
+                    # create and save ground truth mask
+                    saveNameGt = args.output_data_dir + "/gt/Resized_60percent_" + baseImageName + \
+                                 '_darkness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+                    imageio.imwrite(saveNameGt, nMask.astype(np.uint8))
+        else:
+            # create brightness blur
+            for alpha in brightness_alpha:
+                for beta in brightness_beta:
+                    bright_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(baseImageResized),
+                            alpha, beta)
+                    # Define brightness and darkness in image
+                    # indicator for bright blur
+                    bright_mask = copy.deepcopy(saliencyMaskResized) * 255
+                    bright_mask[np.round(bright_mask, 4) > 0] = 255
+                    alpha_mask = bright_mask / 255.
+                    nMask = copy.deepcopy(origionalMaskResized)
+                    nMask[np.squeeze(bright_mask) == 255] = 4
+                    nMask[nMask == 1] = 64
+                    nMask[nMask == 2] = 128
+                    nMask[nMask == 3] = 192
+                    nMask[nMask == 4] = 255
+                    final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),
+                                                                bright_blurred_overlay_img,alpha_mask)
+                    # cv2.imshow('DarknessImage', final_masked_blurred_image)
+                    # cv2.waitKey(0)
+                    # save final image
+                    saveName = args.output_data_dir + "/images/Resized_60percent_" + baseImageName + \
+                               '_brightness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+                    final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+                                     / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                    final_masked_blurred_image[np.isnan(final_masked_blurred_image)] = 0
+                    # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                    imageio.imwrite(saveName, final_masked_blurred_image)
+                    # create and save ground truth mask
+                    saveNameGt = args.output_data_dir + "/gt/Resized_60percent_" + baseImageName + \
+                                 '_brightness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+                    imageio.imwrite(saveNameGt, nMask.astype(np.uint8))
+
+    #index = index[40:]
+    np.random.shuffle(index)
+    # now resize the images to small resolution
+    done = False
+    ind = 0
+    countf = 0
+    countm = 0
+    while ~done:
+        i = index[ind]
+        baseImageName = images_list[i]
+        ind += 1
+        if countf == 30 and countm == 30:
+            done = True
+            break
+        # trying to get 20 focus and 20 motion images even count
+        if 'focus' in baseImageName and countm == 30:
+            continue
+        if 'motion' in baseImageName and countf == 30:
+            continue
+        # https://idiotdeveloper.com/cv2-resize-resizing-image-using-opencv-python/
+        baseImageResized = cv2.resize(saliencyImages[i], (percent30_shape[1], percent30_shape[0]))
+        saliencyMaskResized = np.round(cv2.resize(saliencyMask[i], (percent30_shape[1], percent30_shape[0])))[:,:,np.newaxis]
+
+        origionalMaskResized = np.round(cv2.resize(origionalSaliencyMask[i], (percent30_shape[1], percent30_shape[0])))[:,:,np.newaxis]
+        if 'focus' in baseImageName:
+            for angle in motion_degree:
+                for kernal_size in motion_kernal_size:
+                    # create motion blur
+                    motion_blurred_overlay_img = apply_motion_blur(copy.deepcopy(baseImageResized), kernal_size,
+                                                                       angle)
+
+                    blur_mask = apply_motion_blur(copy.deepcopy(saliencyMaskResized) * 255, kernal_size, angle)
+                    motion_blur_mask = copy.deepcopy(blur_mask)
+                    motion_blur_mask[np.round(blur_mask, 4) > 0] = 255
+                    alpha_mask = motion_blur_mask / 255.
+                    final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),
+                                                                    motion_blurred_overlay_img,
+                                                                    alpha_mask[:, :, np.newaxis])
+                    # cv2.imshow('MotionImage', final_masked_blurred_image)
+                    # cv2.waitKey(0)
+                    nMask = copy.deepcopy(origionalMaskResized)
+                    nMask[motion_blur_mask == 255] = 1
+                    nMask[nMask == 1] = 64
+                    nMask[nMask == 2] = 128
+                    nMask[nMask == 3] = 192
+                    nMask[nMask == 4] = 255
+                    saveName = args.output_data_dir + "/images/Resized_30percent_" + baseImageName + \
+                               '_motion_angle_' + str(angle) + "_kernal_size_" + str(kernal_size) + args.data_extension
+                    final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+                                     / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                    final_masked_blurred_image[np.isnan(final_masked_blurred_image)] = 0
+                    # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                    imageio.imwrite(saveName, final_masked_blurred_image)
+                    # create and save ground truth mask
+                    saveNameGt = args.output_data_dir + "/gt/Resized_30percent_" + baseImageName + \
+                                 '_motion_angle_' + str(angle) + "_kernal_size_" + str(kernal_size) + \
+                                 args.data_extension
+                    cv2.imwrite(saveNameGt, nMask.astype(np.uint8))
+            countm +=1
+        else:
+            # create out of focus blur
+            for kernal_size in focus_kernal_size:
+                focus_blurred_overlay_img = create_out_of_focus_blur(copy.deepcopy(baseImageResized), kernal_size)
+
+                # now make the mask
+                blur_mask = create_out_of_focus_blur(copy.deepcopy(saliencyMaskResized) * 255., kernal_size)
+                focus_blur_mask = copy.deepcopy(blur_mask)
+                focus_blur_mask[np.round(blur_mask / 255., 1) > 0] = 255
+                alpha_mask = focus_blur_mask / 255.
+                final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),focus_blurred_overlay_img,
+                                                                alpha_mask)
+                nMask = copy.deepcopy(origionalMaskResized)
+                nMask[focus_blur_mask == 255] = 2
+                nMask[nMask == 1] = 64
+                nMask[nMask == 2] = 128
+                nMask[nMask == 3] = 192
+                nMask[nMask == 4] = 255
+                saveName = args.output_data_dir + "/images/Resized_30percent_" + baseImageName + \
+                           '_focus_kernal_size_' + str(kernal_size) + args.data_extension
+                final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+                                 / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                final_masked_blurred_image[np.isnan(final_masked_blurred_image)] = 0
+                # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                imageio.imwrite(saveName, final_masked_blurred_image)
+                # create and save ground truth mask
+                saveNameGt = args.output_data_dir + "/gt/Resized_30percent_" + baseImageName + \
+                             '_focus_kernal_size_' + str(kernal_size) + args.data_extension
+                cv2.imwrite(saveNameGt, nMask.astype(np.uint8))
+            countf += 1
+        if i % 2 == 0:
+            # create darkness blur
+            for alpha in darkness_alpha:
+                for beta in darkness_beta:
+                    dark_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(baseImageResized),
+                                                                                       alpha, beta)
+                    # indicator for dark blur
+                    dark_mask = copy.deepcopy(saliencyMaskResized) * 255
+                    dark_mask[np.round(dark_mask, 4) > 0] = 255
+                    alpha_mask = dark_mask / 255.
+                    nMask = copy.deepcopy(origionalMaskResized)
+                    nMask[np.squeeze(dark_mask) == 255] = 3
+                    nMask[nMask == 1] = 64
+                    nMask[nMask == 2] = 128
+                    nMask[nMask == 3] = 192
+                    nMask[nMask == 4] = 255
+                    final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),dark_blurred_overlay_img,
+                                                                    alpha_mask)
+                    # cv2.imshow('DarknessImage', final_masked_blurred_image)
+                    # cv2.waitKey(0)
+                    # save just the darkness
+                    # save final image
+                    saveName = args.output_data_dir + "/images/Resized_30percent_" + baseImageName + \
+                               '_darkness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+                    final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+                                     / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                    final_masked_blurred_image[np.isnan(final_masked_blurred_image)] = 0
+                    # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                    imageio.imwrite(saveName, final_masked_blurred_image)
+                    # create and save ground truth mask
+                    saveNameGt = args.output_data_dir + "/gt/Resized_30percent_" + baseImageName + \
+                                 '_darkness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+                    cv2.imwrite(saveNameGt, nMask.astype(np.uint8))
+        else:
+            # create brightness blur
+            for alpha in brightness_alpha:
+                for beta in brightness_beta:
+                    bright_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(baseImageResized),
+                            alpha, beta)
+                    # indicator for bright blur
+                    bright_mask = copy.deepcopy(saliencyMaskResized) * 255
+                    bright_mask[np.round(bright_mask, 4) > 0] = 255
+                    alpha_mask = bright_mask / 255.
+                    nMask = copy.deepcopy(origionalMaskResized)
+                    nMask[np.squeeze(bright_mask) == 255] = 4
+                    nMask[nMask == 1] = 64
+                    nMask[nMask == 2] = 128
+                    nMask[nMask == 3] = 192
+                    nMask[nMask == 4] = 255
+                    final_masked_blurred_image = alpha_blending(copy.deepcopy(baseImageResized),
+                                                                bright_blurred_overlay_img,alpha_mask)
+                    # cv2.imshow('DarknessImage', final_masked_blurred_image)
+                    # cv2.waitKey(0)
+                    # save final image
+                    saveName = args.output_data_dir + "/images/Resized_30percent_" + baseImageName + \
+                               '_brightness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+                    final_masked_blurred_image = np.round(np.power((np.array(final_masked_blurred_image)[:, :, 0:3] * 1.)
+                                     / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                    final_masked_blurred_image[np.isnan(final_masked_blurred_image)] = 0
+                    # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                    imageio.imwrite(saveName, final_masked_blurred_image)
+                    # create and save ground truth mask
+                    saveNameGt = args.output_data_dir + "/gt/Resized_30percent_" + baseImageName + \
+                                 '_brightness_alpha_' + str(alpha) + "_beta_" + str(beta) + args.data_extension
+                    cv2.imwrite(saveNameGt, nMask.astype(np.uint8))
+
+def create_muri_and_ssc_dataset_for_testing(args):
+    #final_shape = (480, 640)
+    final_shape = (224, 224)
+    tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
+    tl.files.exists_or_mkdir(args.output_data_dir + "/gt/")
+    # list of all original Images
+    images_list = sorted(tl.files.load_file_list(path=args.data_dir, regx='/*.(png|PNG)', printable=False))
+    images_gt_list = sorted(tl.files.load_file_list(path=args.salinecy_data_dir, regx='/*.(png|PNG)', printable=False))
+    imagesOrigonal = read_all_imgs(images_list, path=args.data_dir+'/', n_threads=100, mode='RGB')
+    gtOrigonal = read_all_imgs(images_gt_list, path=args.salinecy_data_dir+'/', n_threads=100, mode='RGB2GRAY2')
+    sailencyMask = []
+
+    for i in range(len(imagesOrigonal)):
+        if imagesOrigonal[i].shape[0] > imagesOrigonal[i].shape[1]:
+            imagesOrigonal[i] = cv2.rotate(imagesOrigonal[i], 0)
+            gtOrigonal[i] = cv2.rotate(gtOrigonal[i], 0)[:, :, np.newaxis]
+        y1, y2 = max(0, int((final_shape[0] + 1 - imagesOrigonal[i].shape[0]) / 2)), \
+                 min(imagesOrigonal[i].shape[0] + int((final_shape[0] + 1 - imagesOrigonal[i].shape[0]) / 2),
+                     final_shape[0])
+        x1, x2 = max(0, int((final_shape[1] + 1 - imagesOrigonal[i].shape[1]) / 2)), \
+                 min(imagesOrigonal[i].shape[1] + int((final_shape[1] + 1 - imagesOrigonal[i].shape[1]) / 2),
+                     final_shape[1])
+        y1o, y2o = 0, min(imagesOrigonal[i].shape[0], final_shape[0])
+        x1o, x2o = 0, min(imagesOrigonal[i].shape[1], final_shape[1])
+
+        new_image = np.zeros((final_shape[0], final_shape[1], 3))
+        if imagesOrigonal[i].shape[2] > 3:
+            imagesOrigonal[i] = imagesOrigonal[i][:,:,0:3]
+        new_image[y1:y2, x1:x2] = imagesOrigonal[i][y1o:y2o, x1o:x2o]
+        # darkness blur deafult for 0 pixels
+        gtMask = np.ones((final_shape[0], final_shape[1], 1))
+        gtMask[y1:y2, x1:x2] = gtOrigonal[i][y1o:y2o, x1o:x2o]
+        # gamma correction
+        imagesOrigonal[i] = 255.0 * np.power((new_image * 1.) / 255.0, gamma)
+        images_list[i] = images_list[i].split('.')[0]
+        sailencyMask.append(np.copy(gtMask))
+        new_mask = np.zeros(gtMask.shape)
+        # define brightness and darkness in images
+        define_brightness_and_darkness_blur(imagesOrigonal[i], new_mask)
+        gtOrigonal[i] = new_mask
+
+    # save baseline images
+    for i in range(len(imagesOrigonal)):
+        # always remember gamma correction
+        baseImage = np.round(np.power((imagesOrigonal[i] * 1.) / 255, (1 / gamma)) * 255.0).astype(np.uint8)
+        baseImageName = images_list[i]
+        saveName = args.output_data_dir + "/images/" + baseImageName + args.data_extension
+        imageio.imsave(saveName, baseImage)
+        # get ground truth mask
+        saveName = args.output_data_dir + "/gt/" + baseImageName + args.data_extension
+        nMask = np.zeros(final_shape)
+        gt = np.squeeze(gtOrigonal[i])
+        nMask[gt == 1] = 64
+        nMask[gt == 2] = 128
+        nMask[gt == 3] = 192
+        nMask[gt == 4] = 255
+        cv2.imwrite(saveName, nMask)
+
+    # create test images of each blur type
+    for i in range(len(imagesOrigonal)):
+        baseImageName = images_list[i]
+        for k in range(10): # random motion blur
+            # motion blur
+            kernal, angle = random_motion_blur_kernel()
+            motion_blurred_overlay_img = apply_motion_blur(copy.deepcopy(imagesOrigonal[i]),kernal, angle)
+            blur_mask = apply_motion_blur(copy.deepcopy(sailencyMask[i]) * 255, kernal, angle)
+            nMask = np.zeros(blur_mask.shape)
+            nMask[blur_mask > 0] = 1
+            define_brightness_and_darkness_blur(motion_blurred_overlay_img, nMask)
+            # save just the darkness
+            # save final image
+            saveName = args.output_data_dir + "/images/motion_" + baseImageName + '_' + str(k) + args.data_extension
+            final_masked_blurred_image = np.round(np.power((np.array(motion_blurred_overlay_img)[:, :, 0:3] * 1.)
+                                                  / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+            # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+            imageio.imwrite(saveName, final_masked_blurred_image)
+            # create and save ground truth mask
+            saveNameGt = args.output_data_dir + "/gt/motion_" + baseImageName + '_' + str(k) + args.data_extension
+            nMask[nMask == 1] = 64
+            nMask[nMask == 2] = 128
+            nMask[nMask == 3] = 192
+            nMask[nMask == 4] = 255
+            cv2.imwrite(saveNameGt, nMask)
+        ### out of focus blur
+        for k in range(10):
+            kernal = random_focus_blur_kernel()
+            focus_blur_overlay_img = create_out_of_focus_blur(np.copy(imagesOrigonal[i]), kernal)
+            blur_mask = create_out_of_focus_blur(copy.deepcopy(sailencyMask[i]) * 255, kernal)
+            nMask = np.zeros(blur_mask.shape)
+            nMask[blur_mask > 0] = 2
+            define_brightness_and_darkness_blur(focus_blur_overlay_img, nMask)
+
+            saveName = args.output_data_dir + "/images/focus_" + baseImageName + '_' + str(k) + args.data_extension
+            final_masked_blurred_image = np.round(np.power((np.array(focus_blur_overlay_img)[:, :, 0:3] * 1.)
+                                                           / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+            imageio.imwrite(saveName, final_masked_blurred_image)
+            # get ground truth mask
+            saveName = args.output_data_dir + "/gt/focus_" + baseImageName + '_' + str(k) + args.data_extension
+            # add focus identification to mask
+            nMask[nMask == 1] = 64
+            nMask[nMask == 2] = 128
+            nMask[nMask == 3] = 192
+            nMask[nMask == 4] = 255
+            cv2.imwrite(saveName, nMask)
+        # next we go to darkness blur
+        for k in range(10):
+            # create darkness blur
+            alpha, beta = random_darkness_value()
+            dark_blur = create_brightness_and_darkness_blur(np.copy(imagesOrigonal[i]), alpha, beta)
+            nMask = np.zeros(final_shape)
+            define_brightness_and_darkness_blur(dark_blur, nMask)
+            final_masked_blurred_image = np.round(np.power((np.array(dark_blur)[:, :, 0:3] * 1.)
+                                                           / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+            # save the image
+            saveName = args.output_data_dir + "/images/darkness_" + baseImageName + '_' + str(k) + args.data_extension
+            imageio.imwrite(saveName, final_masked_blurred_image)
+            # get ground truth mask
+            saveName = args.output_data_dir + "/gt/darkness_" + baseImageName + '_' + str(k) + args.data_extension
+            # add darkness blur to mask image
+            nMask[nMask == 1] = 64
+            nMask[nMask == 2] = 128
+            nMask[nMask == 3] = 192
+            nMask[nMask == 4] = 255
+            cv2.imwrite(saveName, nMask)
+        # next we go to brightness blur
+        for k in range(10):
+            # create brightness blur
+            alpha,beta = random_brightness_value()
+            bright_blur = create_brightness_and_darkness_blur(np.copy(imagesOrigonal[i]), alpha, beta)
+            nMask = np.zeros(final_shape)
+            define_brightness_and_darkness_blur(bright_blur, nMask)
+            final_masked_blurred_image = np.round(np.power((np.array(bright_blur)[:, :, 0:3] * 1.)
+                                                           / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+            # save the image
+            saveName = args.output_data_dir + "/images/brightness_" + baseImageName + '_' + str(k) + args.data_extension
+            imageio.imwrite(saveName, final_masked_blurred_image)
+            # get ground truth mask
+            saveName = args.output_data_dir + "/gt/brightness_" + baseImageName + '_' + str(k) + args.data_extension
+            # add brightness blur to mask image
+            nMask[nMask == 1] = 64
+            nMask[nMask == 2] = 128
+            nMask[nMask == 3] = 192
+            nMask[nMask == 4] = 255
+            cv2.imwrite(saveName, nMask)
+
+def create_muri_and_scc_dataset_for_sensitivity(args):
+    motion_degree = np.array([30, 60, 90, 120, 150, 180])
+    motion_kernal_size = np.array([3, 5, 7, 9, 25, 33, 47])
+    focus_kernal_size = np.array([3, 5, 7, 9, 25, 33, 47])
+    darkness_alpha = np.array([0.1, 0.2, 0.3, 0.5, 0.7])
+    darkness_beta = np.array([0, -50, -100, -200])
+    brightness_alpha = np.array([1.5, 1.8, 2.0, 2.3, 2.5])
+    brightness_beta = np.array([0, 50, 100, 200])
+    # all ranges of motion, focus, darkness and brightness images are created
+    final_shape = (224, 224)
+    # half_shape = (int(480/2), int(640/2))
+    # small_shape = (224,224)
+    tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
+    tl.files.exists_or_mkdir(args.output_data_dir + "/gt/")
+    # list of all original Images
+    images_list = sorted(tl.files.load_file_list(path=args.data_dir + '/', regx='/*.(png|PNG)', printable=False))
+    # these images have out of focus blur already
+    imagesOrigonal = read_all_imgs(images_list, path=args.data_dir + '/', n_threads=100, mode='RGB')
+    saliencyImages = copy.deepcopy(imagesOrigonal)
+
+    for i in range(len(saliencyImages)):
+        if saliencyImages[i].shape[0] > saliencyImages[i].shape[1]:
+            saliencyImages[i] = cv2.rotate(saliencyImages[i], 0)
+            # saliencyMask[i] = cv2.rotate(saliencyMask[i], 0)[:, :, np.newaxis]
+        y1, y2 = max(0, int((final_shape[0] + 1 - saliencyImages[i].shape[0]) / 2)), \
+                 min(saliencyImages[i].shape[0] + int((final_shape[0] + 1 - saliencyImages[i].shape[0]) / 2),
+                     final_shape[0])
+        x1, x2 = max(0, int((final_shape[1] + 1 - saliencyImages[i].shape[1]) / 2)), \
+                 min(saliencyImages[i].shape[1] + int((final_shape[1] + 1 - saliencyImages[i].shape[1]) / 2),
+                     final_shape[1])
+        y1o, y2o = 0, min(saliencyImages[i].shape[0], final_shape[0])
+        x1o, x2o = 0, min(saliencyImages[i].shape[1], final_shape[1])
+
+        new_image = np.zeros((final_shape[0], final_shape[1], 3))
+        if saliencyImages[i].shape[2] > 3:
+            saliencyImages[i] = saliencyImages[i][:,:,0:3]
+        new_image[y1:y2, x1:x2] = saliencyImages[i][y1o:y2o, x1o:x2o]
+        # # darkness blur deafult for 0 pixels
+        # gtMask = np.ones((final_shape[0], final_shape[1], 1))
+        # gtMask[y1:y2, x1:x2] = saliencyMask[i][y1o:y2o, x1o:x2o]
+        # gamma correction
+        saliencyImages[i] = 255.0 * np.power((new_image * 1.) / 255.0, gamma)
+        images_list[i] = images_list[i].split('.')[0]
+        #origionalSaliencyMask[i] = gtMask
+        # new_mask = np.zeros(gtMask.shape)
+        # define brightness and darkness in images
+        # define_brightness_and_darkness_blur(saliencyImages[i], new_mask)
+        # saliencyMask[i] = new_mask
+
+    # now we will go through all of the images and make the dataset to make brightness and darkness blurs
+    index = np.arange(0,len(saliencyImages),1)
+    np.random.shuffle(index)
+    # this already makes a huge dataset
+    for i in range(len(saliencyImages)):
+        baseImageName = images_list[i]
+        for angle in motion_degree:
+            for kernal_size in motion_kernal_size:
+                # create motion blur
+                motion_blurred_overlay_img = apply_motion_blur(copy.deepcopy(saliencyImages[i]), kernal_size,
+                                                                   angle)
+                nMask = np.ones(final_shape)
+                define_brightness_and_darkness_blur(motion_blurred_overlay_img, nMask)
+                nMask[nMask == 1] = 64
+                nMask[nMask == 2] = 128
+                nMask[nMask == 3] = 192
+                nMask[nMask == 4] = 255
+                saveName = args.output_data_dir + "/images/" + baseImageName + '_motion_angle_' + str(angle) + \
+                               "_kernal_size_" + str(kernal_size) + args.data_extension
+                final_masked_blurred_image = np.round(np.power((np.array(motion_blurred_overlay_img)[:, :, 0:3] * 1.)
+                                 / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                imageio.imwrite(saveName, final_masked_blurred_image)
+                # create and save ground truth mask
+                saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_motion_angle_' + str(angle) + \
+                                 "_kernal_size_" + str(kernal_size) + args.data_extension
+                cv2.imwrite(saveNameGt, nMask)
+        # create out of focus blur
+        for kernal_size in focus_kernal_size:
+            focus_blurred_overlay_img = create_out_of_focus_blur(copy.deepcopy(saliencyImages[i]), kernal_size)
+            nMask = np.ones(final_shape)*2
+            define_brightness_and_darkness_blur(focus_blurred_overlay_img, nMask)
+            nMask[nMask == 1] = 64
+            nMask[nMask == 2] = 128
+            nMask[nMask == 3] = 192
+            nMask[nMask == 4] = 255
+            saveName = args.output_data_dir + "/images/" + baseImageName + '_focus_kernal_size_' + str(kernal_size) \
+                           + args.data_extension
+            final_masked_blurred_image = np.round(np.power((np.array(focus_blurred_overlay_img)[:, :, 0:3] * 1.)
+                             / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+            # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+            imageio.imwrite(saveName, final_masked_blurred_image)
+            # create and save ground truth mask
+            saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_focus_kernal_size_' + str(kernal_size) \
+                             + args.data_extension
+            cv2.imwrite(saveNameGt, nMask)
+        # create darkness blur
+        for alpha in darkness_alpha:
+            for beta in darkness_beta:
+                dark_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(saliencyImages[i]),
+                                                                                   alpha, beta)
+                # indicator for dark blur
+                nMask = np.zeros(final_shape)
+                define_brightness_and_darkness_blur(dark_blurred_overlay_img, nMask)
+                nMask[nMask == 1] = 64
+                nMask[nMask == 2] = 128
+                nMask[nMask == 3] = 192
+                nMask[nMask == 4] = 255
+                # save just the darkness
+                # save final image
+                saveName = args.output_data_dir + "/images/" + baseImageName + '_darkness_alpha_' + str(alpha) + \
+                               "_beta_" + str(beta) + args.data_extension
+                final_masked_blurred_image = np.round(np.power((np.array(dark_blurred_overlay_img)[:, :, 0:3] * 1.)
+                                 / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                imageio.imwrite(saveName, final_masked_blurred_image)
+                # create and save ground truth mask
+                saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_darkness_alpha_' + str(alpha) + \
+                                 "_beta_" + str(beta) + args.data_extension
+                cv2.imwrite(saveNameGt, nMask)
+        # create brightness blur
+        for alpha in brightness_alpha:
+            for beta in brightness_beta:
+                bright_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(saliencyImages[i]),
+                        alpha, beta)
+                nMask = np.zeros(final_shape)
+                define_brightness_and_darkness_blur(bright_blurred_overlay_img, nMask)
+                nMask[nMask == 1] = 64
+                nMask[nMask == 2] = 128
+                nMask[nMask == 3] = 192
+                nMask[nMask == 4] = 255
+                # save final image
+                saveName = args.output_data_dir + "/images/" + baseImageName + '_brightness_alpha_' + str(alpha) + \
+                               "_beta_" + str(beta) + args.data_extension
+                final_masked_blurred_image = np.round(np.power((np.array(bright_blurred_overlay_img)[:, :, 0:3] * 1.)
+                                 / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+                # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+                imageio.imwrite(saveName, final_masked_blurred_image)
+                # create and save ground truth mask
+                saveNameGt = args.output_data_dir + "/gt/" + baseImageName + '_brightness_alpha_' + str(alpha) + \
+                                 "_beta_" + str(beta) + args.data_extension
+                cv2.imwrite(saveNameGt, nMask)
+
+    # now resize the images to half of the current resolution
+    # for ind in range(3):
+    #     i = index[ind]
+    #     baseImageName = images_list[i]
+    #     baseImageResized = cv2.resize(saliencyImages[i],(half_shape[1],half_shape[0]))
+    #     for angle in motion_degree:
+    #         for kernal_size in motion_kernal_size:
+    #             # create motion blur
+    #             motion_blurred_overlay_img = apply_motion_blur(copy.deepcopy(baseImageResized), kernal_size,
+    #                                                            angle)
+    #             nMask = np.ones(half_shape)
+    #             define_brightness_and_darkness_blur(motion_blurred_overlay_img, nMask)
+    #             nMask[nMask == 1] = 64
+    #             nMask[nMask == 2] = 128
+    #             nMask[nMask == 3] = 192
+    #             nMask[nMask == 4] = 255
+    #             saveName = args.output_data_dir + "/images/resized_half_" + baseImageName + '_motion_angle_' + str(angle) + \
+    #                        "_kernal_size_" + str(kernal_size) + args.data_extension
+    #             final_masked_blurred_image = np.round(np.power((np.array(motion_blurred_overlay_img)[:, :, 0:3] * 1.)
+    #                                                            / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+    #             # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+    #             imageio.imwrite(saveName, final_masked_blurred_image)
+    #             # create and save ground truth mask
+    #             saveNameGt = args.output_data_dir + "/gt/resized_half_" + baseImageName + '_motion_angle_' + str(angle) + \
+    #                          "_kernal_size_" + str(kernal_size) + args.data_extension
+    #             cv2.imwrite(saveNameGt, nMask)
+    #     # create out of focus blur
+    #     for kernal_size in focus_kernal_size:
+    #         focus_blurred_overlay_img = create_out_of_focus_blur(copy.deepcopy(baseImageResized), kernal_size)
+    #
+    #         # now make the mask
+    #         nMask = np.ones(half_shape)*2
+    #         define_brightness_and_darkness_blur(focus_blurred_overlay_img, nMask)
+    #         nMask[nMask == 1] = 64
+    #         nMask[nMask == 2] = 128
+    #         nMask[nMask == 3] = 192
+    #         nMask[nMask == 4] = 255
+    #         saveName = args.output_data_dir + "/images/resized_half_" + baseImageName + '_focus_kernal_size_' + str(kernal_size) \
+    #                    + args.data_extension
+    #         final_masked_blurred_image = np.round(np.power((np.array(focus_blurred_overlay_img)[:, :, 0:3] * 1.)
+    #                                                        / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+    #         # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+    #         imageio.imwrite(saveName, final_masked_blurred_image)
+    #         # create and save ground truth mask
+    #         saveNameGt = args.output_data_dir + "/gt/resized_half_" + baseImageName + '_focus_kernal_size_' + str(kernal_size) \
+    #                      + args.data_extension
+    #         cv2.imwrite(saveNameGt, nMask)
+    #     # create darkness blur
+    #     for alpha in darkness_alpha:
+    #         for beta in darkness_beta:
+    #             dark_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(baseImageResized),
+    #                                                                            alpha, beta)
+    #             # indicator for dark blur
+    #             nMask = np.zeros(half_shape)
+    #             define_brightness_and_darkness_blur(dark_blurred_overlay_img, nMask)
+    #             nMask[nMask == 1] = 64
+    #             nMask[nMask == 2] = 128
+    #             nMask[nMask == 3] = 192
+    #             nMask[nMask == 4] = 255
+    #             # save just the darkness
+    #             # save final image
+    #             saveName = args.output_data_dir + "/images/resized_half_" + baseImageName + '_darkness_alpha_' + str(alpha) + \
+    #                        "_beta_" + str(beta) + args.data_extension
+    #             final_masked_blurred_image = np.round(np.power((np.array(dark_blurred_overlay_img)[:, :, 0:3] * 1.)
+    #                                                            / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+    #             # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+    #             imageio.imwrite(saveName, final_masked_blurred_image)
+    #             # create and save ground truth mask
+    #             saveNameGt = args.output_data_dir + "/gt/resized_half_" + baseImageName + '_darkness_alpha_' + str(alpha) + \
+    #                          "_beta_" + str(beta) + args.data_extension
+    #             cv2.imwrite(saveNameGt, nMask)
+    #     # create brightness blur
+    #     for alpha in brightness_alpha:
+    #         for beta in brightness_beta:
+    #             bright_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(baseImageResized),
+    #                                                                              alpha, beta)
+    #             # indicator for bright blur
+    #             nMask = np.zeros(half_shape)
+    #             define_brightness_and_darkness_blur(bright_blurred_overlay_img, nMask)
+    #             nMask[nMask == 1] = 64
+    #             nMask[nMask == 2] = 128
+    #             nMask[nMask == 3] = 192
+    #             nMask[nMask == 4] = 255
+    #             # save final image
+    #             saveName = args.output_data_dir + "/images/resized_half_" + baseImageName + '_brightness_alpha_' + str(alpha) + \
+    #                        "_beta_" + str(beta) + args.data_extension
+    #             final_masked_blurred_image = np.round(np.power((np.array(bright_blurred_overlay_img)[:, :, 0:3] * 1.)
+    #                                                            / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+    #             # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+    #             imageio.imwrite(saveName, final_masked_blurred_image)
+    #             # create and save ground truth mask
+    #             saveNameGt = args.output_data_dir + "/gt/resized_half_" + baseImageName + '_brightness_alpha_' + str(alpha) + \
+    #                          "_beta_" + str(beta) + args.data_extension
+    #             cv2.imwrite(saveNameGt, nMask)
+    #
+    # # now resize the images to small resolution
+    # for ind in range(3):
+    #     i = index[ind]
+    #     baseImageName = images_list[i]
+    #     baseImageResized = cv2.resize(saliencyImages[i],small_shape)
+    #     for angle in motion_degree:
+    #         for kernal_size in motion_kernal_size:
+    #             # create motion blur
+    #             motion_blurred_overlay_img = apply_motion_blur(copy.deepcopy(baseImageResized), kernal_size,
+    #                                                            angle)
+    #             nMask = np.ones(small_shape)
+    #             define_brightness_and_darkness_blur(motion_blurred_overlay_img, nMask)
+    #             nMask[nMask == 1] = 64
+    #             nMask[nMask == 2] = 128
+    #             nMask[nMask == 3] = 192
+    #             nMask[nMask == 4] = 255
+    #             saveName = args.output_data_dir + "/images/resized_small_" + baseImageName + '_motion_angle_' + str(angle) + \
+    #                        "_kernal_size_" + str(kernal_size) + args.data_extension
+    #             final_masked_blurred_image = np.round(np.power((np.array(motion_blurred_overlay_img)[:, :, 0:3] * 1.)
+    #                                                            / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+    #             # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+    #             imageio.imwrite(saveName, final_masked_blurred_image)
+    #             # create and save ground truth mask
+    #             saveNameGt = args.output_data_dir + "/gt/resized_small_" + baseImageName + '_motion_angle_' + str(angle) + \
+    #                          "_kernal_size_" + str(kernal_size) + args.data_extension
+    #             cv2.imwrite(saveNameGt, nMask)
+    #     # create out of focus blur
+    #     for kernal_size in focus_kernal_size:
+    #         focus_blurred_overlay_img = create_out_of_focus_blur(copy.deepcopy(baseImageResized), kernal_size)
+    #
+    #         # now make the mask
+    #         nMask = np.ones(small_shape)*2
+    #         define_brightness_and_darkness_blur(focus_blurred_overlay_img, nMask)
+    #         nMask[nMask == 1] = 64
+    #         nMask[nMask == 2] = 128
+    #         nMask[nMask == 3] = 192
+    #         nMask[nMask == 4] = 255
+    #         saveName = args.output_data_dir + "/images/resized_small_" + baseImageName + '_focus_kernal_size_' + str(kernal_size) \
+    #                    + args.data_extension
+    #         final_masked_blurred_image = np.round(np.power((np.array(focus_blurred_overlay_img)[:, :, 0:3] * 1.)
+    #                                                        / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+    #         # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+    #         imageio.imwrite(saveName, final_masked_blurred_image)
+    #         # create and save ground truth mask
+    #         saveNameGt = args.output_data_dir + "/gt/resized_small_" + baseImageName + '_focus_kernal_size_' + str(kernal_size) \
+    #                      + args.data_extension
+    #         cv2.imwrite(saveNameGt, nMask)
+    #     # create darkness blur
+    #     for alpha in darkness_alpha:
+    #         for beta in darkness_beta:
+    #             dark_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(baseImageResized),
+    #                                                                            alpha, beta)
+    #             # indicator for dark blur
+    #             nMask = np.zeros(small_shape)
+    #             define_brightness_and_darkness_blur(dark_blurred_overlay_img, nMask)
+    #             nMask[nMask == 1] = 64
+    #             nMask[nMask == 2] = 128
+    #             nMask[nMask == 3] = 192
+    #             nMask[nMask == 4] = 255
+    #             # save just the darkness
+    #             # save final image
+    #             saveName = args.output_data_dir + "/images/resized_small_" + baseImageName + '_darkness_alpha_' + str(alpha) + \
+    #                        "_beta_" + str(beta) + args.data_extension
+    #             final_masked_blurred_image = np.round(np.power((np.array(dark_blurred_overlay_img)[:, :, 0:3] * 1.)
+    #                                                            / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+    #             # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+    #             imageio.imwrite(saveName, final_masked_blurred_image)
+    #             # create and save ground truth mask
+    #             saveNameGt = args.output_data_dir + "/gt/resized_small_" + baseImageName + '_darkness_alpha_' + str(alpha) + \
+    #                          "_beta_" + str(beta) + args.data_extension
+    #             cv2.imwrite(saveNameGt, nMask)
+    #     # create brightness blur
+    #     for alpha in brightness_alpha:
+    #         for beta in brightness_beta:
+    #             bright_blurred_overlay_img = create_brightness_and_darkness_blur(copy.deepcopy(baseImageResized),
+    #                                                                              alpha, beta)
+    #             # indicator for bright blur
+    #             nMask = np.zeros(small_shape)
+    #             define_brightness_and_darkness_blur(bright_blurred_overlay_img, nMask)
+    #             nMask[nMask == 1] = 64
+    #             nMask[nMask == 2] = 128
+    #             nMask[nMask == 3] = 192
+    #             nMask[nMask == 4] = 255
+    #             # save final image
+    #             saveName = args.output_data_dir + "/images/resized_small_" + baseImageName + '_brightness_alpha_' + str(alpha) + \
+    #                        "_beta_" + str(beta) + args.data_extension
+    #             final_masked_blurred_image = np.round(np.power((np.array(bright_blurred_overlay_img)[:, :, 0:3] * 1.)
+    #                                                            / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+    #             # https: // note.nkmk.me / en / python - opencv - bgr - rgb - cvtcolor /
+    #             imageio.imwrite(saveName, final_masked_blurred_image)
+    #             # create and save ground truth mask
+    #             saveNameGt = args.output_data_dir + "/gt/resized_small_" + baseImageName + '_brightness_alpha_' + str(alpha) + \
+    #                          "_beta_" + str(beta) + args.data_extension
+    #             cv2.imwrite(saveNameGt, nMask)
 
 if __name__ == "__main__":
  # Feel free to add more args, or change/remove these.
@@ -1114,22 +2008,28 @@ if __name__ == "__main__":
     # directory data location
     parser.add_argument('--data_dir', type=str)
     parser.add_argument('--output_data_dir', type=str)
-    parser.add_argument('--salinecy_data_dir', type=str)
+    parser.add_argument('--salinecy_data_dir', type=str,default=None)
     # type of data / image extension
     parser.add_argument('--data_extension', type=str,default=".png")
     parser.add_argument('--is_testing', default=False, action='store_true')
     parser.add_argument('--is_cuhk_dataset', default=False, action='store_true')
+    parser.add_argument('--is_muri_dataset', default=False, action='store_true')
+    parser.add_argument('--is_sensitivity', default=False, action='store_true')
     args = parser.parse_args()
     if args.is_testing:
         if args.is_cuhk_dataset:
-            create_cuhk_muri_dataset_for_testing(args)
-        else:
-            create_muri_dataset_for_testing_and_validation(args)
-       # create_muri_dataset_for_sensitivity(args)
+            create_cuhk_dataset_for_testing(args)
+        elif args.is_muri_dataset:
+            create_muri_and_ssc_dataset_for_testing(args)
+    elif args.is_sensitivity:
+        if args.is_cuhk_dataset:
+            create_cuhk_dataset_for_sensitivity(args)
+        elif args.is_muri_dataset:
+            create_muri_and_scc_dataset_for_sensitivity(args)
     else:
         if args.is_cuhk_dataset:
-            create_cuhk_muri_dataset_for_training(args)
-        else:
-            create_muri_dataset_for_training(args)
+            create_cuhk_dataset_for_training(args)
+        # else:
+        #     create_muri_dataset_for_training(args)
 
 

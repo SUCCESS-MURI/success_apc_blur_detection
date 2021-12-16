@@ -2,7 +2,8 @@
 import argparse
 import tensorlayer as tl
 from train import train_with_muri_dataset
-from test import test_with_muri_dataset, test_with_muri_dataset_origonal_model, test_with_muri_dataset_blur_noblur
+from test import test_with_muri_dataset, test_with_muri_dataset_origonal_model, test_with_muri_dataset_blur_noblur, \
+    test_cuhk_dataset, test_cuhk_sensitivity_dataset
 
 
 # https://intellipaat.com/community/4920/parsing-boolean-values-with-argparse
@@ -32,7 +33,9 @@ if __name__ == '__main__':
     if tl.global_flag['is_train']:
         train_with_muri_dataset()
     else:
-        test_with_muri_dataset()
+        test_cuhk_dataset()
+        #test_with_muri_dataset()
         #test_with_muri_dataset_blur_noblur()
         #test_with_muri_dataset_origonal_model()
+        #test_cuhk_sensitivity_dataset()
 
