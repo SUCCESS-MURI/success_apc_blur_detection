@@ -39,14 +39,11 @@ if __name__ == '__main__':
     parser.add_argument('--is_testing_original_kimetal_weights', type=str, default='false', help='whether testing our images using kim et al. weights')
     parser.add_argument('--start_from', type=int, default='0', help='if training was paused start from an index and '
                                                                     'init weights')
-    parser.add_argument('--uncertainty_label', type=str, default='false', help='whether testing result should have an '
-                                                                               'uncertanity label. default is false')
     args = parser.parse_args()
 
     tl.global_flag['mode'] = args.mode
     tl.global_flag['is_train'] = t_or_f(args.is_train)
     tl.global_flag['start_from'] = int(args.start_from)
-    tl.global_flag['uncertainty_label'] = t_or_f(args.uncertainty_label)
     tl.global_flag['is_testing_original_kimetal_weights'] = t_or_f(args.is_testing_origional_kimetal_weights)
 
     if tl.global_flag['is_train']:

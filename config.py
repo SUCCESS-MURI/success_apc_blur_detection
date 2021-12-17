@@ -22,12 +22,18 @@ config.TRAIN.decay_every = 6000
 config.TRAIN.blur_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_20_2021/smaller_dataset/images/'
 config.TRAIN.gt_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_20_2021/smaller_dataset/gt/'
 
-# config.TEST.ssc_blur_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_25_2021/Testing_bd/images/'
-# config.TEST.ssc_gt_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_25_2021/Testing_bd/gt/'
+config.TEST.orig_blur_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_25_2021/Testing_bd/images/'
+config.TEST.orig_gt_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_25_2021/Testing_bd/gt/'
+
+config.TEST.blur_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_25_2021/Testing_bd/images/'
+config.TEST.gt_path = '/home/mary/code/local_success_dataset/CHUK_Dataset/08_25_2021/Testing_bd/gt/'
 
 ## train image size
 config.TRAIN.height = 256
 config.TRAIN.width = 256
+
+config.TEST.height = 480
+config.TEST.width = 640
 
 def log_config(filename, cfg):
     with open(filename, 'w') as f:

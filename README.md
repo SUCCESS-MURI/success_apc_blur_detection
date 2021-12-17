@@ -32,16 +32,24 @@ python main.py --is_train true
 - specify a path of input folder in 'main.py' at line #39
 - run 'main.py --is_train false'
 
-
 ## Evaluation Details
+- test.py does all of the miou, f1-score, accuracy and confusion matrices calculations. refer to the test.py script with details on the evaluation implementation. 
+- Just run test.py to run evaluation
 
-## CUHK Dataset
+## Dataset 
+
+## Creation
+- Refer to XXXX and XXX for how the orgional CHUK and Kim et al. datasets were defined. 
+- dataset/dataset_creation.py shows how we created our dataset with brightness and darkness. 
+
+## CHUK Dataset 
+- This link () - origional CHUK dataset 
 
 ## Kim et al. Dataset
-- download [synthetic train set](https://drive.google.com/file/d/1QUygL2nalHldcJMwFJPfPFWokMoIbI9L/view?usp=sharing)(337MB) and [synthetic test set](https://drive.google.com/file/d/1-lV3CS_6rI_by6StkGQYsdn0SeOxwepu/view?usp=sharing)(11.5MB) from google drive
-- Note that sharp pixels, motion-blurred pixels, and defocus-blurred pixels in GT blur maps are labeled as 0, 100, and 200, respectively, in the [0,255] range.
+- Refer to XXXX for details and download links for Kim et al. Datsets
 
 ## Brightness and Darkness Dataset
+- This link () our training and testing images used for blur detection with brightness and darkness images 
 
 ## License ##
 NEED to Update for MURI/CMU
