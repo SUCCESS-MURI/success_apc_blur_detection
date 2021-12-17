@@ -59,7 +59,7 @@ python main.py --is_train false
 
 ## Weights 
 - XXX location of .npy weights from kim et al. that were converted for updated tensorflow 
-- XXX Our weights to use. 
+- XXX Our weights for use or testing 
 
 ## License ##
 NEED to Update for MURI/CMU
