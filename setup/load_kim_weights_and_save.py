@@ -1,9 +1,6 @@
 # coding=utf-8
 import copy
-
 import tensorflow as tf
-# import tensorflow.compat.v1 as tf
-# tf.disable_v2_behavior()
 import tensorlayer as tl
 import numpy as np
 import math
@@ -18,14 +15,14 @@ import argparse
 import os
 tf.compat.v1.disable_eager_execution()
 
-def get_weights(sess,network):
+def get_weights(sess, network):
     # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
-    dict_weights_trained = np.load('inital_final_model.npy',allow_pickle=True)[()]
+    dict_weights_trained = np.load('inital_final_model.npy', allow_pickle=True)[()]
     params = []
     keys = dict_weights_trained.keys()
     for weights in network.trainable_weights:
         name = weights.name
-        splitName ='/'.join(name.split('/')[2:-1])
+        splitName = '/'.join(name.split('/')[2:-1])
         count_layers = 0
         for key in keys:
             keySplit = '/'.join(key.split(',')[1:])
@@ -33,7 +30,7 @@ def get_weights(sess,network):
                 keySplit = '/'.join(keySplit.split('/')[:-2])
             if splitName == keySplit:
                 if 'bias' in name.split('/')[-1]:
-                    params.append(dict_weights_trained[key][count_layers+1][0])
+                    params.append(dict_weights_trained[key][count_layers + 1][0])
                 else:
                     params.append(dict_weights_trained[key][count_layers][0])
                 break
@@ -41,13 +38,14 @@ def get_weights(sess,network):
 
     sess.run(tl.files.assign_weights(params, network))
 
-def get_weights_checkpoint(sess,network,dict_weights_trained):
+
+def get_weights_checkpoint(sess, network, dict_weights_trained):
     # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
     params = []
     keys = dict_weights_trained.keys()
     for weights in network.trainable_weights:
         name = weights.name
-        splitName ='/'.join(name.split(':')[:1])
+        splitName = '/'.join(name.split(':')[:1])
         for key in keys:
             keySplit = '/'.join(key.split('/'))
             if splitName == keySplit:
@@ -58,26 +56,3 @@ def get_weights_checkpoint(sess,network,dict_weights_trained):
                 break
 
     sess.run(tl.files.assign_weights(params, network))
-
-def load_and_save_npy_weights():
-    # Model
-    patches_blurred = tf.compat.v1.placeholder('float32', [1, 416, 640, 3], name='input_patches')
-    reuse =False
-    with tf.compat.v1.variable_scope('Unified') as scope:
-        with tf.compat.v1.variable_scope('VGG') as scope3:
-            input, n, f0, f0_1, f1_2, f2_3= VGG19_pretrained(patches_blurred, reuse=reuse,scope=scope3)
-        with tf.compat.v1.variable_scope('UNet') as scope1:
-            output,m1,m2,m3= Decoder_Network_classification(input, n.outputs, f0.outputs, f0_1.outputs, f1_2.outputs,
-                                                            f2_3.outputs,reuse = reuse,scope = scope1)
-
-    a_vars = tl.layers.get_variables_with_name('Unified', True, True)
-
-    sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False))
-    tl.layers.initialize_global_variables(sess)
-    get_weights(sess,output)
-    print("loaded all the weights")
-    # save weights to numpy
-
-
-if __name__ == '__main__':
-    load_and_save_npy_weights()

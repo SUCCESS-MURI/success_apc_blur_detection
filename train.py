@@ -13,7 +13,7 @@ import math
 from sklearn.metrics import confusion_matrix
 
 from config import config, log_config
-from setup.loadNPYWeightsSaveCkpt import get_weights
+from setup.load_kim_weights_and_save import get_weights
 from utils import *
 from model import *
 import matplotlib

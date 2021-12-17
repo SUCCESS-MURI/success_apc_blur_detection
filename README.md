@@ -30,7 +30,10 @@ python main.py --is_train true
 ## Test Details
 - download [model weights](https://drive.google.com/file/d/11FBVmAIfeHDHpOjLXewzpA2lgcOOqo2_/view?usp=sharing) from google drive and save the model into 'model' folder.
 - specify a path of input folder in 'main.py' at line #39
-- run 'main.py --is_train false'
+
+```bash
+python main.py --is_train false
+```
 
 ## Evaluation Details
 - test.py does all of the miou, f1-score, accuracy and confusion matrices calculations. refer to the test.py script with details on the evaluation implementation. 
@@ -39,8 +42,11 @@ python main.py --is_train true
 ## Dataset 
 
 ## Creation
-- Refer to XXXX and XXX for how the orgional CHUK and Kim et al. datasets were defined. 
+- Refer to XXXX and XXX for how the original CHUK and Kim et al. datasets were defined.
+- dataset/split_CHUK_dataset.py splits the origional dataset images into the same split test and train that kim et al. had.
 - dataset/dataset_creation.py shows how we created our dataset with brightness and darkness. 
+  * Read dataset_creation.py main function for input define
+- We created the saliency masks from XXXX. 
 
 ## CHUK Dataset 
 - This link () - origional CHUK dataset 
