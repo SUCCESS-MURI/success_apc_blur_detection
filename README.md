@@ -57,6 +57,10 @@ python main.py --is_train false
 ## Brightness and Darkness Dataset
 - This link () our training and testing images used for blur detection with brightness and darkness images 
 
+## Weights 
+- XXX location of .npy weights from kim et al. that were converted for updated tensorflow 
+- XXX Our weights to use. 
+
 ## License ##
 NEED to Update for MURI/CMU
 
