@@ -2,8 +2,7 @@
 import argparse
 import tensorlayer as tl
 from train import train_with_muri_dataset
-from test import test_with_muri_dataset, test_with_muri_dataset_origonal_model, test_with_muri_dataset_blur_noblur, \
-    test_cuhk_dataset, test_cuhk_sensitivity_dataset
+from test import test_with_muri_dataset, test_sensitivity_with_muri_dataset
 
 
 # https://intellipaat.com/community/4920/parsing-boolean-values-with-argparse
@@ -22,20 +21,21 @@ if __name__ == '__main__':
     parser.add_argument('--mode', type=str, default='PG_CUHK', help='model name')
     parser.add_argument('--is_train', type=str , default='false', help='whether train or not')
     parser.add_argument('--start_from', type=int, default='0', help='start from')
-    parser.add_argument('--uncertainty_label', type=str, default='false', help='whether testing result should have an uncertanity label. default is false')
+    parser.add_argument('--is_sensitivity', type=str, default='false', help='wheater using sensitivity dataset or not')
+    parser.add_argument('--uncertainty_label', type=str, default='false', help='whether testing result should have an '
+                                                                               'uncertanity label. default is false')
     args = parser.parse_args()
 
     tl.global_flag['mode'] = args.mode
     tl.global_flag['is_train'] = t_or_f(args.is_train)
     tl.global_flag['start_from'] = int(args.start_from)
     tl.global_flag['uncertainty_label'] = t_or_f(args.uncertainty_label)
+    tl.global_flag['is_sensitivity'] = t_or_f(args.is_sensitivity)
 
     if tl.global_flag['is_train']:
         train_with_muri_dataset()
+    if tl.global_flag['is_sensitivity']:
+        test_sensitivity_with_muri_dataset()
     else:
-        test_cuhk_dataset()
-        #test_with_muri_dataset()
-        #test_with_muri_dataset_blur_noblur()
-        #test_with_muri_dataset_origonal_model()
-        #test_cuhk_sensitivity_dataset()
+        test_with_muri_dataset()
 
