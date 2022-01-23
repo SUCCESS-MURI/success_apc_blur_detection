@@ -415,7 +415,7 @@ def test_with_muri_dataset():
     plt.rc('xtick', labelsize=20)  # fontsize of the x tick labels
     plt.rc('ytick', labelsize=20)  # fontsize of the y tick labels
     plt.rc('legend', fontsize=30)  # fontsize of the legend
-    plt.rcParams['figure.figsize'] = 5, 10
+    plt.rcParams['figure.figsize'] = 10, 10
     plt.clf()
     final_confmatrix = confusion_matrix(np.array(all_gt_image_results).flatten(), np.array(all_image_results).flatten(),
                                         labels=[0, 1, 2, 3, 4], normalize="true")
@@ -442,6 +442,8 @@ def test_with_muri_dataset():
     plt.savefig(save_dir_sample + '/muri_conf_matrix_all_labels.png')
     plt.show()
 
+    # https://stackoverflow.com/questions/332289/how-do-you-change-the-size-of-figures-drawn-with-matplotlib
+    plt.rcParams['figure.figsize'] = 8, 5
     plt.clf()
     final_confmatrix = confusion_matrix(np.array(all_gt_binary_image_results).flatten(),
                                         np.array(all_binary_image_results).flatten(), labels=[0, 1], normalize="true")
