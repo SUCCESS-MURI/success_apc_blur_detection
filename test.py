@@ -38,7 +38,6 @@ g_mean = np.array(([126.88, 120.24, 112.19])).reshape([1, 1, 3])
 
 ni = int(math.ceil(np.sqrt(batch_size)))
 
-
 ## IOU in pure numpy
 # https://github.com/hipiphock/Mean-IOU-in-Numpy-TensorFlow/blob/master/main.py
 def numpy_iou(y_true, y_pred, n_class=5):
@@ -59,7 +58,6 @@ def numpy_iou(y_true, y_pred, n_class=5):
         IOU.append(iou)
 
     return np.mean(IOU)
-
 
 # kim et al testing with their weights but our dataset
 def test_3_classes_using_kimetal_pretrainied_weights_new_dataset():
@@ -459,7 +457,6 @@ def test_3_classes_using_kimetal_pretrainied_weights_new_dataset():
     plt.show()
 
     return 0
-
 
 # our test
 def test():
