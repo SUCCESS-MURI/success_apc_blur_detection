@@ -32,9 +32,9 @@ config.TEST.muri_blur_path = '/home/mary/code/local_success_dataset/muri_dataset
 config.TEST.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Testing/gt/'
 
 config.SENSITVITY.muri_blur_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Sensitivity/images' \
-                                   '/seventypercentsize/'
+                                   '/halfsize/'
 config.SENSITVITY.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Sensitivity/gt' \
-                                 '/seventypercentsize/'
+                                 '/halfsize/'
 
 ## train image size
 config.TRAIN.height = 256
