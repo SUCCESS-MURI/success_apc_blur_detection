@@ -1,11 +1,11 @@
-# Blur Detection and Classifcation that includes Brightness and Darkness Blur
+# Blur Detection and Classifcation 
 
-This repository contains the training and test code for running our blur detection model based on the Kim et al. model with the additional 2 output labels for brightness and darkness blur definition. 
-Links to our dataset include motion, defocus, brightness and darkness blurs together in each scene.
+This repository contains the training and test code for running our blur detection model based on the Kim et al. model. This repo was updated to run with tensorflow 2.0 and python 3.8
 
 --------------------------
 ## Prerequisites (tested)
 - Ubuntu 20.04
+- Python 3.8
 - Tensorflow-gpu 2.2.0
 - Tensorlayer 2.2.3
 - OpenCV2
@@ -15,14 +15,12 @@ Links to our dataset include motion, defocus, brightness and darkness blurs toge
 ### Note with Tensorflow update
 read the tensorflow_issues_and_solutions document for code solutions for errors that might arise with updating tensorflow
 
-## Kim et al. Train and Testing Details
-- Go to XXXX to run the original Kim et al. Training and Testing code using CHUK and syntheic 
+## Kim et al. Train and Testing Details from [Original Repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git)
+## Train Details
+- We used [CUHK blur detection dataset](http://www.cse.cuhk.edu.hk/~leojia/projects/dblurdetect/dataset.html) for training our network and generating our synthetic dataset
+- Train and test set lists are uploaded in 'dataset' folder in [repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git)
+- Need to modify some options and paths in 'main.py' and 'config.py' for training
 
-## Our Train Details 
-- We updated the [CUHK blur detection dataset](http://www.cse.cuhk.edu.hk/~leojia/projects/dblurdetect/dataset.html) by adding brightness and darkness blur to the dataset
-- We updated the Training and testing lists in the config.py.
-- Run the following line in the environment:
-  
 ```bash
 python main.py --is_train true
 ```
@@ -30,40 +28,19 @@ python main.py --is_train true
 ## Test Details
 - download [model weights](https://drive.google.com/file/d/11FBVmAIfeHDHpOjLXewzpA2lgcOOqo2_/view?usp=sharing) from google drive and save the model into 'model' folder.
 - specify a path of input folder in 'main.py' at line #39
+- run 'main.py'
 
 ```bash
 python main.py --is_train false
 ```
+## Synthetic Dataset
+- download [synthetic train set](https://drive.google.com/file/d/1QUygL2nalHldcJMwFJPfPFWokMoIbI9L/view?usp=sharing)(337MB) and [synthetic test set](https://drive.google.com/file/d/1-lV3CS_6rI_by6StkGQYsdn0SeOxwepu/view?usp=sharing)(11.5MB) from google drive
+- Note that sharp pixels, motion-blurred pixels, and defocus-blurred pixels in GT blur maps are labeled as 0, 100, and 200, respectively, in the [0,255] range.
 
-## Evaluation Details
-- test.py does all of the miou, f1-score, accuracy and confusion matrices calculations. refer to the test.py script with details on the evaluation implementation. 
-- Just run test.py to run evaluation
-
-## Dataset 
-
-## Creation
-- Refer to XXXX and XXX for how the original CHUK and Kim et al. datasets were defined.
-- dataset/split_CHUK_dataset.py splits the origional dataset images into the same split test and train that kim et al. had.
-- dataset/dataset_creation.py shows how we created our dataset with brightness and darkness. 
-  * Read dataset_creation.py main function for input define
-- We created the saliency masks from XXXX. 
-
-## CHUK Dataset 
-- This link () - origional CHUK dataset 
-
-## Kim et al. Dataset
-- Refer to XXXX for details and download links for Kim et al. Datsets
-
-## Brightness and Darkness Dataset
-- This link () our training and testing images used for blur detection with brightness and darkness images 
-
-## Weights 
-- XXX location of .npy weights from kim et al. that were converted for updated tensorflow 
-- XXX Our weights for use or testing 
-
+```bash
+python main.py --is_train true --is_synthetic true
+```
 ## License ##
-NEED to Update for MURI/CMU
-
 This software is being made available under the terms in the [LICENSE](LICENSE) file.
 Any exemptions to these terms requires a license from the Pohang University of Science and Technology.
 

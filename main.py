@@ -36,23 +36,25 @@ if __name__ == '__main__':
     # from kim et al.
     parser.add_argument('--mode', type=str, default='PG_CUHK', help='model name')
     parser.add_argument('--is_train', type=str , default='false', help='whether train or not')
-    parser.add_argument('--is_testing_original_kimetal_weights', type=str, default='false', help='whether testing our images using kim et al. weights')
+    parser.add_argument('--is_synthetic', type=str, default='false', help='synthetic training')
     parser.add_argument('--start_from', type=int, default='0', help='if training was paused start from an index and '
                                                                     'init weights')
     args = parser.parse_args()
 
     tl.global_flag['mode'] = args.mode
     tl.global_flag['is_train'] = t_or_f(args.is_train)
+    tl.global_flag['is_synthetic'] = t_or_f(args.is_syntheic)
     tl.global_flag['start_from'] = int(args.start_from)
-    tl.global_flag['is_testing_original_kimetal_weights'] = t_or_f(args.is_testing_origional_kimetal_weights)
 
     if tl.global_flag['is_train']:
-        train_with_chuk_updated_dataset()
-    else: # kim et all test with our images
-        if tl.global_flag['is_testing_original_kimetal_weights']:
-            test_3_classes_using_kimetal_pretrainied_weights_new_dataset()
-        else: # our test
-            test()
+        if not tl.global_flag['is_synthetic']:
+            train_with_CHUK()
+        else:
+            train_with_synthetic()
+    else:
+        # loads the original weights in the format of the .npy file
+        test()
+
 
 
 
