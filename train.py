@@ -149,14 +149,15 @@ def train_with_CHUK():
     configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
     configTf.gpu_options.allow_growth = True
     # uncomment if on a gpu machine
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    if gpus:
-        try:
-            for gpu in gpus:
-                tf.config.experimental.set_memory_growth(gpu, True)
+    # gpus = tf.config.experimental.list_physical_devices('GPU')
+    # if gpus:
+    #     try:
+    #         for gpu in gpus:
+    #             tf.config.experimental.set_memory_growth(gpu, True)
     
-        except RuntimeError as e:
-            print(e)
+    #     except RuntimeError as e:
+    #         print(e)
+    #####################################
     sess = tf.compat.v1.Session(config=configTf)
 
     print("initializing global variable...")
@@ -317,8 +318,26 @@ def train_with_synthetic():
 
     # augmented dataset read
     gt_path2 = config.TRAIN.CUHK_gt_path
-    ori_train_blur_imgs = read_all_imgs(ori_train_blur_img_list, path=input_path2, n_threads=batch_size, mode='RGB')
-    ori_train_mask_imgs = read_all_imgs(ori_train_mask_img_list, path=gt_path2, n_threads=batch_size, mode='GRAY')
+    origional_train_blur_imgs = read_all_imgs(ori_train_blur_img_list, path=input_path2, n_threads=batch_size, mode='RGB')
+    origional_train_mask_imgs = read_all_imgs(ori_train_mask_img_list, path=gt_path2, n_threads=batch_size, mode='GRAY')
+
+    ori_train_blur_imgs = []
+    ori_train_mask_imgs = []
+
+    # get only the chuk image list that is used for training 
+    list_file = 'dataset/train_list.txt'
+    with open(list_file) as f:
+        lines = f.readlines()
+    indexs = np.arange(0,len(origional_train_blur_imgs))
+    testList = '\t'.join(lines)
+    for idx in indexs:
+        imagename = ori_train_blur_img_list[idx]
+        if imagename in testList:
+            ori_train_blur_imgs.append(origional_train_blur_imgs[idx])
+            ori_train_mask_imgs.append(origional_train_mask_imgs[idx])
+
+    # clean memeory
+    origional_train_mask_imgs,origional_train_blur_imgs = None, None
 
     index = 0
     ori_train_classification_mask = []
@@ -345,6 +364,12 @@ def train_with_synthetic():
         train_blur_imgs = train_blur_imgs + ori_train_blur_imgs
         train_mask_imgs = train_mask_imgs + ori_train_classification_mask
 
+    train_classification_mask = np.array(train_mask_imgs)
+    train_blur_imgs = np.array(train_blur_imgs)
+
+    # clean memeory
+    train_mask_imgs,ori_train_classification_mask,ori_train_mask_imgs,ori_train_blur_imgs = None,None,None,None
+
     print("Number of training images " + str(len(train_blur_imgs)))
 
     ### DEFINE MODEL ###
@@ -354,9 +379,9 @@ def train_with_synthetic():
         with tf.compat.v1.variable_scope('VGG') as scope1:
             input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
         with tf.compat.v1.variable_scope('UNet') as scope2:
-            net_regression, m1, m2, m3, m1B, m2B, m3B, m4B = Decoder_Network_classification(input, n, f0, f0_1, f1_2,
-                                                                                            f2_3, reuse=False,
-                                                                                            scope=scope2)
+            net_regression, m1, m2, m3 = Decoder_Network_classification(input, n, f0, f0_1, f1_2, f2_3, 
+            reuse=False,scope=scope2)
+
     ### DEFINE LOSS ###
     loss1 = tl.cost.cross_entropy(net_regression.outputs, tf.squeeze(classification_map), name='loss1')
     loss2 = tl.cost.cross_entropy(m1.outputs,
@@ -375,9 +400,10 @@ def train_with_synthetic():
     # output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
     loss = loss1 + loss2 + loss3 + loss4
 
+    # as per kim et al paper
     with tf.compat.v1.variable_scope('learning_rate'):
-        lr_v = tf.Variable(lr_init * 0.1 * 0.1, trainable=False)
-        lr_v2 = tf.Variable(lr_init * 0.1, trainable=False)
+        lr_v = tf.Variable(lr_init * 0.1 * 0.1 * 0.1, trainable=False)
+        lr_v2 = tf.Variable(lr_init * 0.1 * 0.1, trainable=False)
 
     ### DEFINE OPTIMIZER ###
     a_vars = tl.layers.get_variables_with_name('Unified', False, True)  # Unified
@@ -395,14 +421,14 @@ def train_with_synthetic():
     configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
     configTf.gpu_options.allow_growth = True
     # uncomment if on a gpu machine
-    # gpus = tf.config.experimental.list_physical_devices('GPU')
-    # if gpus:
-    #     try:
-    #         for gpu in gpus:
-    #             tf.config.experimental.set_memory_growth(gpu, True)
-    #
-    #     except RuntimeError as e:
-    #         print(e)
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        try:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+    
+        except RuntimeError as e:
+            print(e)
     sess = tf.compat.v1.Session(config=configTf)
 
     print("initializing global variable...")

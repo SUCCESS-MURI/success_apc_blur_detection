@@ -22,8 +22,8 @@ config.TRAIN.decay_every = 6000
 config.TRAIN.CUHK_blur_path = '/home/mhatfalv/local_success_dataset/image/'
 config.TRAIN.CUHK_gt_path = '/home/mhatfalv/local_success_dataset/gt/'
 
-config.TRAIN.synthetic_blur_path = '/Dataset/BlurDetection/Synthetic_hybrid/imgs/'
-config.TRAIN.synthetic_gt_path = '/Dataset/BlurDetection/Synthetic_hybrid/GT/'
+config.TRAIN.synthetic_blur_path = '/home/mhatfalv/local_success_dataset/BlurTrainSyntheic/imgs/'
+config.TRAIN.synthetic_gt_path = '/home/mhatfalv/local_success_dataset/BlurTrainSyntheic/GT/'
 
 config.TEST.blur_path = '/Dataset/BlurDetection/CUHK/test/imgs/'
 config.TEST.gt_path = '/Dataset/BlurDetection/CUHK/test/GT/'
