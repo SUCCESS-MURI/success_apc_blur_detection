@@ -37,10 +37,12 @@ decay_every = config.TRAIN.decay_every
 h = config.TRAIN.height
 w = config.TRAIN.width
 
+
 # https://izziswift.com/better-way-to-shuffle-two-numpy-arrays-in-unison/
 def unison_shuffled_copies(a, b):
     p = np.random.permutation(len(a))
     return a[p], b[p]
+
 
 # updated chuk training with python 3.8 tensorflow 2.0
 def train_with_CHUK():
@@ -59,6 +61,7 @@ def train_with_CHUK():
             train_mask_img_list.append(str.replace(".jpg", ".png"))
         else:
             train_mask_img_list.append(str.replace(".JPG", ".png"))
+
     ###Load Training Data ####
     train_blur_imgs = read_all_imgs(train_blur_img_list, path=input_path, n_threads=batch_size, mode='RGB')
     train_mask_imgs = read_all_imgs(train_mask_img_list, path=gt_path, n_threads=batch_size, mode='GRAY')
@@ -67,7 +70,7 @@ def train_with_CHUK():
     train_classification_mask = []
     # img_n = 0
     for img in train_mask_imgs:
-        if (index < 236):
+        if index < 236:
             tmp_class = img
             tmp_classification = np.concatenate((img, img, img), axis=2)
             tmp_class[np.where(tmp_classification[:, :, 0] == 0)] = 0  # sharp
@@ -93,21 +96,21 @@ def train_with_CHUK():
                                                                                             f2_3, reuse=False,
                                                                                             scope=scope2)
     ### DEFINE LOSS ###
-    loss1 = tl.cost.cross_entropy((net_regression.outputs), tf.squeeze(classification_map), name='loss1')
-    loss2 = tl.cost.cross_entropy((m1.outputs),
+    loss1 = tl.cost.cross_entropy(net_regression.outputs, tf.squeeze(classification_map), name='loss1')
+    loss2 = tl.cost.cross_entropy(m1.outputs,
                                   tf.squeeze(tf.image.resize(classification_map, [int(h / 2), int(w / 2)],
                                                              method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)),
                                   name='loss2')
-    loss3 = tl.cost.cross_entropy((m2.outputs),
+    loss3 = tl.cost.cross_entropy(m2.outputs,
                                   tf.squeeze(tf.image.resize(classification_map, [int(h / 4), int(w / 4)],
                                                              method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)),
                                   name='loss3')
-    loss4 = tl.cost.cross_entropy((m3.outputs),
+    loss4 = tl.cost.cross_entropy(m3.outputs,
                                   tf.squeeze(tf.image.resize(classification_map, [int(h / 8), int(w / 8)],
                                                              method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)),
                                   name='loss4')
-    out = (net_regression.outputs)
-    output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
+    out = net_regression.outputs
+    #output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
     loss = loss1 + loss2 + loss3 + loss4
 
     with tf.compat.v1.variable_scope('learning_rate'):
@@ -159,7 +162,7 @@ def train_with_CHUK():
         params = []
         count_layers = 0
         for val in sorted(npz.items()):
-            if (count_layers < 16):
+            if count_layers < 16:
                 W = np.asarray(val[1][0])
                 b = np.asarray(val[1][1])
                 print("  Loading %s: %s, %s" % (val[0], W.shape, b.shape))
@@ -167,9 +170,6 @@ def train_with_CHUK():
             count_layers += 1
 
         tl.files.assign_params(sess, params, n)
-    #sess.run(tf.assign(lr_v, lr_init))
-    global_step = 0
-    new_lr_decay=1
 
     ### START TRAINING ###
     augmentation_list = [0, 1]
@@ -218,7 +218,7 @@ def train_with_CHUK():
                                                                             train_classification_mask[
                                                                             idx: idx + batch_size])],
                                                             fn=crop_sub_img_and_classification_fn)
-            elif augmentation == 1:
+            else:
                 images_and_score = tl.prepro.threading_data([_ for _ in zip(train_blur_imgs[idx: idx + batch_size],
                                                                             train_classification_mask[
                                                                             idx: idx + batch_size])],
@@ -249,6 +249,7 @@ def train_with_CHUK():
             tl.files.save_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['mode']),
                                save_dir=checkpoint_dir, var_list=a_vars, global_step=epoch, printable=False)
 
+
 # updated synthetic training with python 3.8 tensorflow 2.0
 def train_with_synthetic():
     checkpoint_dir = "test_checkpoint/{}".format(tl.global_flag['mode'])  # checkpoint_resize_conv
@@ -266,6 +267,7 @@ def train_with_synthetic():
             train_mask_img_list.append(str.replace(".jpg", ".png"))
         else:
             train_mask_img_list.append(str.replace(".JPG", ".png"))
+
     ###Load Training Data ####
     train_blur_imgs = read_all_imgs(train_blur_img_list, path=input_path, n_threads=batch_size, mode='RGB')
     train_mask_imgs = read_all_imgs(train_mask_img_list, path=gt_path, n_threads=batch_size, mode='GRAY')
@@ -306,7 +308,7 @@ def train_with_synthetic():
     ori_train_classification_mask = []
     # img_n = 0
     for img in ori_train_mask_imgs:
-        if (index < 236):
+        if index < 236:
             tmp_class = img
             tmp_classification = np.concatenate((img, img, img), axis=2)
 
@@ -322,9 +324,10 @@ def train_with_synthetic():
         index = index + 1
 
     train_mask_imgs = train_classification_mask
+
     for i in range(10):
-        train_blur_imgs = train_blur_imgs + ori_train_blur_imgs;
-        train_mask_imgs = train_mask_imgs + ori_train_classification_mask;
+        train_blur_imgs = train_blur_imgs + ori_train_blur_imgs
+        train_mask_imgs = train_mask_imgs + ori_train_classification_mask
 
     print("Number of training images " + str(len(train_blur_imgs)))
 
@@ -339,21 +342,21 @@ def train_with_synthetic():
                                                                                             f2_3, reuse=False,
                                                                                             scope=scope2)
     ### DEFINE LOSS ###
-    loss1 = tl.cost.cross_entropy((net_regression.outputs), tf.squeeze(classification_map), name='loss1')
-    loss2 = tl.cost.cross_entropy((m1.outputs),
+    loss1 = tl.cost.cross_entropy(net_regression.outputs, tf.squeeze(classification_map), name='loss1')
+    loss2 = tl.cost.cross_entropy(m1.outputs,
                                   tf.squeeze(tf.image.resize(classification_map, [int(h / 2), int(w / 2)],
                                                              method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)),
                                   name='loss2')
-    loss3 = tl.cost.cross_entropy((m2.outputs),
+    loss3 = tl.cost.cross_entropy(m2.outputs,
                                   tf.squeeze(tf.image.resize(classification_map, [int(h / 4), int(w / 4)],
                                                              method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)),
                                   name='loss3')
-    loss4 = tl.cost.cross_entropy((m3.outputs),
+    loss4 = tl.cost.cross_entropy(m3.outputs,
                                   tf.squeeze(tf.image.resize(classification_map, [int(h / 8), int(w / 8)],
                                                              method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)),
                                   name='loss4')
-    out = (net_regression.outputs)
-    output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
+    out = net_regression.outputs
+    # output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
     loss = loss1 + loss2 + loss3 + loss4
 
     with tf.compat.v1.variable_scope('learning_rate'):
@@ -401,7 +404,6 @@ def train_with_synthetic():
         tl.files.load_ckpt(sess=sess, mode_name='SA_net_PG_CUHK.ckpt', save_dir=checkpoint_dir2, var_list=a_vars,
                            is_latest=True)
 
-    #sess.run(tf.assign(lr_v, lr_init))
     global_step = 0
     new_lr_decay = 1
 
