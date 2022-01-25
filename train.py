@@ -5,7 +5,8 @@ import multiprocessing
 import random
 
 import tensorflow as tf
-# tf.compat.v1.enable_eager_execution()
+tf.compat.v1.disable_eager_execution()
+#tf.compat.v1.enable_eager_execution()
 # tf.disable_v2_behavior()
 import tensorlayer as tl
 import numpy as np
@@ -29,20 +30,17 @@ tl.logging.set_verbosity(tl.logging.DEBUG)
 batch_size = config.TRAIN.batch_size
 lr_init = config.TRAIN.lr_init
 beta1 = config.TRAIN.beta1
-do_validation_every = config.TRAIN.valid_every
-n_epoch = config.TRAIN.n_epochs
+n_epoch = config.TRAIN.n_epoch
 lr_decay = config.TRAIN.lr_decay
 decay_every = config.TRAIN.decay_every
 
 h = config.TRAIN.height
 w = config.TRAIN.width
 
-
 # https://izziswift.com/better-way-to-shuffle-two-numpy-arrays-in-unison/
 def unison_shuffled_copies(a, b):
     p = np.random.permutation(len(a))
     return a[p], b[p]
-
 
 # updated chuk training with python 3.8 tensorflow 2.0
 def train_with_CHUK():
@@ -52,19 +50,34 @@ def train_with_CHUK():
 
     input_path = config.TRAIN.CUHK_blur_path
     gt_path = config.TRAIN.CUHK_gt_path
+    list_file = 'dataset/train_list.txt'
     train_blur_img_list = sorted(
         tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(jpg|JPG)', printable=False))
     train_mask_img_list = []
 
-    for str in train_blur_img_list:
-        if ".jpg" in str:
-            train_mask_img_list.append(str.replace(".jpg", ".png"))
+    for name in train_blur_img_list:
+        if ".jpg" in name:
+            train_mask_img_list.append(name.replace(".jpg", ".png"))
         else:
-            train_mask_img_list.append(str.replace(".JPG", ".png"))
+            train_mask_img_list.append(name.replace(".JPG", ".png"))
 
     ###Load Training Data ####
-    train_blur_imgs = read_all_imgs(train_blur_img_list, path=input_path, n_threads=batch_size, mode='RGB')
-    train_mask_imgs = read_all_imgs(train_mask_img_list, path=gt_path, n_threads=batch_size, mode='GRAY')
+    blur_imgs = read_all_imgs(train_blur_img_list, path=input_path, n_threads=batch_size, mode='RGB')
+    mask_imgs = read_all_imgs(train_mask_img_list, path=gt_path, n_threads=batch_size, mode='GRAY')
+
+    train_blur_imgs = []
+    train_mask_imgs = []
+
+    # get the chuk image list that is used for training 
+    with open(list_file) as f:
+        lines = f.readlines()
+    indexs = np.arange(0,len(blur_imgs))
+    testList = '\t'.join(lines)
+    for idx in indexs:
+        imagename = train_blur_img_list[idx]
+        if imagename in testList:
+            train_blur_imgs.append(blur_imgs[idx])
+            train_mask_imgs.append(mask_imgs[idx])
 
     index = 0
     train_classification_mask = []
@@ -83,6 +96,9 @@ def train_with_CHUK():
 
         train_classification_mask.append(tmp_class)
         index = index + 1
+    
+    train_classification_mask = np.array(train_classification_mask)
+    train_blur_imgs = np.array(train_blur_imgs)
     print("Number of training images " + str(len(train_blur_imgs)))
 
     ### DEFINE MODEL ###
@@ -92,9 +108,9 @@ def train_with_CHUK():
         with tf.compat.v1.variable_scope('VGG') as scope1:
             input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
         with tf.compat.v1.variable_scope('UNet') as scope2:
-            net_regression, m1, m2, m3, m1B, m2B, m3B, m4B = Decoder_Network_classification(input, n, f0, f0_1, f1_2,
-                                                                                            f2_3, reuse=False,
-                                                                                            scope=scope2)
+            net_regression, m1, m2, m3 = Decoder_Network_classification(input, n, f0, f0_1, f1_2, f2_3, 
+            reuse=False,scope=scope2)
+
     ### DEFINE LOSS ###
     loss1 = tl.cost.cross_entropy(net_regression.outputs, tf.squeeze(classification_map), name='loss1')
     loss2 = tl.cost.cross_entropy(m1.outputs,
@@ -133,14 +149,14 @@ def train_with_CHUK():
     configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
     configTf.gpu_options.allow_growth = True
     # uncomment if on a gpu machine
-    # gpus = tf.config.experimental.list_physical_devices('GPU')
-    # if gpus:
-    #     try:
-    #         for gpu in gpus:
-    #             tf.config.experimental.set_memory_growth(gpu, True)
-    #
-    #     except RuntimeError as e:
-    #         print(e)
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        try:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+    
+        except RuntimeError as e:
+            print(e)
     sess = tf.compat.v1.Session(config=configTf)
 
     print("initializing global variable...")
@@ -157,7 +173,7 @@ def train_with_CHUK():
         if not os.path.isfile(vgg19_npy_path):
             print("Please download vgg19.npz from : https://github.com/machrisaa/tensorflow-vgg")
             exit()
-        npz = np.load(vgg19_npy_path, encoding='latin1').item()
+        npz = np.load(vgg19_npy_path, encoding='latin1',allow_pickle=True).item()
 
         params = []
         count_layers = 0
@@ -169,7 +185,7 @@ def train_with_CHUK():
                 params.extend([W, b])
             count_layers += 1
 
-        tl.files.assign_params(sess, params, n)
+        sess.run(tl.files.assign_weights(params, n))
 
     ### START TRAINING ###
     augmentation_list = [0, 1]
@@ -262,11 +278,11 @@ def train_with_synthetic():
         tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(jpg|JPG)', printable=False))
     train_mask_img_list = []
 
-    for str in train_blur_img_list:
-        if ".jpg" in str:
-            train_mask_img_list.append(str.replace(".jpg", ".png"))
+    for name in train_blur_img_list:
+        if ".jpg" in name:
+            train_mask_img_list.append(name.replace(".jpg", ".png"))
         else:
-            train_mask_img_list.append(str.replace(".JPG", ".png"))
+            train_mask_img_list.append(name.replace(".JPG", ".png"))
 
     ###Load Training Data ####
     train_blur_imgs = read_all_imgs(train_blur_img_list, path=input_path, n_threads=batch_size, mode='RGB')
@@ -292,12 +308,12 @@ def train_with_synthetic():
         tl.files.load_file_list(path=input_path2, regx='(out_of_focus|motion).*.(jpg|JPG)', printable=False))
     ori_train_mask_img_list = []
 
-    for str in ori_train_blur_img_list:
+    for name in ori_train_blur_img_list:
 
-        if ".jpg" in str:
-            ori_train_mask_img_list.append(str.replace(".jpg", ".png"))
+        if ".jpg" in name:
+            ori_train_mask_img_list.append(name.replace(".jpg", ".png"))
         else:
-            ori_train_mask_img_list.append(str.replace(".JPG", ".png"))
+            ori_train_mask_img_list.append(name.replace(".JPG", ".png"))
 
     # augmented dataset read
     gt_path2 = config.TRAIN.CUHK_gt_path

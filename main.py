@@ -2,8 +2,6 @@
 import copy
 
 import tensorflow as tf
-# import tensorflow.compat.v1 as tf
-# tf.disable_v2_behavior()
 import tensorlayer as tl
 import numpy as np
 import math
@@ -18,7 +16,7 @@ import argparse
 import os
 import sys
 from train import *
-from test import *
+from test import test
 
 # https://intellipaat.com/community/4920/parsing-boolean-values-with-argparse
 def t_or_f(arg):
@@ -28,7 +26,7 @@ def t_or_f(arg):
     elif 'FALSE'.startswith(ua):
         return False
     else:
-        pass  # Here you can write error condition.
+        pass
 
 # main function
 if __name__ == '__main__':
@@ -43,7 +41,7 @@ if __name__ == '__main__':
 
     tl.global_flag['mode'] = args.mode
     tl.global_flag['is_train'] = t_or_f(args.is_train)
-    tl.global_flag['is_synthetic'] = t_or_f(args.is_syntheic)
+    tl.global_flag['is_synthetic'] = t_or_f(args.is_synthetic)
     tl.global_flag['start_from'] = int(args.start_from)
 
     if tl.global_flag['is_train']:
