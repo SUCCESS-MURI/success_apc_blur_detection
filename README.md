@@ -31,7 +31,7 @@ python main.py --is_train true
 - run 'main.py'
 
 ```bash
-python main.py --is_train false
+python main.py
 ```
 - Note there are 2 ways of running the test weights. Can use the converted .npy weights on XXX from the [original repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git) or you can run training and use .cktp weights generated from this code. 
 - 
