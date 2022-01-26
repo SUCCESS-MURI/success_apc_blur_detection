@@ -1,10 +1,6 @@
 #! /usr/bin/python
 # -*- coding: utf8 -*-
-import copy
-
 import tensorflow as tf
-import tensorlayer as tl
-import numpy as np
 from tensorlayer.layers import *
 from tensorlayer.models import Model
 

@@ -1,28 +1,13 @@
 # coding=utf-8
-import copy
 import csv
-import multiprocessing
-import random
 
 import tensorflow as tf
 tf.compat.v1.disable_eager_execution()
-#tf.compat.v1.enable_eager_execution()
-# tf.disable_v2_behavior()
-import tensorlayer as tl
-import numpy as np
-import math
-from sklearn.metrics import confusion_matrix
-
-from config import config, log_config
+from config import log_config
 from utils import *
 from model import *
-import matplotlib
-import datetime
 import time
-import cv2
-import argparse
 import os
-from os import path
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.DEBUG)
 tl.logging.set_verbosity(tl.logging.DEBUG)

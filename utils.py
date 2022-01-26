@@ -1,17 +1,9 @@
-import tensorflow as tf
+
 import tensorlayer as tl
-from tensorlayer.prepro import *
-from config import config, log_config
-from skimage import feature
-from skimage import color
-from scipy.ndimage.filters import gaussian_filter
-from PIL import Image, ImageChops
+from config import config
 import cv2
-import math
-from tensorflow.python.ops import array_ops
 import random
 import imageio
-import scipy
 import numpy as np
 
 VGG_MEAN = [103.939, 116.779, 123.68]

@@ -1,20 +1,5 @@
 # coding=utf-8
-import copy
-
-import tensorflow as tf
-import tensorlayer as tl
-import numpy as np
-import math
-from config import config, log_config
-from utils import *
-from model import *
-import matplotlib
-import datetime
-import time
-import cv2
 import argparse
-import os
-import sys
 from train import *
 from test import test
 

@@ -1,22 +1,12 @@
 # coding=utf-8
-import copy
 import csv
 import multiprocessing
-import random
-import tensorflow as tf
-import tensorlayer as tl
-import numpy as np
-import math
+
+from PIL import Image
 from matplotlib import pyplot as plt
-from tensorflow.python.training import py_checkpoint_reader
 from sklearn.metrics import f1_score, confusion_matrix, accuracy_score
-from config import config, log_config
-# from setup.load_kim_weights_and_save import get_weights_checkpoint, get_weights
 from utils import *
 from model import *
-import matplotlib
-import datetime
-import time
 import cv2
 import os
 
@@ -419,9 +409,14 @@ def test():
     plt.rc('ytick', labelsize=20)  # fontsize of the y tick labels
     plt.rc('legend', fontsize=30)  # fontsize of the legend
     plt.clf()
-    final_confmatrix = confusion_matrix(np.array(all_gt_image_results).flatten(), np.array(all_image_results).flatten(),
-                                        labels=[0, 1, 2], normalize="true")
+    all_gt_image_hold = np.array(all_gt_image_results[0]).flatten()
+    all_image_results_hold = np.array(all_image_results[0]).flatten()
+    for i in range(1,len(all_gt_image_results)):
+        np.concatenate((all_gt_image_hold,np.array(all_gt_image_results[i]).flatten()))
+        np.concatenate((all_image_results_hold,np.array(all_image_results[i]).flatten()))
     all_gt_image_results, all_image_results = None, None
+    final_confmatrix = confusion_matrix(all_gt_image_hold, all_image_results_hold, labels=[0, 1, 2], normalize="true")
+    all_gt_image_hold, all_image_results_hold = None, None
 
     np.save('all_labels_results_conf_matrix.npy', final_confmatrix)
     final_confmatrix = np.round(final_confmatrix, 3)
@@ -445,10 +440,16 @@ def test():
     plt.savefig('conf_matrix_all_labels.png')
     plt.show()
 
-    plt.clf()
-    final_confmatrix = confusion_matrix(np.array(all_gt_binary_image_results).flatten(),
-                                        np.array(all_binary_image_results).flatten(), labels=[0, 1], normalize="true")
+    all_gt_image_hold = np.array(all_gt_binary_image_results[0]).flatten()
+    all_image_results_hold = np.array(all_binary_image_results[0]).flatten()
+    for i in range(1, len(all_gt_binary_image_results)):
+        np.concatenate((all_gt_image_hold, np.array(all_gt_binary_image_results[i]).flatten()))
+        np.concatenate((all_image_results_hold, np.array(all_binary_image_results[i]).flatten()))
     all_gt_binary_image_results, all_binary_image_results = None, None
+    plt.clf()
+    final_confmatrix = confusion_matrix(all_gt_image_hold, all_image_results_hold, labels=[0, 1],
+                                        normalize="true")
+    all_gt_image_hold, all_image_results_hold = None, None
     np.save('all_binary_results_conf_matrix.npy', final_confmatrix)
     final_confmatrix = np.round(final_confmatrix, 3)
     cax = plt.imshow(final_confmatrix, interpolation='nearest', cmap=plt.cm.Blues)
