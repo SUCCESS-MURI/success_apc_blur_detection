@@ -1,6 +1,6 @@
 Tensorflow Issues that might need to be fixed 
 
-had to update utils.py located in envs/NNBlurDetection/lib/python3.6/site-packages/tensorlayer/files
+had to update utils.py located in envs/NNBlurDetection/lib/python3.8/site-packages/tensorlayer/files/utils.py
 
 def save_ckpt(sess=None, mode_name='model.ckpt', save_dir='checkpoint', var_list=None, global_step=None, printable=False):
     """Save parameters into `ckpt` file.
@@ -45,7 +45,7 @@ def save_ckpt(sess=None, mode_name='model.ckpt', save_dir='checkpoint', var_list
 
     if sess:
         # graph mode
-        saver = tf.compat.v1.train.Saver(var_list)
+        saver = tf.train.Saver(var_list)
         saver.save(sess, ckpt_file, global_step=global_step)
     else:
         # eager mode
