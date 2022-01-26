@@ -9,7 +9,7 @@ This repository contains the training and test code for running our blur detecti
 - Tensorflow-gpu 2.2.0
 - Tensorlayer 2.2.3
 - OpenCV2
-- Listed in the document Packages_Requirements
+- Other packages needed are listed in the document Packages_Requirements.txt
 - Using Ananconda Virtual Enviornment
 
 ### Note with Tensorflow update
@@ -31,7 +31,7 @@ python main.py --is_train true
 - run 'main.py'
 
 ```bash
-python main.py --is_train false
+python main.py
 ```
 - Note there are 2 ways of running the test weights. Can use the converted .npy weights on XXX from the [original repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git) or you can run training and use .cktp weights generated from this code. 
 - 
