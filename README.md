@@ -9,7 +9,7 @@ This repository contains the training and test code for running our blur detecti
 - Tensorflow-gpu 2.2.0
 - Tensorlayer 2.2.3
 - OpenCV2
-- Listed in the document Packages_Requirements
+- Other packages needed are listed in the document Packages_Requirements.txt
 - Using Ananconda Virtual Enviornment
 
 ### Note with Tensorflow update
