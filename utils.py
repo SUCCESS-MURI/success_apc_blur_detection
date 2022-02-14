@@ -60,8 +60,8 @@ def get_imgs_RGBGRAY_2_fn(file_name, path):
     """ Input an image path and name, return an image array """
     # return scipy.misc.imread(path + file_name).astype(np.float)
     # https://www.geeksforgeeks.org/python-pil-image-convert-method/
-    image = cv2.imread(path+file_name)
-    return np.asarray(image)[:,:,0][:,:,np.newaxis]
+    image = Image.open(path + file_name)
+    return np.asarray(image)[:,:,np.newaxis]
 
 def crop_sub_img_and_classification_fn_aug(data):
 
