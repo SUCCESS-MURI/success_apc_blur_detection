@@ -31,14 +31,22 @@ config.VALIDATION.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dat
 config.TEST.muri_blur_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Testing/images/'
 config.TEST.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Testing/gt/'
 
+config.TEST.blur_path = '/home/mary/code/local_success_dataset/IROS_Dataset/02_14_2022/Testing/images/'
+config.TEST.gt_path = '/home/mary/code/local_success_dataset/IROS_Dataset/02_14_2022/Testing/gt/'
+
 config.SENSITVITY.muri_blur_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Sensitivity/images' \
                                    '/halfsize/'
 config.SENSITVITY.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Sensitivity/gt' \
                                  '/halfsize/'
 
+config.TEST.real_blur_path = '/home/mary/code/local_success_dataset/IROS_Dataset/examples_for_autoexposure'#'/home/mary/Desktop/testing/'
+
 ## train image size
 config.TRAIN.height = 256
 config.TRAIN.width = 256
+
+config.TEST.height = 480
+config.TEST.width = 640
 
 def log_config(filename, cfg):
     with open(filename, 'w') as f:

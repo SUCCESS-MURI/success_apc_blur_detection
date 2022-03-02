@@ -5,8 +5,8 @@ import shutil
 import numpy as np
 from numpy import random
 
-training_count = 36#53
-testing_count = 9#14
+training_count = 80#36#53
+testing_count = 20#9#14
 
 def split_dataset(args):
     # now create folders for correct data vs incorectly labeled data
@@ -46,10 +46,10 @@ def split_dataset(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--file_input_path', type=str,
-                        default='/home/mary/code/local_success_dataset/darkness_images',
+                        default='/home/mary/code/local_success_dataset/exposure_dataset_gathering/02_21_2021/brightness',
                         help='Path to the CUHK dataset')
     parser.add_argument('--file_output_path', type=str,
-                        default='/home/mary/code/local_success_dataset/02_12_2022_darkness_dataset',
+                        default='/home/mary/code/local_success_dataset/02_22_2022_brightness_dataset',
                         help='Output Path to the CUHK datasetfor testing and training')
     args = parser.parse_args()
     split_dataset(args)

@@ -2,7 +2,8 @@
 import argparse
 import tensorlayer as tl
 from train import train_with_muri_dataset
-from test import test_with_muri_dataset, test_sensitivity_with_muri_dataset
+from test import test_with_muri_dataset, test_sensitivity_with_muri_dataset, test_with_real_bd_dataset, test, \
+    blurmap_3classes_using_numpy_pretrainied_weights_newds
 
 
 # https://intellipaat.com/community/4920/parsing-boolean-values-with-argparse
@@ -37,5 +38,8 @@ if __name__ == '__main__':
     if tl.global_flag['is_sensitivity']:
         test_sensitivity_with_muri_dataset()
     else:
-        test_with_muri_dataset()
+        #test_with_muri_dataset()
+        #test_with_real_bd_dataset()
+        test()
+        #blurmap_3classes_using_numpy_pretrainied_weights_newds()
 

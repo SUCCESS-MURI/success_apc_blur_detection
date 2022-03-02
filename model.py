@@ -96,7 +96,7 @@ def VGG19_pretrained(t_image,reuse = False,scope="VGG"):
 
     return net_in, n, f0, f0_1,f1_2,f2_3
 
-def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=False, scope = "UNet"):
+def Updated_Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=False, scope = "UNet"):
     # xavier_initializer was discontinued
     w_init1 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
     # w_init1 = tf.truncated_normal_initializer()
@@ -224,7 +224,7 @@ def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=Fa
         n_m2 = Model(inputs=network.inputs, outputs=n_m2,)
         n_m1 = Model(inputs=network.inputs, outputs=n_m1,)
 
-    return network, n_m1, n_m2, n_m3,m1BModel,m2BModel,m3BModel,m4BModel
+    return network, n_m1, n_m2, n_m3
 
 def Decoder_Network_classification_3_labels(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=False, scope = "UNet"):
     # xavier_initializer was discontinued
