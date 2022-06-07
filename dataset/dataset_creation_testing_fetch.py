@@ -67,6 +67,9 @@ def create_dataset_for_testing(args):
         (T, saliency) = cv2.threshold(saliencyBMask, .001, 1, cv2.THRESH_BINARY)
         saliency[saliency == 0] = 128  # focus
         saliency[saliency == 1] = 0 # normal
+        imagegray = skimage.color.rgb2gray(image) * 255
+        saliency[imagegray < 30] = 192
+        saliency[imagegray > 245] = 255
         saveName = args.output_data_dir + "/gt/"+str(i) + "_" + args.data_extension
         cv2.imwrite(saveName, saliency)
 
@@ -80,6 +83,9 @@ def create_dataset_for_testing(args):
         imageio.imsave(saveName, image)
         # motion blur
         saliencyBMask = np.ones(final_shape)*64
+        imagegray = skimage.color.rgb2gray(image) * 255
+        saliencyBMask[imagegray < 30] = 192
+        saliencyBMask[imagegray > 245] = 255
         saveName = args.output_data_dir + "/gt/"+str(j) + "_" + args.data_extension
         cv2.imwrite(saveName, saliencyBMask)
         j += 1
@@ -93,6 +99,9 @@ def create_dataset_for_testing(args):
         imageio.imsave(saveName, image)
         # motion blur
         saliencyBMask = np.ones(final_shape) * 128
+        imagegray = skimage.color.rgb2gray(image) * 255
+        saliencyBMask[imagegray < 30] = 192
+        saliencyBMask[imagegray > 245] = 255
         saveName = args.output_data_dir + "/gt/" + str(j) + "_" + args.data_extension
         cv2.imwrite(saveName, saliencyBMask)
         j += 1
@@ -111,8 +120,8 @@ def create_dataset_for_testing(args):
         imagegray = skimage.color.rgb2gray(image)*255
         saliency[saliency == 0] = 128  # focus
         saliency[saliency == 1] = 255  # overexposure
-        saliency[imagegray < 45] = 192
-        saliency[imagegray > 225] = 255
+        saliency[imagegray < 30] = 192
+        saliency[imagegray > 245] = 255
         saveName = args.output_data_dir + "/gt/"+str(j) + "_" + args.data_extension
         cv2.imwrite(saveName, saliency)
         j += 1
@@ -131,8 +140,8 @@ def create_dataset_for_testing(args):
         imagegray = skimage.color.rgb2gray(image)*255
         saliency[saliency == 0] = 128  # focus
         saliency[saliency == 1] = 192  # underexposure
-        saliency[imagegray < 45] = 192
-        saliency[imagegray > 225] = 255
+        saliency[imagegray < 30] = 192
+        saliency[imagegray > 245] = 255
         saveName = args.output_data_dir + "/gt/"+str(j) + "_" + args.data_extension
         cv2.imwrite(saveName, saliency)
         j += 1
