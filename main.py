@@ -1,7 +1,7 @@
 # coding=utf-8
 import argparse
 import tensorlayer as tl
-from train import train_with_muri_dataset
+#from train import train_with_muri_dataset
 from test import test_with_muri_dataset, test_sensitivity_with_muri_dataset, test_with_real_bd_dataset, test, \
     blurmap_3classes_using_numpy_pretrainied_weights_newds
 
@@ -33,13 +33,13 @@ if __name__ == '__main__':
     tl.global_flag['uncertainty_label'] = t_or_f(args.uncertainty_label)
     tl.global_flag['is_sensitivity'] = t_or_f(args.is_sensitivity)
 
-    if tl.global_flag['is_train']:
-        train_with_muri_dataset()
-    if tl.global_flag['is_sensitivity']:
-        test_sensitivity_with_muri_dataset()
-    else:
+    # if tl.global_flag['is_train']:
+    #     train_with_muri_dataset()
+    # if tl.global_flag['is_sensitivity']:
+    #     test_sensitivity_with_muri_dataset()
+    # else:
         #test_with_muri_dataset()
         #test_with_real_bd_dataset()
-        test()
+    test()
         #blurmap_3classes_using_numpy_pretrainied_weights_newds()
 

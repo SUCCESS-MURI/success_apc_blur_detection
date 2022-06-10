@@ -37,7 +37,7 @@ decay_every = config.TRAIN.decay_every
 VGG_MEAN = [103.939, 116.779, 123.68]
 g_mean = np.array(([126.88,120.24,112.19])).reshape([1,1,3])
 
-threshold = .4
+threshold = .3
 
 ni = int(math.ceil(np.sqrt(batch_size)))
 
@@ -1474,8 +1474,8 @@ def test():
     test_mask_img_list = sorted(tl.files.load_file_list(path=config.TEST.gt_path, regx='/*.(png|PNG)', printable=False))
 
     ###Load Testing Data ####
-    test_blur_imgs = read_all_imgs(test_blur_img_list, path=config.TEST.blur_path, n_threads=100, mode='RGB')
-    test_mask_imgs = read_all_imgs(test_mask_img_list, path=config.TEST.gt_path, n_threads=100, mode='RGB2GRAY2')
+    test_blur_imgs = read_all_imgs(test_blur_img_list, path=config.TEST.blur_path + '/', n_threads=100, mode='RGB')
+    test_mask_imgs = read_all_imgs(test_mask_img_list, path=config.TEST.gt_path + '/', n_threads=100, mode='RGB2GRAY2')
 
     test_classification_mask = []
     for img in test_mask_imgs:
@@ -1507,7 +1507,7 @@ def test():
                                                                                                     scope=scope2)
 
     output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
-    #output = tf.nn.softmax(net_regression.outputs)
+    output = tf.nn.softmax(net_regression.outputs)
     # layer output definition
     output_map1 = tf.expand_dims(tf.math.argmax(tf.nn.softmax(m1.outputs),axis=3),axis=3)
     output_map2 = tf.expand_dims(tf.math.argmax(tf.nn.softmax(m2.outputs),axis=3),axis=3)
@@ -1580,9 +1580,26 @@ def test():
 
         # Model
         start_time = time.time()
+        # uncertain labeling
+        if tl.global_flag['uncertainty_label']:
+            blur_map = np.zeros((h, w))
+            blurMap, o1, o2, o3 = sess.run([output, output_map1, output_map2, output_map3],
+                                                      {net_regression.inputs: np.expand_dims(test_image, axis=0)})
+            blurMap = np.squeeze(blurMap)
+            # numpy array with labels
+            blur_map[np.sum(blurMap[:, :] >= threshold, axis=2) == 1] = np.argmax(blurMap[np.sum(blurMap[:, :] >=
+                                                                                                 threshold,
+                                                                                                 axis=2) == 1], axis=1)
+            # uncertainty labeling
+            blur_map[np.sum(blurMap[:, :] >= threshold, axis=2) != 1] = 5
+            blur_map = blur_map[np.newaxis,:,:,np.newaxis]
+        else:
+            blur_map, o1, o2, o3 = sess.run([output_map, output_map1, output_map2, output_map3],
+                                            {net_regression.inputs: np.expand_dims(test_image, axis=0)})
+            #blur_map = np.squeeze(blurMap)
 
         # blur_map = sess.run([output_map], {net_regression.inputs: np.expand_dims(test_image, axis=0)})[0]
-        blur_map,o1,o2,o3 = sess.run([output_map,output_map1,output_map2,output_map3], {net_regression.inputs: np.expand_dims(test_image, axis=0)})
+        #blur_map,o1,o2,o3 = sess.run([output_map,output_map1,output_map2,output_map3], {net_regression.inputs: np.expand_dims(test_image, axis=0)})
 
         accuracy = accuracy_score(np.squeeze(gt_test_image).flatten(), np.squeeze(blur_map).flatten(), normalize=True)
         # compare binary map
@@ -1834,17 +1851,19 @@ def test():
         f.write(log)
         f.write(log2)
 
-    plt.rc('font', size=20)  # controls default text size
+    plt.rc('font', size=30)  # controls default text size
     plt.rc('axes', titlesize=20)  # fontsize of the title
     plt.rc('axes', labelsize=20)  # fontsize of the x and y labels
     plt.rc('xtick', labelsize=20)  # fontsize of the x tick labels
     plt.rc('ytick', labelsize=20)  # fontsize of the y tick labels
     plt.rc('legend', fontsize=30)  # fontsize of the legend
+
     plt.clf()
+    plt.figure(figsize=(12, 10))
     final_confmatrix = confusion_matrix(np.array(all_gt_img_results).flatten(), np.array(all_img_results).flatten(),
                                         labels=[0, 1, 2, 3, 4], normalize="true")
     np.save(save_dir_sample +'/all_labels_results_conf_matrix.npy', final_confmatrix)
-    final_confmatrix = np.round(final_confmatrix, 3)
+    final_confmatrix = np.round(final_confmatrix, 2)
     cax = plt.imshow(final_confmatrix, interpolation='nearest', cmap=plt.cm.Blues)
     classNames = ['No Blur', 'Motion', 'Focus', 'Darkness', 'Brightness']
     plt.title('Our Weights - Test Data Confusion Matrix')
@@ -1866,10 +1885,11 @@ def test():
     plt.show()
 
     plt.clf()
+    plt.figure(figsize=(8, 7))
     final_confmatrix = confusion_matrix(np.array(all_gt_binary_results).flatten(),
                                         np.array(all_img_binary_results).flatten(), labels=[0, 1], normalize="true")
     np.save(save_dir_sample +'/all_binary_results_conf_matrix.npy', final_confmatrix)
-    final_confmatrix = np.round(final_confmatrix, 3)
+    final_confmatrix = np.round(final_confmatrix, 2)
     cax = plt.imshow(final_confmatrix, interpolation='nearest', cmap=plt.cm.Blues)
     classNames = ['No Blur', 'Blur']
     plt.title('Our Weights - Test Data Confusion Matrix')
@@ -1878,7 +1898,10 @@ def test():
     tick_marks = np.arange(len(classNames))
     plt.xticks(tick_marks, classNames, rotation=45)
     plt.yticks(tick_marks, classNames)
-    thresh = final_confmatrix.max() / 2.
+    if final_confmatrix.min() > .3:
+        thresh = final_confmatrix.min()
+    else:
+        thresh = final_confmatrix.max() / 2.
     for i in range(final_confmatrix.shape[0]):
         for j in range(final_confmatrix.shape[1]):
             plt.text(j, i, format(final_confmatrix[i, j]),

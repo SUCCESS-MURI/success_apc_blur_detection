@@ -13,7 +13,7 @@ config.TRAIN.lr_init = 1e-5
 config.TRAIN.beta1 = 0.9
 
 ## initialize G
-config.TRAIN.n_epoch_init = 1000
+config.TRAIN.n_epochs = 1000
 config.TRAIN.valid_every = 50
 
 ## adversarial learning (SRGAN)
@@ -31,14 +31,15 @@ config.VALIDATION.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dat
 config.TEST.muri_blur_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Testing/images/'
 config.TEST.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Testing/gt/'
 
-config.TEST.blur_path = '/home/mary/code/local_success_dataset/IROS_Dataset/02_14_2022/Testing/images/'
-config.TEST.gt_path = '/home/mary/code/local_success_dataset/IROS_Dataset/02_14_2022/Testing/gt/'
+config.TEST.blur_path = '/home/mary/code/local_success_dataset/fetch_images/output_blur_data_06_20_2022' \
+                        '/Blur_Detection_Input/Testing/images'
+config.TEST.gt_path = '/home/mary/code/local_success_dataset/fetch_images/output_blur_data_06_20_2022' \
+                      '/Blur_Detection_Input/Testing/gt'
 
 config.SENSITVITY.muri_blur_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Sensitivity/images' \
                                    '/halfsize/'
 config.SENSITVITY.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Sensitivity/gt' \
                                  '/halfsize/'
-
 config.TEST.real_blur_path = '/home/mary/code/local_success_dataset/IROS_Dataset/examples_for_autoexposure'#'/home/mary/Desktop/testing/'
 
 ## train image size
