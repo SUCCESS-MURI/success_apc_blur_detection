@@ -2,9 +2,7 @@
 import argparse
 import tensorlayer as tl
 #from train import train_with_muri_dataset
-from test import test_with_muri_dataset, test_sensitivity_with_muri_dataset, test_with_real_bd_dataset, test, \
-    blurmap_3classes_using_numpy_pretrainied_weights_newds
-
+from test import *
 
 # https://intellipaat.com/community/4920/parsing-boolean-values-with-argparse
 def t_or_f(arg):
@@ -40,6 +38,7 @@ if __name__ == '__main__':
     # else:
         #test_with_muri_dataset()
         #test_with_real_bd_dataset()
-    test()
+    #test()
+    test_w_saliance()
         #blurmap_3classes_using_numpy_pretrainied_weights_newds()
 

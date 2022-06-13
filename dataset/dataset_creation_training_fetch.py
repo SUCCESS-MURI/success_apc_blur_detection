@@ -1038,6 +1038,538 @@ def create_dataset_for_training_type_3_focus(args):
         nMask[nMask == 4] = 255
         cv2.imwrite(saveName, nMask)
 
+# create training dataset type 1
+# all real images overlayed for training
+def create_dataset_for_training_type_1_motion(args):
+    final_shape = (480, 640)
+    tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
+    tl.files.exists_or_mkdir(args.output_data_dir + "/gt/")
+    # list of all original Images
+    images_normal_list = sorted(tl.files.load_file_list(path=args.data_dir +'/normal', regx='/*.(png|PNG)',
+                                                        printable=False))
+    images_focus_list = sorted(tl.files.load_file_list(path=args.data_dir +'/focus', regx='/*.(png|PNG)',
+                                                       printable=False))
+    images_motion_list = sorted(tl.files.load_file_list(path=args.data_dir +'/motion', regx='/*.(png|PNG)',
+                                                        printable=False))
+    images_overexposure_list = sorted(tl.files.load_file_list(path=args.data_dir +'/overexposure', regx='/*.(png|PNG)',
+                                                              printable=False))
+    images_underexposure_list = sorted(tl.files.load_file_list(path=args.data_dir +'/underexposure',
+                                                               regx='/*.(png|PNG)', printable=False))
+    images_sailency_exposed_list = sorted(tl.files.load_file_list(path=args.data_dir + '/saliency_exposed',
+                                                                  regx='/*.(png|PNG)',printable=False))
+    # images_sailency_focus_list = sorted(tl.files.load_file_list(path=args.data_dir + '/saliency_focus',
+    #                                                               regx='/*.(png|PNG)',printable=False))
+    images_sailency_motion_list = sorted(tl.files.load_file_list(path=args.data_dir + '/saliency_motion',
+                                                                 regx='/*.(png|PNG)', printable=False))
+    images_sailency_normal_list = sorted(tl.files.load_file_list(path=args.data_dir + '/saliency', regx='/*.(png|PNG)',
+                                                        printable=False))
+    # these images have out of focus blur already we need to create motion blur, and the over and under exposure images
+    imagesNOrigonal = read_all_imgs(images_normal_list, path=args.data_dir +'/normal/', n_threads=100, mode='RGB')
+    imagesFOrigonal = read_all_imgs(images_focus_list, path=args.data_dir +'/focus/', n_threads=100, mode='RGB')
+    imagesMOrigonal = read_all_imgs(images_motion_list, path=args.data_dir + '/motion/', n_threads=100, mode='RGB')
+    imagesOOrigonal = read_all_imgs(images_overexposure_list, path=args.data_dir + '/overexposure/', n_threads=100,
+                                    mode='RGB')
+    imagesUOrigonal = read_all_imgs(images_underexposure_list, path=args.data_dir + '/underexposure/',
+                                    n_threads=100, mode='RGB')
+    imagesNSaliency = read_all_imgs(images_sailency_normal_list, path=args.data_dir + '/saliency/',
+                                    n_threads=100, mode='GRAY')
+    imagesESaliency = read_all_imgs(images_sailency_exposed_list, path=args.data_dir + '/saliency_exposed/',
+                                    n_threads=100, mode='GRAY')
+    # imagesFSaliency = read_all_imgs(images_sailency_focus_list, path=args.data_dir + '/saliency_focus/',
+    #                                 n_threads=100,mode='GRAY')
+    imagesMSaliency = read_all_imgs(images_sailency_motion_list, path=args.data_dir + '/saliency_motion/',
+                                   n_threads=100, mode='GRAY')
+
+    # save normal images
+    # 1st get a random motion image
+    index = np.arange(0,len(imagesFOrigonal),1)
+    for i in range(400):
+        idx_focus = random.choice(index)
+        image_base = 255.0 * np.power((copy.deepcopy(imagesFOrigonal[idx_focus]) * 1.) / 255.0, gamma)
+        nMask = np.ones((final_shape[0], final_shape[1]))*2
+        imagegray = skimage.color.rgb2gray(np.round(np.power((image_base * 1.) / 255.0,
+                                                             (1.0 / gamma)) * 255.0).astype(np.uint8))*255
+        nMask[imagegray < 10] = 3
+        nMask[imagegray > 245] = 4
+
+        # overlay normal image
+        idx_normal = random.choice(index)
+        image_normal = 255.0 * np.power((copy.deepcopy(imagesNOrigonal[idx_normal])* 1.) / 255.0, gamma)
+        image_saliency_normal = np.squeeze(copy.deepcopy(imagesNSaliency[idx_normal]))
+        # now overlay the images
+        image_saliency_normal[image_saliency_normal > 0.1] = 255
+        alpha = image_saliency_normal / 255.
+        placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                     np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+        final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(image_base, image_normal, placement[1],
+                                                                             placement[0], alpha)
+        nMask[max(0, placement[0]) + np.argwhere(image_saliency_normal[y1o:y2o, x1o:x2o] == 255)[:, 0],
+              max(0, placement[1]) + np.argwhere(image_saliency_normal[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 0
+        imagegray = skimage.color.rgb2gray(np.round(np.power((image_normal * 1.) / 255.0,
+                                                             (1.0 / gamma)) * 255.0).astype(np.uint8))*255
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_normal[y1o:y2o, x1o:x2o] == 255,
+                imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray)/3))[:, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_normal[y1o:y2o, x1o:x2o] == 255,
+                imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray)/3))[:, 1]] = 3
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_normal[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_normal[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 1]] = 4
+
+        # overlay motion image
+        idx_motion = random.choice(index)
+        image_motion = 255.0 * np.power((copy.deepcopy(imagesMOrigonal[idx_motion]) * 1.) / 255.0, gamma)
+        image_saliency_motion = np.squeeze(copy.deepcopy(imagesMSaliency[idx_motion]))
+        # now overlay the images
+        image_saliency_motion[image_saliency_motion > 0.1] = 255
+        alpha = image_saliency_motion / 255.
+        placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                     np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+        final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(final_masked_blurred_image,
+                                                                             image_motion, placement[1],
+                                                                             placement[0], alpha)
+        nMask[max(0, placement[0]) + np.argwhere(image_saliency_motion[y1o:y2o, x1o:x2o] == 255)[:, 0],
+              max(0, placement[1]) + np.argwhere(image_saliency_motion[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 1
+        imagegray = skimage.color.rgb2gray(np.round(np.power((image_motion * 1.) / 255.0,
+                                                             (1.0 / gamma)) * 255.0).astype(np.uint8))*255
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_motion[y1o:y2o, x1o:x2o] == 255,
+                                                    imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray)/3))[:, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_motion[y1o:y2o, x1o:x2o] == 255,
+                                                    imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray)/3))[:, 1]] = 3
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_motion[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_motion[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 1]] = 4
+
+        # overlay overexposure image
+        idx_overexposure = random.choice(index)
+        image_overexposure = 255.0 * np.power((copy.deepcopy(imagesOOrigonal[idx_overexposure]) * 1.) / 255.0, gamma)
+        image_saliency_overexposure = np.squeeze(copy.deepcopy(imagesESaliency[idx_overexposure]))
+        # now overlay the images
+        image_saliency_overexposure[image_saliency_overexposure > 0.1] = 255
+        alpha = image_saliency_overexposure / 255.
+        placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                     np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+        final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(final_masked_blurred_image,
+                                                                             image_overexposure, placement[1],
+                                                                             placement[0], alpha)
+        nMask[max(0, placement[0]) + np.argwhere(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255)[:, 0],
+              max(0, placement[1]) + np.argwhere(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 4
+        imagegray = skimage.color.rgb2gray(np.round(np.power((image_overexposure * 1.) / 255.0,
+                                                             (1.0 / gamma)) * 255.0).astype(np.uint8))*255
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                    imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray) / 3))[:, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                    imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray) / 3))[:, 1]] = 3
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 1]] = 4
+
+        # overlay underexposure image
+        idx_underexposure = random.choice(index)
+        image_underexposure = 255.0 * np.power((copy.deepcopy(imagesUOrigonal[idx_underexposure]) * 1.) / 255.0, gamma)
+        image_saliency_underexposure = np.squeeze(copy.deepcopy(imagesESaliency[idx_underexposure]))
+        # now overlay the images
+        image_saliency_underexposure[image_saliency_underexposure > 0.1] = 255
+        alpha = image_saliency_underexposure / 255.
+        placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                     np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+        final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(final_masked_blurred_image,
+                                                                             image_underexposure, placement[1],
+                                                                             placement[0], alpha)
+        nMask[max(0, placement[0]) + np.argwhere(image_saliency_underexposure[y1o:y2o, x1o:x2o] == 255)[:, 0],
+              max(0, placement[1]) + np.argwhere(image_saliency_underexposure[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 3
+        # imagegray = skimage.color.rgb2gray(np.round(np.power((image_underexposure * 1.) / 255.0,
+        #                                                      (1.0 / gamma)) * 255.0).astype(np.uint8))
+        # nMask[max(0, placement[0]) + np.argwhere(imagegray[y1o:y2o, x1o:x2o] < 30)[:, 0],
+        #       max(0, placement[1]) + np.argwhere(imagegray[y1o:y2o, x1o:x2o] < 30)[:, 1]] = 192
+        # nMask[max(0, placement[0]) + np.argwhere(imagegray[y1o:y2o, x1o:x2o] > 245)[:, 0],
+        #       max(0, placement[1]) + np.argwhere(imagegray[y1o:y2o, x1o:x2o] > 245)[:, 1]] = 255
+
+        # save image
+        saveName = args.output_data_dir + "/images/"+ str(i) + "_" + args.data_extension
+        final_masked_blurred_image = np.round(np.power((final_masked_blurred_image * 1.)
+                                              / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+        imageio.imsave(saveName, final_masked_blurred_image)
+        # save gt
+        saveName = args.output_data_dir + "/gt/"+str(i) + "_" + args.data_extension
+        nMask[nMask == 1] = 64
+        nMask[nMask == 2] = 128
+        nMask[nMask == 3] = 192
+        nMask[nMask == 4] = 255
+        cv2.imwrite(saveName, nMask)
+
+# create training dataset type 2
+# real motion, normal and focus images overlayed with fake brightness and darkness images from normal images
+def create_dataset_for_training_type_2_motion(args):
+    final_shape = (480, 640)
+    tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
+    tl.files.exists_or_mkdir(args.output_data_dir + "/gt/")
+    # list of all original Images
+    images_normal_list = sorted(tl.files.load_file_list(path=args.data_dir + '/normal', regx='/*.(png|PNG)',
+                                                        printable=False))
+    images_focus_list = sorted(tl.files.load_file_list(path=args.data_dir + '/focus', regx='/*.(png|PNG)',
+                                                       printable=False))
+    images_motion_list = sorted(tl.files.load_file_list(path=args.data_dir + '/motion', regx='/*.(png|PNG)',
+                                                        printable=False))
+    images_sailency_motion_list = sorted(tl.files.load_file_list(path=args.data_dir + '/saliency_motion',
+                                                                 regx='/*.(png|PNG)', printable=False))
+    images_sailency_normal_list = sorted(tl.files.load_file_list(path=args.data_dir + '/saliency', regx='/*.(png|PNG)',
+                                                                 printable=False))
+    # these images have out of focus blur already we need to create motion blur, and the over and under exposure images
+    imagesNOrigonal = read_all_imgs(images_normal_list, path=args.data_dir + '/normal/', n_threads=100, mode='RGB')
+    imagesFOrigonal = read_all_imgs(images_focus_list, path=args.data_dir + '/focus/', n_threads=100, mode='RGB')
+    imagesMOrigonal = read_all_imgs(images_motion_list, path=args.data_dir + '/motion/', n_threads=100, mode='RGB')
+    imagesNSaliency = read_all_imgs(images_sailency_normal_list, path=args.data_dir + '/saliency/',
+                                    n_threads=100, mode='GRAY')
+    imagesMSaliency = read_all_imgs(images_sailency_motion_list, path=args.data_dir + '/saliency_motion/',
+                                    n_threads=100, mode='GRAY')
+
+    # save normal images
+    # 1st get a random motion image
+    index = np.arange(0, len(imagesFOrigonal), 1)
+    for i in range(400):
+        idx_focus = random.choice(index)
+        image_base = 255.0 * np.power((copy.deepcopy(imagesFOrigonal[idx_focus]) * 1.) / 255.0, gamma)
+        nMask = np.ones((final_shape[0], final_shape[1])) * 2
+        imagegray = skimage.color.rgb2gray(np.round(np.power((image_base * 1.) / 255.0,
+                                                             (1.0 / gamma)) * 255.0).astype(np.uint8)) * 255
+        nMask[imagegray < 10] = 3
+        nMask[imagegray > 245] = 4
+
+        # overlay normal image
+        idx_normal = random.choice(index)
+        image_normal = 255.0 * np.power((copy.deepcopy(imagesNOrigonal[idx_normal]) * 1.) / 255.0, gamma)
+        image_saliency_normal = np.squeeze(copy.deepcopy(imagesNSaliency[idx_normal]))
+        # now overlay the images
+        image_saliency_normal[image_saliency_normal > 0.1] = 255
+        alpha = image_saliency_normal / 255.
+        placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                     np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+        final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(image_base, image_normal, placement[1],
+                                                                             placement[0], alpha)
+        nMask[max(0, placement[0]) + np.argwhere(image_saliency_normal[y1o:y2o, x1o:x2o] == 255)[:, 0],
+              max(0, placement[1]) + np.argwhere(image_saliency_normal[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 0
+        imagegray = skimage.color.rgb2gray(np.round(np.power((image_normal * 1.) / 255.0,
+                                                             (1.0 / gamma)) * 255.0).astype(np.uint8)) * 255
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_normal[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray) / 3))[
+                                     :, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_normal[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray) / 3))[
+                                     :, 1]] = 3
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_normal[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_normal[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 1]] = 4
+
+        # overlay motion image
+        idx_motion = random.choice(index)
+        image_motion = 255.0 * np.power((copy.deepcopy(imagesMOrigonal[idx_motion]) * 1.) / 255.0, gamma)
+        image_saliency_motion = np.squeeze(copy.deepcopy(imagesMSaliency[idx_motion]))
+        # now overlay the images
+        image_saliency_motion[image_saliency_motion > 0.1] = 255
+        alpha = image_saliency_motion / 255.
+        placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                     np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+        final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(final_masked_blurred_image,
+                                                                             image_motion, placement[1],
+                                                                             placement[0], alpha)
+        nMask[max(0, placement[0]) + np.argwhere(image_saliency_motion[y1o:y2o, x1o:x2o] == 255)[:, 0],
+              max(0, placement[1]) + np.argwhere(image_saliency_motion[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 1
+        imagegray = skimage.color.rgb2gray(np.round(np.power((image_motion * 1.) / 255.0,
+                                                             (1.0 / gamma)) * 255.0).astype(np.uint8)) * 255
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_motion[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray) / 3))[
+                                     :, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_motion[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray) / 3))[
+                                     :, 1]] = 3
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_motion[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_motion[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 1]] = 4
+
+        # overlay overexposure image
+        idx_overexposure = random.choice(index)
+        image_overexposure = 255.0 * np.power((copy.deepcopy(imagesNOrigonal[idx_overexposure]) * 1.) / 255.0, gamma)
+        a, b = random_brightness_value()
+        image_overexposure = create_overexposure_and_underexposure_blur(image_overexposure, a, b)
+        image_saliency_overexposure = np.squeeze(copy.deepcopy(imagesNSaliency[idx_overexposure]))
+        # now overlay the images
+        image_saliency_overexposure[image_saliency_overexposure > 0.1] = 255
+        alpha = image_saliency_overexposure / 255.
+        placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                     np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+        final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(final_masked_blurred_image,
+                                                                             image_overexposure, placement[1],
+                                                                             placement[0], alpha)
+        nMask[max(0, placement[0]) + np.argwhere(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255)[:, 0],
+              max(0, placement[1]) + np.argwhere(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 4
+        imagegray = skimage.color.rgb2gray(np.round(np.power((image_overexposure * 1.) / 255.0,
+                                                             (1.0 / gamma)) * 255.0).astype(np.uint8)) * 255
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray) / 3))[
+                                     :, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray) / 3))[
+                                     :, 1]] = 3
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 1]] = 4
+
+        # overlay underexposure image
+        idx_underexposure = random.choice(index)
+        image_underexposure = 255.0 * np.power((copy.deepcopy(imagesNOrigonal[idx_underexposure]) * 1.) / 255.0, gamma)
+        a, b = random_darkness_value()
+        image_underexposure = create_overexposure_and_underexposure_blur(image_underexposure, a, b)
+        image_saliency_underexposure = np.squeeze(copy.deepcopy(imagesNSaliency[idx_underexposure]))
+        # now overlay the images
+        image_saliency_underexposure[image_saliency_underexposure > 0.1] = 255
+        alpha = image_saliency_underexposure / 255.
+        placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                     np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+        final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(final_masked_blurred_image,
+                                                                             image_underexposure, placement[1],
+                                                                             placement[0], alpha)
+        nMask[max(0, placement[0]) + np.argwhere(image_saliency_underexposure[y1o:y2o, x1o:x2o] == 255)[:, 0],
+              max(0, placement[1]) + np.argwhere(image_saliency_underexposure[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 3
+
+        # save image
+        saveName = args.output_data_dir + "/images/" + str(i) + "_" + args.data_extension
+        final_masked_blurred_image = np.round(np.power((final_masked_blurred_image * 1.)
+                                                       / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+        imageio.imsave(saveName, final_masked_blurred_image)
+        # save gt
+        saveName = args.output_data_dir + "/gt/" + str(i) + "_" + args.data_extension
+        nMask[nMask == 1] = 64
+        nMask[nMask == 2] = 128
+        nMask[nMask == 3] = 192
+        nMask[nMask == 4] = 255
+        cv2.imwrite(saveName, nMask)
+
+# create training dataset type 2
+# real motion, normal and focus images overlayed with fake and real brightness and darkness images from normal images
+def create_dataset_for_training_type_3_motion(args):
+    final_shape = (480, 640)
+    tl.files.exists_or_mkdir(args.output_data_dir + "/images/")
+    tl.files.exists_or_mkdir(args.output_data_dir + "/gt/")
+    # list of all original Images
+    images_normal_list = sorted(tl.files.load_file_list(path=args.data_dir + '/normal', regx='/*.(png|PNG)',
+                                                        printable=False))
+    images_focus_list = sorted(tl.files.load_file_list(path=args.data_dir + '/focus', regx='/*.(png|PNG)',
+                                                       printable=False))
+    images_motion_list = sorted(tl.files.load_file_list(path=args.data_dir + '/motion', regx='/*.(png|PNG)',
+                                                        printable=False))
+    images_overexposure_list = sorted(tl.files.load_file_list(path=args.data_dir + '/overexposure', regx='/*.(png|PNG)',
+                                                              printable=False))
+    images_underexposure_list = sorted(tl.files.load_file_list(path=args.data_dir + '/underexposure',
+                                                               regx='/*.(png|PNG)', printable=False))
+    images_sailency_exposed_list = sorted(tl.files.load_file_list(path=args.data_dir + '/saliency_exposed',
+                                                                  regx='/*.(png|PNG)', printable=False))
+    images_sailency_motion_list = sorted(tl.files.load_file_list(path=args.data_dir + '/saliency_motion',
+                                                                 regx='/*.(png|PNG)', printable=False))
+    images_sailency_normal_list = sorted(tl.files.load_file_list(path=args.data_dir + '/saliency', regx='/*.(png|PNG)',
+                                                                 printable=False))
+    # these images have out of focus blur already we need to create motion blur, and the over and under exposure images
+    imagesNOrigonal = read_all_imgs(images_normal_list, path=args.data_dir + '/normal/', n_threads=100, mode='RGB')
+    imagesFOrigonal = read_all_imgs(images_focus_list, path=args.data_dir + '/focus/', n_threads=100, mode='RGB')
+    imagesMOrigonal = read_all_imgs(images_motion_list, path=args.data_dir + '/motion/', n_threads=100, mode='RGB')
+    imagesOOrigonal = read_all_imgs(images_overexposure_list, path=args.data_dir + '/overexposure/', n_threads=100,
+                                    mode='RGB')
+    imagesUOrigonal = read_all_imgs(images_underexposure_list, path=args.data_dir + '/underexposure/',
+                                    n_threads=100, mode='RGB')
+    imagesNSaliency = read_all_imgs(images_sailency_normal_list, path=args.data_dir + '/saliency/',
+                                    n_threads=100, mode='GRAY')
+    imagesESaliency = read_all_imgs(images_sailency_exposed_list, path=args.data_dir + '/saliency_exposed/',
+                                    n_threads=100, mode='GRAY')
+    imagesMSaliency = read_all_imgs(images_sailency_motion_list, path=args.data_dir + '/saliency_motion/',
+                                    n_threads=100, mode='GRAY')
+
+    # save normal images
+    r_or_f = [0,1]
+    # 1st get a random motion image
+    index = np.arange(0, len(imagesFOrigonal), 1)
+    for i in range(400):
+        idx_focus = random.choice(index)
+        image_base = 255.0 * np.power((copy.deepcopy(imagesFOrigonal[idx_focus]) * 1.) / 255.0, gamma)
+        nMask = np.ones((final_shape[0], final_shape[1])) * 2
+        imagegray = skimage.color.rgb2gray(np.round(np.power((image_base * 1.) / 255.0,
+                                                             (1.0 / gamma)) * 255.0).astype(np.uint8)) * 255
+        nMask[imagegray < 10] = 3
+        nMask[imagegray > 245] = 4
+
+        # overlay normal image
+        idx_normal = random.choice(index)
+        image_normal = 255.0 * np.power((copy.deepcopy(imagesNOrigonal[idx_normal]) * 1.) / 255.0, gamma)
+        image_saliency_normal = np.squeeze(copy.deepcopy(imagesNSaliency[idx_normal]))
+        # now overlay the images
+        image_saliency_normal[image_saliency_normal > 0.1] = 255
+        alpha = image_saliency_normal / 255.
+        placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                     np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+        final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(image_base, image_normal, placement[1],
+                                                                             placement[0], alpha)
+        nMask[max(0, placement[0]) + np.argwhere(image_saliency_normal[y1o:y2o, x1o:x2o] == 255)[:, 0],
+              max(0, placement[1]) + np.argwhere(image_saliency_normal[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 0
+        imagegray = skimage.color.rgb2gray(np.round(np.power((image_normal * 1.) / 255.0,
+                                                             (1.0 / gamma)) * 255.0).astype(np.uint8)) * 255
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_normal[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray) / 3))[
+                                     :, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_normal[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray) / 3))[
+                                     :, 1]] = 3
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_normal[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_normal[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 1]] = 4
+
+        # overlay motion image
+        idx_motion = random.choice(index)
+        image_motion = 255.0 * np.power((copy.deepcopy(imagesMOrigonal[idx_motion]) * 1.) / 255.0, gamma)
+        image_saliency_motion = np.squeeze(copy.deepcopy(imagesMSaliency[idx_motion]))
+        # now overlay the images
+        image_saliency_motion[image_saliency_motion > 0.1] = 255
+        alpha = image_saliency_motion / 255.
+        placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                     np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+        final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(final_masked_blurred_image,
+                                                                             image_motion, placement[1],
+                                                                             placement[0], alpha)
+        nMask[max(0, placement[0]) + np.argwhere(image_saliency_motion[y1o:y2o, x1o:x2o] == 255)[:, 0],
+              max(0, placement[1]) + np.argwhere(image_saliency_motion[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 1
+        imagegray = skimage.color.rgb2gray(np.round(np.power((image_motion * 1.) / 255.0,
+                                                             (1.0 / gamma)) * 255.0).astype(np.uint8)) * 255
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_motion[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray) / 3))[
+                                     :, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_motion[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] < np.mean(imagegray) / 3))[
+                                     :, 1]] = 3
+        nMask[max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_motion[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 0],
+              max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_motion[y1o:y2o, x1o:x2o] == 255,
+                                                                imagegray[y1o:y2o, x1o:x2o] > 245))[:, 1]] = 4
+
+        # overlay overexposure image
+        # 1 fake 0 real
+        if np.random.choice(r_or_f) == 1:
+            idx_overexposure = random.choice(index)
+            image_overexposure = 255.0 * np.power((copy.deepcopy(imagesNOrigonal[idx_overexposure])* 1.) / 255.0, gamma)
+            a, b = random_brightness_value()
+            image_overexposure = create_overexposure_and_underexposure_blur(image_overexposure,a,b)
+            image_saliency_overexposure = np.squeeze(copy.deepcopy(imagesNSaliency[idx_overexposure]))
+            # now overlay the images
+            image_saliency_overexposure[image_saliency_overexposure > 0.1] = 255
+            alpha = image_saliency_overexposure / 255.
+            placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                         np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+            final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(final_masked_blurred_image,
+                                                                                 image_overexposure, placement[1],
+                                                                                 placement[0], alpha)
+            nMask[max(0, placement[0]) + np.argwhere(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255)[:, 0],
+                  max(0, placement[1]) + np.argwhere(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 4
+
+            imagegray = skimage.color.rgb2gray(np.round(np.power((image_overexposure * 1.) / 255.0,
+                                                                 (1.0 / gamma)) * 255.0).astype(np.uint8)) * 255
+            nMask[
+                max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                  imagegray[y1o:y2o, x1o:x2o] < np.mean(
+                                                                      imagegray) / 3))[:, 0],
+                max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                  imagegray[y1o:y2o, x1o:x2o] < np.mean(
+                                                                      imagegray) / 3))[:, 1]] = 3
+            nMask[
+                max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                  imagegray[y1o:y2o, x1o:x2o] > 245))[:, 0],
+                max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                  imagegray[y1o:y2o, x1o:x2o] > 245))[:, 1]] = 4
+
+        else:
+            idx_overexposure = random.choice(index)
+            image_overexposure = 255.0 * np.power((copy.deepcopy(imagesOOrigonal[idx_overexposure]) * 1.) / 255.0,
+                                                   gamma)
+            image_saliency_overexposure = np.squeeze(copy.deepcopy(imagesESaliency[idx_overexposure]))
+            # now overlay the images
+            image_saliency_overexposure[image_saliency_overexposure > 0.1] = 255
+            alpha = image_saliency_overexposure / 255.
+            placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                         np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+            final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(final_masked_blurred_image,
+                                                                                 image_overexposure, placement[1],
+                                                                                 placement[0], alpha)
+            nMask[max(0, placement[0]) + np.argwhere(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255)[:, 0],
+                  max(0, placement[1]) + np.argwhere(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 4
+
+            imagegray = skimage.color.rgb2gray(np.round(np.power((image_overexposure * 1.) / 255.0,
+                                                                 (1.0 / gamma)) * 255.0).astype(np.uint8)) * 255
+            nMask[
+                max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                  imagegray[y1o:y2o, x1o:x2o] < np.mean(
+                                                                      imagegray) / 3))[:, 0],
+                max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                  imagegray[y1o:y2o, x1o:x2o] < np.mean(
+                                                                      imagegray) / 3))[:, 1]] = 3
+            nMask[
+                max(0, placement[0]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                  imagegray[y1o:y2o, x1o:x2o] > 245))[:, 0],
+                max(0, placement[1]) + np.argwhere(np.logical_and(image_saliency_overexposure[y1o:y2o, x1o:x2o] == 255,
+                                                                  imagegray[y1o:y2o, x1o:x2o] > 245))[:, 1]] = 4
+
+        # overlay underexposure image
+        # 1 fake 0 real
+        if np.random.choice(r_or_f) == 1:
+            idx_underexposure = random.choice(index)
+            image_underexposure = 255.0 * np.power((copy.deepcopy(imagesNOrigonal[idx_underexposure])* 1.) / 255.0, gamma)
+            a, b = random_darkness_value()
+            image_underexposure = create_overexposure_and_underexposure_blur(image_underexposure,a,b)
+            image_saliency_underexposure = np.squeeze(copy.deepcopy(imagesNSaliency[idx_underexposure]))
+            # now overlay the images
+            image_saliency_underexposure[image_saliency_underexposure > 0.1] = 255
+            alpha = image_saliency_underexposure / 255.
+            placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                         np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+            final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(final_masked_blurred_image,
+                                                                                 image_underexposure, placement[1],
+                                                                                 placement[0], alpha)
+            nMask[max(0, placement[0]) + np.argwhere(image_saliency_underexposure[y1o:y2o, x1o:x2o] == 255)[:, 0],
+                  max(0, placement[1]) + np.argwhere(image_saliency_underexposure[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 3
+            # nMask = find_overexposure_and_underexposure(np.power((final_masked_blurred_image * 1.)/ 255.0,
+            #                                                      (1.0 / gamma)) * 255.0, nMask)
+        else:
+            idx_underexposure = random.choice(index)
+            image_underexposure = 255.0 * np.power((copy.deepcopy(imagesUOrigonal[idx_underexposure]) * 1.) / 255.0,
+                                                   gamma)
+            image_saliency_underexposure = np.squeeze(copy.deepcopy(imagesESaliency[idx_underexposure]))
+            # now overlay the images
+            image_saliency_underexposure[image_saliency_underexposure > 0.1] = 255
+            alpha = image_saliency_underexposure / 255.
+            placement = (np.random.randint(-final_shape[0] * .50, final_shape[0] * .50, 1)[0],
+                         np.random.randint(-final_shape[1] * .50, final_shape[1] * .50, 1)[0])
+            final_masked_blurred_image, y1o, y2o, x1o, x2o = overlay_image_alpha(final_masked_blurred_image,
+                                                                                 image_underexposure, placement[1],
+                                                                                 placement[0], alpha)
+            nMask[max(0, placement[0]) + np.argwhere(image_saliency_underexposure[y1o:y2o, x1o:x2o] == 255)[:, 0],
+                  max(0, placement[1]) + np.argwhere(image_saliency_underexposure[y1o:y2o, x1o:x2o] == 255)[:, 1]] = 3
+            # nMask = find_overexposure_and_underexposure(np.power((final_masked_blurred_image * 1.) / 255.0,
+            #                                                      (1.0 / gamma)) * 255.0, nMask)
+
+        # save image
+        saveName = args.output_data_dir + "/images/" + str(i) + "_" + args.data_extension
+        final_masked_blurred_image = np.round(np.power((final_masked_blurred_image * 1.)
+                                                       / 255.0, (1.0 / gamma)) * 255.0).astype(np.uint8)
+        imageio.imsave(saveName, final_masked_blurred_image)
+        # save gt
+        saveName = args.output_data_dir + "/gt/" + str(i) + "_" + args.data_extension
+        nMask[nMask == 1] = 64
+        nMask[nMask == 2] = 128
+        nMask[nMask == 3] = 192
+        nMask[nMask == 4] = 255
+        cv2.imwrite(saveName, nMask)
+
 if __name__ == "__main__":
     # Feel free to add more args, or change/remove these.
     parser = argparse.ArgumentParser(description='SUCCESS MURI CREATE BLUR TESTING DATASET FROM FETCH')
@@ -1050,12 +1582,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.training_type == '1':
         #create_dataset_for_training_type_1(args)
-        create_dataset_for_training_type_1_focus(args)
+        #create_dataset_for_training_type_1_focus(args)
+        create_dataset_for_training_type_1_motion(args)
     elif args.training_type == '2':
         #create_dataset_for_training_type_2(args)
-        create_dataset_for_training_type_2_focus(args)
+        #create_dataset_for_training_type_2_focus(args)
+        create_dataset_for_training_type_2_motion(args)
     else:
         #create_dataset_for_training_type_3(args)
-        create_dataset_for_training_type_3_focus(args)
+        #create_dataset_for_training_type_3_focus(args)
+        create_dataset_for_training_type_3_motion(args)
 
 
