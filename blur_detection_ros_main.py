@@ -7,9 +7,10 @@ import tensorflow as tf
 import torch
 from skimage import transform
 from torch.autograd import Variable
+from skimage.io import imsave
 
-from U2Net.model import U2NET
-from U2Net.u2net_test import normPRED
+# from U2Net.model import U2NET
+# from U2Net.u2net_test import normPRED
 
 tf.compat.v1.disable_eager_execution()
 import tensorlayer as tl
@@ -120,7 +121,8 @@ class BlurDetection:
             # yellow unknown blur
             rgb_blur_map[blur_map == 5] = [0, 255, 255]
             rgb_blur_map = rgb_blur_map.astype(np.uint8)
-            self.plot_images(image,rgb_blur_map)
+            #self.plot_images(image,rgb_blur_map)
+            imsave(req.save_name, rgb_blur_map)
             # publish softmax output and image labeling
             return BlurOutputResponse(success=True, label=label)
 
@@ -131,19 +133,19 @@ class BlurDetection:
 
 
     # https://stackoverflow.com/questions/17111525/how-to-show-multiple-images-in-one-figure
-    def plot_images(self,input_image,rgb):
-        fig = plt.figure()
-        #https://stackoverflow.com/questions/9295026/matplotlib-plots-removing-axis-legends-and-white-spaces
-        a=fig.add_subplot(1,2,1)
-        imgplot = plt.imshow(input_image)
-        a.set_title('Input Image')
-        plt.axis('off')
-        a=fig.add_subplot(1,2,2)
-        imgplot = plt.imshow(rgb)
-        a.set_title('Blur Output')
-        plt.axis('off')
-        fig.savefig(self.save_output_blur+'/output_img_'+str(self.count)+'.png')
-        self.count += 1
+    # def plot_images(self,input_image,rgb):
+    #     fig = plt.figure()
+    #     #https://stackoverflow.com/questions/9295026/matplotlib-plots-removing-axis-legends-and-white-spaces
+    #     a=fig.add_subplot(1,2,1)
+    #     imgplot = plt.imshow(input_image)
+    #     a.set_title('Input Image')
+    #     plt.axis('off')
+    #     a=fig.add_subplot(1,2,2)
+    #     imgplot = plt.imshow(rgb)
+    #     a.set_title('Blur Output')
+    #     plt.axis('off')
+    #     fig.savefig(self.save_output_blur+'/output_img_'+str(self.count)+'.png')
+    #     self.count += 1
     
     def setup_model(self, h, w):
         self.height = h
