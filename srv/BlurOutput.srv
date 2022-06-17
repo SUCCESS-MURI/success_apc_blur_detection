@@ -3,5 +3,5 @@ sensor_msgs/Image mask
 string save_name
 ---
 bool success
-Int32 label
+std_msgs/Int32 label
 string msg

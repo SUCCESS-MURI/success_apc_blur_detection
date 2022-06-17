@@ -15,7 +15,7 @@ from skimage.io import imsave
 tf.compat.v1.disable_eager_execution()
 import tensorlayer as tl
 from tensorflow.python.training import py_checkpoint_reader
-from model import Decoder_Network_classification, VGG19_pretrained
+from model import Updated_Decoder_Network_classification, VGG19_pretrained
 from cv_bridge import CvBridge, CvBridgeError
 # from success_apc_blur_detection.msg import BlurDetectionOutput
 import cv2
@@ -50,13 +50,13 @@ class BlurDetection:
 
     def __init__(self):
         self.model_checkpoint = rospy.get_param('~model_checkpoint')
-        self.save_output_blur = rospy.get_param('~save_output_blur')
-        if os.path.exists(self.save_output_blur):
-            os.makedirs(self.save_output_blur)
+        # self.save_output_blur = rospy.get_param('~save_output_blur')
+        # if os.path.exists(self.save_output_blur):
+        #     os.makedirs(self.save_output_blur)
         self.vgg_mean = np.array(([103.939, 116.779, 123.68])).reshape([1,1,3])
         # initialize the model and its weights
         self.setup_model(int(rospy.get_param('~height')), int(rospy.get_param('~width')))
-        self.define_and_get_unet(int(rospy.get_param('~unet_location')))
+        # self.define_and_get_unet(int(rospy.get_param('~unet_location')))
         # setup the callback for the blur detection model
         self.bridge = CvBridge()
         self.blur_srv = rospy.Service('~blurdetection', BlurOutput, self.blurdetection_callback)
@@ -156,7 +156,7 @@ class BlurDetection:
             with tf.compat.v1.variable_scope('VGG') as scope1:
                 input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
             with tf.compat.v1.variable_scope('UNet') as scope2:
-                self.net_regression, _, _, _, _, _, _, _ = Decoder_Network_classification(input, n, f0, f0_1, f1_2, f2_3,
+                self.net_regression, _, _, _ = Updated_Decoder_Network_classification(input, n, f0, f0_1, f1_2, f2_3,
                                                                                      reuse=False,scope=scope2)
         # Load checkpoint
         # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
