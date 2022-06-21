@@ -75,8 +75,10 @@ class BlurDetection:
         try:
             # convert to RGB image
             try:
-                image = self.bridge.imgmsg_to_cv2(req.bgr, "bgr8")
+                image = self.bridge.imgmsg_to_cv2(req.bgr, "8UC3")
+                # print(image.shape)
                 masked_image = self.bridge.imgmsg_to_cv2(req.mask, "passthrough")
+                # print(masked_image.shape)
             except CvBridgeError as e:
                 print(e)
             # now run through model
@@ -85,7 +87,7 @@ class BlurDetection:
             blurMap = np.squeeze(self.sess.run([self.net_outputs], {self.net_regression.inputs: rgb}))
             #blur_map = np.zeros((blurMap.shape[0],blurMap.shape[1]))
             # numpy array with labels
-            blur_map = np.argmax(blurMap,axis=1)
+            blur_map = np.argmax(blurMap,axis=2)
             # .4 was found from validation data results with different uncertainty levels tested
             # blur_map[np.sum(blurMap[:,:] >= .3,axis=2) == 1] = np.argmax(blurMap[np.sum(blurMap[:,:] >= .3,axis=2) == 1],
             #                                                              axis=1)
@@ -123,8 +125,10 @@ class BlurDetection:
             rgb_blur_map = rgb_blur_map.astype(np.uint8)
             #self.plot_images(image,rgb_blur_map)
             imsave(req.save_name, rgb_blur_map)
+            msg_label = Int32()
+            msg_label.data = label
             # publish softmax output and image labeling
-            return BlurOutputResponse(success=True, label=label)
+            return BlurOutputResponse(success=True, label=msg_label)
 
         except Exception as e:
             rospy.logerr("Error - " + str(e))
