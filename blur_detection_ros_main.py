@@ -16,7 +16,8 @@ from model import Decoder_Network_classification, VGG19_pretrained
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
 import numpy as np
-from sensor_msgs.msg import Image
+from PIL import Image
+#from sensor_msgs.msg import Image
 from std_msgs.msg import Int32
 from success_apc_blur_detection.srv import BlurOutput, BlurOutputRequest, BlurOutputResponse
 import time
