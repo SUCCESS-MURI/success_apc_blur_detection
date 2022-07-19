@@ -3,42 +3,17 @@
 import copy
 
 import tensorflow as tf
+import tensorlayer as tl
 import numpy as np
 from tensorlayer.layers import *
 from tensorlayer.models import Model
 
-def VGG19_pretrained(t_image,reuse = False,scope="VGG"):
-    # VGG_MEAN = [103.939, 116.779, 123.68]
-    # """
-    #     Build the VGG 19 Model
-    #     Parameters
-    #     -----------
-    #     rgb : rgb image placeholder [batch, height, width, 3] values scaled [0, 1]
-    #     """
-    # print("build model started")
-    # rgb_scaled = t_image * 255.0
-    # # Convert RGB to BGR
-    # if tf.__version__ <= '0.11':
-    #     red, green, blue = tf.split(3, 3, rgb_scaled)
-    # else:  # TF 1.0
-    #     print(rgb_scaled)
-    #     red, green, blue = tf.split(rgb_scaled, 3, 3)
-    #
-    # if tf.__version__ <= '0.11':
-    #     bgr = tf.concat(3, [
-    #         blue - VGG_MEAN[0],
-    #         green - VGG_MEAN[1],
-    #         red - VGG_MEAN[2],
-    #     ])
-    # else:
-    #     bgr = tf.concat(
-    #         [
-    #             blue - VGG_MEAN[0],
-    #             green - VGG_MEAN[1],
-    #             red - VGG_MEAN[2],
-    #         ], axis=3)
-    with tf.compat.v1.variable_scope(scope, reuse=reuse) as vs:
+# model definition for neural network
+# needs to be the same as the kim et al for loading the weights with the same names
 
+# kim et al encoder
+def VGG19_pretrained(t_image,reuse = False,scope="VGG"):
+    with tf.compat.v1.variable_scope(scope, reuse=reuse) as vs:
         # input layer
         net_in = Input(t_image.shape, name='input') #tf.keras.layers.InputLayer(bgr, name='input')
         # conv1
@@ -92,17 +67,14 @@ def VGG19_pretrained(t_image,reuse = False,scope="VGG"):
                          name='conv5_3')(network)
         n = Conv2d(n_filter=512, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME',
                    name='conv5_4')(network)
-        n = Model(inputs=net_in,outputs=n)
+        n = Model(inputs=net_in,outputs=n)#,name=sope=c
 
     return net_in, n, f0, f0_1,f1_2,f2_3
 
-def Updated_Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=False, scope = "UNet"):
+# updated decoder
+def Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=False, scope = "UNet"):
     # xavier_initializer was discontinued
     w_init1 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
-    # w_init1 = tf.truncated_normal_initializer()
-    # w_init2 = tf.truncated_normal_initializer()
-    # w_init3 = tf.truncated_normal_initializer()
-    # w_init4 = tf.truncated_normal_initializer()
     w_init2 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
     w_init3 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
     w_init4 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
@@ -224,15 +196,12 @@ def Updated_Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, 
         n_m2 = Model(inputs=network.inputs, outputs=n_m2,)
         n_m1 = Model(inputs=network.inputs, outputs=n_m1,)
 
-    return network, n_m1, n_m2, n_m3
+    return network, n_m1, n_m2, n_m3, m1BModel, m2BModel, m3BModel, m4BModel
 
-def Decoder_Network_classification_3_labels(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=False, scope = "UNet"):
+# kim et al version used for testing and getting weights
+def Origional_Decoder_Network_classification(maininput, ninput,f0,f1_2,f2_3,f3_4, reuse=False, scope = "UNet"):
     # xavier_initializer was discontinued
     w_init1 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
-    # w_init1 = tf.truncated_normal_initializer()
-    # w_init2 = tf.truncated_normal_initializer()
-    # w_init3 = tf.truncated_normal_initializer()
-    # w_init4 = tf.truncated_normal_initializer()
     w_init2 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
     w_init3 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
     w_init4 = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")
@@ -264,7 +233,6 @@ def Decoder_Network_classification_3_labels(maininput, ninput,f0,f1_2,f2_3,f3_4,
                    name='u4/c3')(n)
         # n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='u3/b3')
         # n.outputs = tf.nn.relu(n.outputs)
-        #m3BModel = Model(inputs=maininput,outputs=n)
         n_m3 = Conv2d(n_filter=3, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init4,
                       name='u4/loss3')(n)
         #(hrg // 4, wrg // 4)
@@ -289,7 +257,6 @@ def Decoder_Network_classification_3_labels(maininput, ninput,f0,f1_2,f2_3,f3_4,
                    name='u3/c3')(n)
         # n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='u3/b3')
         # n.outputs = tf.nn.relu(n.outputs)
-        #m2BModel = Model(inputs=maininput, outputs=n)
         n_m2 = Conv2d(n_filter=3, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init3,
                       name='u3/loss2')(n)
         # output-size= (hrg // 2, wrg // 2),
@@ -311,7 +278,6 @@ def Decoder_Network_classification_3_labels(maininput, ninput,f0,f1_2,f2_3,f3_4,
                    name='u2/c2')(n)
         # n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='u2/b2')
         # n.outputs = tf.nn.relu(n.outputs)
-        #m1BModel = Model(inputs=maininput, outputs=n)
         n_m1 = Conv2d(n_filter=3, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init2,
                       name='u2/loss1')(n)
         #(hrg, wrg),
@@ -338,7 +304,6 @@ def Decoder_Network_classification_3_labels(maininput, ninput,f0,f1_2,f2_3,f3_4,
         # n.outputs = tf.nn.relu(n.outputs)
         # network = Conv2d(n_filter=3, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init1,
         #            name='u1/c5')(n)
-        #m4BModel = Model(inputs=maininput, outputs=n)
 
         network = Conv2d(n_filter=3, filter_size=(1, 1), strides=(1, 1), act=None, padding='SAME', W_init=w_init1,
                          name='u1/c5')(n)
@@ -355,7 +320,6 @@ def Decoder_Network_classification_3_labels(maininput, ninput,f0,f1_2,f2_3,f3_4,
         n_m1 = Model(inputs=network.inputs, outputs=n_m1,)
 
     return network, n_m1, n_m2, n_m3
-
 
 
 

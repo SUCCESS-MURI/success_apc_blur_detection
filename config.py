@@ -21,6 +21,9 @@ config.TRAIN.n_epoch = 500
 config.TRAIN.lr_decay = 0.1
 config.TRAIN.decay_every = 6000
 
+config.TRAIN.blur_path = '/home/mary/code/local_success_dataset/fetch_images/output_blur_data_06_20_2022/Blur_Detection_Input/Testing/images/'
+config.TRAIN.gt_path = '/home/mary/code/local_success_dataset/fetch_images/output_blur_data_06_20_2022/Blur_Detection_Input/Testing/gt/'
+
 ## train set location
 config.TRAIN.muri_blur_path = '/home/mary/code/local_success_dataset/muri_dataset/Testing_2/images/'
 config.TRAIN.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dataset/Testing_2/gt/'
@@ -31,10 +34,11 @@ config.VALIDATION.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dat
 config.TEST.muri_blur_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Testing/images/'
 config.TEST.muri_gt_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Testing/gt/'
 
-config.TEST.blur_path = '/home/mary/code/local_success_dataset/fetch_images/output_blur_data_06_20_2022' \
-                        '/Blur_Detection_Input/Testing/images'
-config.TEST.gt_path = '/home/mary/code/local_success_dataset/fetch_images/output_blur_data_06_20_2022' \
-                      '/Blur_Detection_Input/Testing/gt'
+config.TEST.blur_path = '/home/mary/code/local_success_dataset/datasets_iros/IROS_Dataset/02_14_2022_run2/Testing/images'
+config.TEST.gt_path = '/home/mary/code/local_success_dataset/datasets_iros/IROS_Dataset/02_14_2022_run2/Testing/gt'
+
+config.VALIDATION.blur_path = '/home/mary/code/local_success_dataset/test/Validation/images'
+config.VALIDATION.gt_path = '/home/mary/code/local_success_dataset/test/Validation/gt'
 
 config.SENSITVITY.muri_blur_path = '/home/mary/code/local_success_dataset/muri_dataset_01_12_2022/Sensitivity/images' \
                                    '/halfsize/'

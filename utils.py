@@ -18,7 +18,7 @@ def read_all_imgs(img_list, path='', n_threads=32, mode = 'RGB'):
         elif mode == 'GRAY':
             b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_GRAY_fn, path=path)
         elif mode == 'RGB2GRAY':
-            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGBGRAY_fn, path=path)
+            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGB2GRAY, path=path)
         elif mode == 'RGB2GRAY2':
             b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGBGRAY_2_fn, path=path)
         # print(b_imgs.shape)
@@ -55,6 +55,11 @@ def get_imgs_RGBGRAY_fn(file_name, path):
     # https://www.geeksforgeeks.org/python-pil-image-convert-method/
     image = Image.open(path + file_name)
     return np.asarray(image)[:,:,0][:,:,np.newaxis]
+
+def get_imgs_RGB2GRAY(file_name, path):
+    """ Input an image path and name, return an image array """
+    image = cv2.imread(path + file_name, cv2.IMREAD_GRAYSCALE)
+    return np.asarray(image)[:,:,np.newaxis]
 
 def get_imgs_RGBGRAY_2_fn(file_name, path):
     """ Input an image path and name, return an image array """
@@ -124,6 +129,28 @@ def crop_sub_img_and_classification_fn(data):
         cropped_mask = mask
     cropped_mask = np.concatenate((cropped_mask, cropped_mask, cropped_mask), axis=2)
     return format_VGG_image(cropped_image), cropped_mask
+
+def crop_img_and_classification_fn_val(data):
+
+    dx = config.TRAIN.width
+    dy = config.TRAIN.height
+    image, mask = data
+    image = np.asarray(image,dtype=np.float64)
+    mask = np.asarray(mask, dtype=np.float64)
+
+    image_h, image_w = np.asarray(image).shape[0:2]
+
+    if image_w != dx and dy != image_h:
+        x = int((image_w - dx) / 2.)
+        y = int((image_h - dy) / 2.)
+        cropped_image = image[y: y + dy, x: x + dx, :]
+        cropped_mask = mask[y: y + dy, x: x + dx, :]
+    else:
+        cropped_image = image
+        cropped_mask = mask
+    cropped_mask = np.concatenate((cropped_mask, cropped_mask, cropped_mask), axis=2)
+    return format_VGG_image(cropped_image), cropped_mask
+
 
 def format_VGG_image(image):
     rgb_scaled = image * 1.0

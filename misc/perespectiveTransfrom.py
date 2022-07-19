@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
-    paper = cv2.imread('/home/mary/code/NN_Blur_Detection_apc/output_iros_run_3/m3_resultsout_of_focus0288_0.png')#cv2.imread('/home/mary/code/local_success_dataset/IROS_Dataset/02_14_2022/Testing/images/out_of_focus0288_0.png')
+    paper = cv2.imread('/home/mary/code/NN_Blur_Detection_apc/output_iros_run_3_new_dataset_motion_saliency/m3_resultsout_of_focus0288_0.png')#cv2.imread('/home/mary/code/local_success_dataset/IROS_Dataset/02_14_2022/Testing/images/out_of_focus0288_0.png')
     # Coordinates that you want to Perspective Transform
     # pts1 = np.float32([[0, 0], [480, 0], [0, 640], [480, 640]])
     # # Size of the Transformed Image

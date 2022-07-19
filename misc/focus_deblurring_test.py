@@ -20,7 +20,8 @@ from scipy.ndimage import convolve
 # https://stackoverflow.com/questions/29731726/how-to-calculate-a-gaussian-kernel-matrix-efficiently-in-numpy
 from tensorflow.python.training import py_checkpoint_reader
 
-from model import VGG19_pretrained, Decoder_Network_classification_3_labels
+from model import VGG19_pretrained, Origional_Decoder_Network_classification
+
 VGG_MEAN = [103.939, 116.779, 123.68]
 
 gamma = 1.5
@@ -160,128 +161,146 @@ def get_weights(sess,network):
     sess.run(tl.files.assign_weights(params, network))
 
 if __name__ == '__main__':
-    # lets make a brightness darkness, and motion and focus blur image
-    image_input = io.imread('/home/mary/Documents/Reaserch/ICRA/image_48.png')#io.imread('/home/mary/Documents/Reaserch/ICRA/block_perception_0.5_1_rgb_image-32_outoffocus_cropped.png')#i
-    # io.imsave('input_image_no_blur.png', image_input)
-    # kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
-    # images = [image_input]
-    # for i in range(1,4):
-    #     image = cv2.filter2D(images[i-1], -1, kernel)
-    #     images.append(image)
-    # image_input_1 = io.imread('/home/mary/code/Images_ICRA/input_image_brightness_blur_input_muri_sharpned1.png')
-    # image_input_2 = io.imread('/home/mary/code/Images_ICRA/input_image_brightness_blur_input_muri_sharpned2.png')
-    # image_input_3 = io.imread('/home/mary/code/Images_ICRA/input_image_brightness_blur_input_muri_sharpned3.png')
-    # images = [image_input ,image_input_1 ,image_input_2 ,image_input_3]
-
-    # image_input = 255.0 * np.power((image_input * 1.) / 255.0, gamma)
+    # # lets make a brightness darkness, and motion and focus blur image
+    # image_input = io.imread('/home/mary/code/local_success_dataset/fetch_images/output_blur_data_06_20_2022/'
+    #                         'Blur_Detection_Input/Motion_update/Testing/images/38_.png') # 28
+    # #io.imread('/home/mary/Documents/Reaserch/ICRA/block_perception_0.5_1_rgb_image-32_outoffocus_cropped.png')#i
+    # # io.imsave('input_image_no_blur.png', image_input)
+    # # kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
+    # # images = [image_input]
+    # # for i in range(1,4):
+    # #     image = cv2.filter2D(images[i-1], -1, kernel)
+    # #     images.append(image)
+    # # image_input_1 = io.imread('/home/mary/code/Images_ICRA/input_image_brightness_blur_input_muri_sharpned1.png')
+    # # image_input_2 = io.imread('/home/mary/code/Images_ICRA/input_image_brightness_blur_input_muri_sharpned2.png')
+    # # image_input_3 = io.imread('/home/mary/code/Images_ICRA/input_image_brightness_blur_input_muri_sharpned3.png')
+    # # images = [image_input ,image_input_1 ,image_input_2 ,image_input_3]
     #
-    # # make a motion blur image
-    # #kernal_size,angle = random_motion_blur_kernel()
-    # image_motion,motion_kernal = apply_motion_blur(image_input,7,150)
+    # # image_input = 255.0 * np.power((image_input * 1.) / 255.0, gamma)
+    # #
+    # # # make a motion blur image
+    # # #kernal_size,angle = random_motion_blur_kernel()
+    # # image_motion,motion_kernal = apply_motion_blur(image_input,7,150)
+    # #
+    # # kernelsize = 5
+    # # image_focus = create_out_of_focus_blur(image_input, kernelsize)
+    # #
+    # # image_brightness = create_brightness_and_darkness_blur(image_input, 2.3, 0)
+    # # image_darkness = create_brightness_and_darkness_blur(image_input, 0.1, -10)
     #
-    # kernelsize = 5
-    # image_focus = create_out_of_focus_blur(image_input, kernelsize)
+    # # image_motion = (image_motion - np.min(image_motion)) * (1.0 - (0.0)) / \
+    # #                (np.max(image_motion) - np.min(image_motion)) + 0.0
+    # # image_focus = (image_focus - np.min(image_focus)) * (1.0 - (0.0)) / \
+    # #                (np.max(image_focus) - np.min(image_focus)) + 0.0
+    # # image_brightness = (image_brightness - np.min(image_brightness)) * (1.0 - (0.0)) / \
+    # #               (np.max(image_brightness) - np.min(image_brightness)) + 0.0
+    # # image_darkness = (image_darkness - np.min(image_darkness)) * (1.0 - (0.0)) / \
+    # #                    (np.max(image_darkness) - np.min(image_darkness)) + 0.0
+    # #
+    # # images = [np.round(np.power((image_motion * 1.), (1.0 / gamma)) * 255.0),
+    # #           np.round(np.power((image_focus * 1.), (1.0 / gamma)) * 255.0),
+    # #           np.round(np.power((image_darkness * 1.), (1.0 / gamma)) * 255.0),
+    # #           np.round(np.power((image_brightness * 1.), (1.0 / gamma)) * 255.0)]
     #
-    # image_brightness = create_brightness_and_darkness_blur(image_input, 2.3, 0)
-    # image_darkness = create_brightness_and_darkness_blur(image_input, 0.1, -10)
-
-    # image_motion = (image_motion - np.min(image_motion)) * (1.0 - (0.0)) / \
-    #                (np.max(image_motion) - np.min(image_motion)) + 0.0
-    # image_focus = (image_focus - np.min(image_focus)) * (1.0 - (0.0)) / \
-    #                (np.max(image_focus) - np.min(image_focus)) + 0.0
-    # image_brightness = (image_brightness - np.min(image_brightness)) * (1.0 - (0.0)) / \
-    #               (np.max(image_brightness) - np.min(image_brightness)) + 0.0
-    # image_darkness = (image_darkness - np.min(image_darkness)) * (1.0 - (0.0)) / \
-    #                    (np.max(image_darkness) - np.min(image_darkness)) + 0.0
+    # # io.imsave('input_image_motion_blur_input.png', images[0])
+    # # io.imsave('input_image_focus_blur_input.png', images[1])
+    # # io.imsave('input_image_darkness_blur_input.png', images[2])
+    # # io.imsave('input_image_brightness_blur_input_muri.png', images[0])
     #
-    # images = [np.round(np.power((image_motion * 1.), (1.0 / gamma)) * 255.0),
-    #           np.round(np.power((image_focus * 1.), (1.0 / gamma)) * 255.0),
-    #           np.round(np.power((image_darkness * 1.), (1.0 / gamma)) * 255.0),
-    #           np.round(np.power((image_brightness * 1.), (1.0 / gamma)) * 255.0)]
-
-    # io.imsave('input_image_motion_blur_input.png', images[0])
-    # io.imsave('input_image_focus_blur_input.png', images[1])
-    # io.imsave('input_image_darkness_blur_input.png', images[2])
-    # io.imsave('input_image_brightness_blur_input_muri.png', images[0])
-
-    ### DEFINE MODEL ###
-    patches_blurred = tf.compat.v1.placeholder('float32', [1, image_input.shape[0], image_input.shape[1], 3],
-                                               name='input_patches')
-    labels = tf.compat.v1.placeholder('int64', [1, image_input.shape[0], image_input.shape[1], 1], name='labels')
-    with tf.compat.v1.variable_scope('Unified'):
-        with tf.compat.v1.variable_scope('VGG') as scope1:
-            input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
-        with tf.compat.v1.variable_scope('UNet') as scope2:
-            net_regression, _, _, _ = Decoder_Network_classification_3_labels(input, n, f0, f0_1, f1_2,
-                                                                               f2_3, reuse=False,
-                                                                               scope=scope2)
-
-    output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
-    # Load checkpoint
-    # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
-    # Load checkpoint
-    # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
-    configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-    configTf.gpu_options.allow_growth = True
-    sess = tf.compat.v1.Session(config=configTf)
-    tl.layers.initialize_global_variables(sess)
-    # read check point weights
-    # reader = py_checkpoint_reader.NewCheckpointReader('../model/SA_net_cuhk_updated_Run_2.ckpt')
-    # state_dict = {v: reader.get_tensor(v) for v in reader.get_variable_to_shape_map()}
-    # # save weights to the model
-    # get_weights_checkpoint(sess, net_regression, state_dict)
-    # Load checkpoint
-    get_weights(sess, net_regression)
-    print("loaded all the weights")
-    image = np.copy(image_input)
-    kernel = np.array([[-1,-1,-1], [-1,5,-1], [-1,-1,-1]])
-
-    percentage_sharp_images = []
-
-    for i in range(4):
-        # now run through blur detection and classification
-        if image.shape[2] > 3:
-            image = image[: ,: ,0:3]
-        red = image[:, :, 0]
-        green = image[:, :, 1]
-        blue = image[:, :, 2]
-        bgr = np.zeros(image.shape)
-        bgr[:, :, 0] = blue - VGG_MEAN[0]
-        bgr[:, :, 1] = green - VGG_MEAN[1]
-        bgr[:, :, 2] = red - VGG_MEAN[2]
-
-        blur_map = sess.run([output_map], {net_regression.inputs: np.expand_dims((bgr), axis=0)})[0]
-
-        blurmap_flap = blur_map.flatten()
-        num_0 = np.sum(blurmap_flap == 0)
-        num_1 = np.sum(blurmap_flap == 1)
-        num_2 = np.sum(blurmap_flap == 2)
-        num_3 = np.sum(blurmap_flap == 3)
-        num_4 = np.sum(blurmap_flap == 4)
-        label = np.argmax([num_0 ,num_1 ,num_2 ,num_3 ,num_4])
-        num = num_1+num_3+num_2+num_4
-        dem = num_1+num_3+num_2+num_4+num_0
-        percentage_sharp_images.append((num/dem)*100)
-
-        # gaussian_3 = cv2.GaussianBlur(image, (0, 0), 2.0)
-        # image = cv2.addWeighted(image, 2.0, gaussian_3, -1.0, 0)
-        #image = cv2.filter2D(src=image, ddepth=-1, kernel=kernel)
-        image = ImageEnhance.Sharpness(Image.fromarray(image)).enhance(1.5)
-        image = np.array(image)
-        io.imsave('/home/mary/code/local_success_dataset/IROS_Dataset/examples_for_autoexposure/ex5_outoffocus_sharpened_'+str(i+1)+'.png',image)
-    percentage_sharp_images = np.array(percentage_sharp_images)
+    # ### DEFINE MODEL ###
+    # patches_blurred = tf.compat.v1.placeholder('float32', [1, image_input.shape[0], image_input.shape[1], 3],
+    #                                            name='input_patches')
+    # labels = tf.compat.v1.placeholder('int64', [1, image_input.shape[0], image_input.shape[1], 1], name='labels')
+    # with tf.compat.v1.variable_scope('Unified'):
+    #     with tf.compat.v1.variable_scope('VGG') as scope1:
+    #         input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
+    #     with tf.compat.v1.variable_scope('UNet') as scope2:
+    #         net_regression, _, _, _ = Origional_Decoder_Network_classification(input, n, f0, f0_1, f1_2,
+    #                                                                            f2_3, reuse=False,
+    #                                                                            scope=scope2)
+    #
+    # output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
+    # # Load checkpoint
+    # # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
+    # # Load checkpoint
+    # # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
+    # configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+    # configTf.gpu_options.allow_growth = True
+    # sess = tf.compat.v1.Session(config=configTf)
+    # tl.layers.initialize_global_variables(sess)
+    # # read check point weights
+    # # reader = py_checkpoint_reader.NewCheckpointReader('../model/SA_net_cuhk_updated_Run_2.ckpt')
+    # # state_dict = {v: reader.get_tensor(v) for v in reader.get_variable_to_shape_map()}
+    # # # save weights to the model
+    # # get_weights_checkpoint(sess, net_regression, state_dict)
+    # # Load checkpoint
+    # get_weights(sess, net_regression)
+    # print("loaded all the weights")
+    #
+    # #kernel = np.array([[-1,-1,-1], [-1,5,-1], [-1,-1,-1]])
+    #
+    # sharp_images_array_percentages = {}
+    #
+    # blur_sharpness_list = np.arange(1.1,2.6,.1)
+    #
+    # for x in blur_sharpness_list:
+    #     percentage_sharp_images = []
+    #     image = np.copy(image_input)
+    #     for i in range(4):
+    #         # now run through blur detection and classification
+    #         if image.shape[2] > 3:
+    #             image = image[: ,: ,0:3]
+    #         red = image[:, :, 0]
+    #         green = image[:, :, 1]
+    #         blue = image[:, :, 2]
+    #         bgr = np.zeros(image.shape)
+    #         bgr[:, :, 0] = blue - VGG_MEAN[0]
+    #         bgr[:, :, 1] = green - VGG_MEAN[1]
+    #         bgr[:, :, 2] = red - VGG_MEAN[2]
+    #
+    #         blur_map = sess.run([output_map], {net_regression.inputs: np.expand_dims((bgr), axis=0)})[0]
+    #
+    #         blurmap_flap = blur_map.flatten()
+    #         num_0 = np.sum(blurmap_flap == 0)
+    #         num_1 = np.sum(blurmap_flap == 1)
+    #         num_2 = np.sum(blurmap_flap == 2)
+    #         num_3 = np.sum(blurmap_flap == 3)
+    #         num_4 = np.sum(blurmap_flap == 4)
+    #         label = np.argmax([num_0 ,num_1 ,num_2 ,num_3 ,num_4])
+    #         num = num_1+num_3+num_2+num_4
+    #         dem = num_1+num_3+num_2+num_4+num_0
+    #         percentage_sharp_images.append((num/dem)*100)
+    #
+    #         # gaussian_3 = cv2.GaussianBlur(image, (0, 0), 2.0)
+    #         # image = cv2.addWeighted(image, 2.0, gaussian_3, -1.0, 0)
+    #         #image = cv2.filter2D(src=image, ddepth=-1, kernel=kernel)
+    #         image = ImageEnhance.Sharpness(Image.fromarray(image)).enhance(x)
+    #         image = np.array(image)
+    #         io.imsave('/home/mary/code/local_success_dataset/datasets_iros/IROS_Dataset/examples_for_autoexposure'
+    #                   '/ex_0_ips_overexposure_sharpened_'+str(i+1)+'_magnitude_'+str(np.round(x,2))+'.png',image)
+    #     percentage_sharp_images = np.array(percentage_sharp_images)
+    #     sharp_images_array_percentages[np.round(x,2)] = percentage_sharp_images
+    # np.save('sharp_images_array_percentages_overexposure.npy',sharp_images_array_percentages)
+    sharp_images_array_percentages = np.load('sharp_images_array_percentages_overexposure.npy', allow_pickle=True).item()
     plt.rc('font', size=30)  # controls default text size
     plt.rc('axes', titlesize=20)  # fontsize of the title
     plt.rc('axes', labelsize=30)  # fontsize of the x and y labels
     plt.rc('xtick', labelsize=30)  # fontsize of the x tick labels
     plt.rc('ytick', labelsize=30)  # fontsize of the y tick labels
-    plt.rc('legend', fontsize=30)  # fontsize of the legend
+    plt.rc('legend', fontsize=15)  # fontsize of the legend
     plt.rcParams["font.weight"] = "bold"
     plt.rcParams["axes.labelweight"] = "bold"
-    plt.plot(percentage_sharp_images,linewidth=6)
+    plt.figure(figsize=(15, 10))
+    # courses = list(sharp_images_array_percentages.keys())
+    # values = list(sharp_images_array_percentages.values())
+    for key,val in sharp_images_array_percentages.items():
+        plt.plot(val,linewidth=5,label=key)
     plt.xlabel('# Times Image was Sharpened',fontweight='bold')
     plt.ylabel('% Blur Pixels',fontweight='bold')
-    plt.yticks(np.arange(40, 70, 5))
+    plt.legend()
+    plt.yticks(np.arange(0, 25, 5))
     plt.xticks(np.arange(0, 4, 1))
     plt.grid(b=True)
-    plt.show()
+    plt.savefig('overexposure_times.png')
+    #plt.show()
+
