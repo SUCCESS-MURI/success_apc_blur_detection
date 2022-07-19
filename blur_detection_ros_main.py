@@ -1,20 +1,40 @@
 #!/usr/bin/env python3
 import argparse
+import os
+
 import rospy
 import tensorflow as tf
+import torch
+from skimage import transform
+from torch.autograd import Variable
+from skimage.io import imsave
 
 tf.compat.v1.disable_eager_execution()
 import tensorlayer as tl
 from tensorflow.python.training import py_checkpoint_reader
 from model import Decoder_Network_classification, VGG19_pretrained
 from cv_bridge import CvBridge, CvBridgeError
-from success_apc_blur_detection.msg import BlurDetectionOutput
-from sensor_msgs.msg import CompressedImage
 import cv2
 import numpy as np
-#from sensor_msgs.msg import Image
-#import time
+from sensor_msgs.msg import Image
+from std_msgs.msg import Int32
+from success_apc_blur_detection.srv import BlurOutput, BlurOutputRequest, BlurOutputResponse
+import time
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import sys
+sys.path.insert(0, rospy.get_param('~unet_location'))
+from U2Net.model import U2NET
 
+# from U2net
+# normalize the predicted SOD probability map
+def normPRED(d):
+    ma = torch.max(d)
+    mi = torch.min(d)
+
+    dn = (d - mi) / (ma - mi)
+
+    return dn
 
 def get_weights_checkpoint(sess, network, dict_weights_trained):
     # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
@@ -38,103 +58,113 @@ def get_weights_checkpoint(sess, network, dict_weights_trained):
 # class for executing the blur detection algorithm
 class BlurDetection:
 
-    def __init__(self, args):
-        self.model_checkpoint = args.model_checkpoint
+    def __init__(self):
+        self.model_checkpoint = rospy.get_param('~model_checkpoint')
+
+        self.unet_location = rospy.get_param('~unet_location')
+        self.define_and_get_unet()
+
         self.vgg_mean = np.array(([103.939, 116.779, 123.68])).reshape([1, 1, 3])
         # initialize the model and its weights
-        self.setup_model(args.height, args.width)
+        self.setup_model(int(rospy.get_param('~height')), int(rospy.get_param('~width')))
+        # self.define_and_get_unet(int(rospy.get_param('~unet_location')))
         # setup the callback for the blur detection model
         self.bridge = CvBridge()
-        # self.image_sub = rospy.Subscriber("/head_camera/rgb/image_raw",Image,self.callback)
-        self.image_sub = rospy.Subscriber("/camera/color/image_raw", Image, self.callback)
-        # if needed https://docs.ros.org/en/melodic/api/rospy/html/rospy.numpy_msg-module.html
-        self.blur_detection_input_pub = rospy.Publisher('/blur_detection_output/input_image', CompressedImage,
-                                                        queue_size=1)
-        self.blur_detection_output_pub = rospy.Publisher('/blur_detection_output/output_image', CompressedImage,
-                                                         queue_size=1)
-        self.blur_detection_softmax_pub = rospy.Publisher('/blur_detection_output/softmax_output', CompressedImage,
-                                                          queue_size=1)
-        self.blur_detection_rgb_pub = rospy.Publisher('/blur_detection_output/rgb_output_image', CompressedImage,
-                                                      queue_size=1)
-        # self.count = 0
+        self.blur_srv = rospy.Service('~blurdetection', BlurOutput, self.blurdetection_callback)
+        self.count = 0
         rospy.loginfo("Done Setting up Blur Detection")
-        # cv2.COLOR_BGR2RGB
 
-    def callback(self, data):
-        # convert to RGB image
+    def define_and_get_unet(self):
+        model_dir = os.path.join(self.unet_location, 'U2Net', 'saved_models', 'u2net', 'u2net.pth')
+        self.net = U2NET(3, 1)
+        if torch.cuda.is_available():
+            self.net.load_state_dict(torch.load(model_dir))
+            self.net.cuda()
+        else:
+            self.net.load_state_dict(torch.load(model_dir, map_location='cpu'))
+        self.net.eval()
+
+    def blurdetection_callback(self, req):
         try:
-            image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-        except CvBridgeError as e:
-            print(e)
-        # now run through model
-        # rospy.loginfo("I came here")
-        # self.epoch_time = time.time()
-        imageresized = cv2.resize(image, (self.height, self.width))
-        rgb = np.expand_dims(imageresized * 1.0 - self.vgg_mean, axis=0)
-        blurMap = np.squeeze(self.sess.run([self.net_outputs], {self.net_regression.inputs: rgb}))
-        blur_map = np.zeros((blurMap.shape[0], blurMap.shape[1]))
-        # blur_map = np.argmax(blurMap,axis=2)[:,:,np.newaxis].astype(np.int32)
-        # numpy array with labels 
-        # .4 was found from validation data results with different uncertainty levels tested
-        blur_map[np.sum(blurMap[:, :] >= .4, axis=2) == 1] = np.argmax(
-            blurMap[np.sum(blurMap[:, :] >= .4, axis=2) == 1],
-            axis=1)
-        # uncertainty labeling
-        blur_map[np.sum(blurMap[:, :] >= .4, axis=2) != 1] = 5
-        blur_map = blur_map.astype(np.uint8)
-        # now make rgb image 
-        # now color code
-        rgb_blur_map = np.zeros((blur_map.shape[0], blur_map.shape[1], 3))
-        # blue motion blur
-        rgb_blur_map[blur_map == 1] = [255, 0, 0]
-        # green focus blur
-        rgb_blur_map[blur_map == 2] = [0, 255, 0]
-        # red darkness blur
-        rgb_blur_map[blur_map == 3] = [0, 0, 255]
-        # pink brightness blur
-        rgb_blur_map[blur_map == 4] = [255, 192, 203]
-        # yellow unknown blur
-        rgb_blur_map[blur_map == 5] = [0, 255, 255]
-        rgb_blur_map = rgb_blur_map.astype(np.uint8)
-        # publish softmax output and image labeling
-        # https://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv#Creating_a_msg
-        self.publish_BlurDetectionOutput(image, blur_map, blurMap, rgb_blur_map)
+            # convert to RGB image
+            try:
+                image = self.bridge.imgmsg_to_cv2(req.bgr, "8UC3")
+                # print(masked_image.shape)
+            except CvBridgeError as e:
+                print(e)
+            # now run through saliancey model
+            test_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            image_g = transform.resize(test_image, (320, 320), mode='constant')
+            tmpImg = np.zeros((image_g.shape[0], image_g.shape[1], 3))
+            image_g = image_g / np.max(image_g)
+            tmpImg[:, :, 0] = (image_g[:, :, 0] - 0.485) / 0.229
+            tmpImg[:, :, 1] = (image_g[:, :, 1] - 0.456) / 0.224
+            tmpImg[:, :, 2] = (image_g[:, :, 2] - 0.406) / 0.225
+            tmpImg = tmpImg.transpose((2, 0, 1))
+            inputs_test = torch.from_numpy(tmpImg).type(torch.FloatTensor)
 
-    # http://wiki.ros.org/rospy_tutorials/Tutorials/WritingImagePublisherSubscriber
-    def publish_BlurDetectionOutput(self, input_image, output_image, softmax_image_output, rgb_output):
-        time = rospy.Time.now()
-        msginput = CompressedImage()
-        msginput.header.stamp = time
-        msginput.format = "jpeg"
-        msginput.data = np.array(cv2.imencode('.jpg', input_image)[1]).tostring()
-        msgoutput = CompressedImage()
-        msgoutput.header.stamp = time
-        msgoutput.format = "jpeg"
-        msgoutput.data = np.array(cv2.imencode('.jpg', output_image)[1]).tostring()
-        msgsoftmax = CompressedImage()
-        msgsoftmax.header.stamp = time
-        msgsoftmax.format = "jpeg"
-        msgsoftmax.data = np.array(cv2.imencode('.jpg', softmax_image_output)[1]).tostring()
-        msgsrgb = CompressedImage()
-        msgsrgb.header.stamp = time
-        msgsrgb.format = "jpeg"
-        msgsrgb.data = np.array(cv2.imencode('.jpg', rgb_output)[1]).tostring()
-        self.blur_detection_input_pub.publish(msginput)
-        self.blur_detection_output_pub.publish(msgoutput)
-        self.blur_detection_softmax_pub.publish(msgsoftmax)
-        self.blur_detection_rgb_pub.publish(msgsrgb)
-        # msg = self.bridge.cv2_to_imgmsg(input_image, encoding="bgr8")
-        # msg.header.stamp = time
-        # self.blur_detection_input_pub.publish(msg)
-        # msg = self.bridge.cv2_to_imgmsg(output_image, encoding="passthrough")
-        # msg.header.stamp = time
-        # self.blur_detection_output_pub.publish(msg)
-        # msg = self.bridge.cv2_to_imgmsg(softmax_image_output, encoding="passthrough")
-        # msg.header.stamp = time
-        # self.blur_detection_softmax_pub.publish(msg)
-        # msg = self.bridge.cv2_to_imgmsg(rgb_output, encoding="bgr8")
-        # msg.header.stamp = time
-        # self.blur_detection_rgb_pub.publish(msg)
+            if torch.cuda.is_available():
+                inputs_test = Variable(inputs_test.cuda().unsqueeze(0))
+            else:
+                inputs_test = Variable(inputs_test.unsqueeze(0))
+
+            d1, _, _, _, _, _, _ = self.net(inputs_test)
+
+            # normalization
+            pred = d1[:, 0, :, :]
+            pred = normPRED(pred)
+
+            predict = pred.squeeze().cpu().data.numpy()
+            im = Image.fromarray(predict * 255 > 1).convert('RGB')  # 1e-3
+            mask_main = np.array(im.resize((test_image.shape[1], test_image.shape[0]), resample=Image.BILINEAR))
+            mask_main = (mask_main[:, :, 0]).astype(np.uint8)
+
+            rgb = np.expand_dims(image * 1. - self.vgg_mean, axis=0)
+            blurMap = np.squeeze(self.sess.run([self.net_outputs], {self.net_regression.inputs: rgb}))
+            # blur_map = np.zeros((blurMap.shape[0],blurMap.shape[1]))
+            # numpy array with labels
+            blur_map = np.argmax(blurMap, axis=2)
+
+            # masked with salience image
+            blur_map_labels = np.squeeze(blur_map)
+            blur_map_labels[mask_main < 1e-3] = 10
+            blurmap_flap = blur_map_labels.flatten()
+            blurmap_flap = blurmap_flap[blurmap_flap != 10]
+
+            # run through threshold and determine blur type
+            num_0 = np.sum(blurmap_flap == 0)
+            num_1 = np.sum(blurmap_flap == 1)
+            num_2 = np.sum(blurmap_flap == 2)
+            num_3 = np.sum(blurmap_flap == 3)
+            num_4 = np.sum(blurmap_flap == 4)
+            label = np.argmax([num_0, num_1, num_2, num_3, num_4])
+
+            blur_map = blur_map.astype(np.uint8)
+            # now make rgb image
+            # now color code
+            rgb_blur_map = np.zeros((blur_map.shape[0], blur_map.shape[1], 3))
+            # blue motion blur
+            rgb_blur_map[blur_map == 1] = [255, 0, 0]
+            # green focus blur
+            rgb_blur_map[blur_map == 2] = [0, 255, 0]
+            # red darkness blur
+            rgb_blur_map[blur_map == 3] = [0, 0, 255]
+            # pink brightness blur
+            rgb_blur_map[blur_map == 4] = [255, 192, 203]
+            # yellow unknown blur
+            rgb_blur_map[blur_map == 5] = [0, 255, 255]
+            rgb_blur_map = rgb_blur_map.astype(np.uint8)
+            # self.plot_images(image,rgb_blur_map)
+            imsave(req.save_name, rgb_blur_map)
+            msg_label = Int32()
+            msg_label.data = label
+            # publish softmax output and image labeling
+            return BlurOutputResponse(success=True, label=msg_label)
+
+        except Exception as e:
+            rospy.logerr("Error - " + str(e))
+
+        return BlurOutputResponse(success=False, msg=str(e))
 
     def setup_model(self, h, w):
         self.height = h
@@ -146,8 +176,7 @@ class BlurDetection:
                 input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
             with tf.compat.v1.variable_scope('UNet') as scope2:
                 self.net_regression, _, _, _, _, _, _, _ = Decoder_Network_classification(input, n, f0, f0_1, f1_2,
-                                                                                          f2_3,
-                                                                                          reuse=False, scope=scope2)
+                                                                                f2_3, reuse=False, scope=scope2)
         # Load checkpoint
         # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
         configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
@@ -162,28 +191,10 @@ class BlurDetection:
         output_map = tf.nn.softmax(self.net_regression.outputs)
         self.net_outputs = output_map
 
+
 if __name__ == "__main__":
     rospy.init_node("Blur_Detection")
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--model_checkpoint', type=str, help='model checkpoint name and location for using',
-                        default='/home/mary/catkin_ws/src/success_apc_blur_detection/model/Final_MURI_Model.ckpt')
-    # parser.add_argument('--height', type=int,default=256)
-    # parser.add_argument('--width', type=int,default=256)
-    # CMU
-    # parser.add_argument('--height', type=int,default=480)
-    # parser.add_argument('--width', type=int,default=640)
-    # for speeding up the runs
-    width = int(640 * 50 / 100)
-    height = int(480 * 50 / 100)
-    parser.add_argument('--height', type=int, default=height)
-    parser.add_argument('--width', type=int, default=width)
-    # BYU
-    # parser.add_argument('--height', type=int,default=720)
-    # parser.add_argument('--width', type=int,default=1280)
-    args = parser.parse_args()
-
-    tl.global_flag['model_checkpoint'] = args.model_checkpoint
-    blur_detection = BlurDetection(args)
+    blur_detection = BlurDetection()
     # Make sure sim time is working
     while not rospy.Time.now():
         pass
