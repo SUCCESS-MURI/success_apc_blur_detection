@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse
+# import argparse
 import os
 
 import rospy
@@ -19,9 +19,9 @@ import numpy as np
 from PIL import Image
 from std_msgs.msg import Int32
 from success_apc_blur_detection.srv import BlurOutput, BlurOutputRequest, BlurOutputResponse
-import time
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+# import time
+# import matplotlib.pyplot as plt
+# import matplotlib.image as mpimg
 import sys
 sys.path.insert(0, '/home/mary/code')
 from U2Net.model import U2NET
@@ -192,11 +192,11 @@ class BlurDetection:
         self.net_outputs = output_map
 
 
-if __name__ == "__main__":
-    rospy.init_node("Blur_Detection")
-    blur_detection = BlurDetection()
-    # Make sure sim time is working
-    while not rospy.Time.now():
-        pass
-    # spin
-    rospy.spin()
+# if __name__ == "__main__":
+#     rospy.init_node("Blur_Detection")
+#     blur_detection = BlurDetection()
+#     # Make sure sim time is working
+#     while not rospy.Time.now():
+#         pass
+#     # spin
+#     rospy.spin()
