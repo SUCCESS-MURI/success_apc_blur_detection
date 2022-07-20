@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
-# import argparse
-import os
-
 import rospy
 import tensorflow as tf
-import torch
 from skimage import transform
-from torch.autograd import Variable
 from skimage.io import imsave
 
 tf.compat.v1.disable_eager_execution()
@@ -16,7 +11,6 @@ from model import Decoder_Network_classification, VGG19_pretrained
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
 import numpy as np
-from PIL import Image
 from std_msgs.msg import Int32
 from success_apc_blur_detection.srv import BlurOutput, BlurOutputRequest, BlurOutputResponse
 # import time
@@ -25,6 +19,13 @@ from success_apc_blur_detection.srv import BlurOutput, BlurOutputRequest, BlurOu
 import sys
 sys.path.insert(0, '/home/mary/code')
 from U2Net.model import U2NET
+from skimage import io, color
+#from sensor_msgs.msg import Image
+from PIL import Image
+from torch.autograd import Variable
+import pickle
+import os
+import torch
 
 # from U2net
 # normalize the predicted SOD probability map
@@ -192,11 +193,11 @@ class BlurDetection:
         self.net_outputs = output_map
 
 
-# if __name__ == "__main__":
-#     rospy.init_node("Blur_Detection")
-#     blur_detection = BlurDetection()
-#     # Make sure sim time is working
-#     while not rospy.Time.now():
-#         pass
-#     # spin
-#     rospy.spin()
+if __name__ == "__main__":
+    rospy.init_node("Blur_Detection")
+    blur_detection = BlurDetection()
+    # Make sure sim time is working
+    while not rospy.Time.now():
+        pass
+    # spin
+    rospy.spin()
