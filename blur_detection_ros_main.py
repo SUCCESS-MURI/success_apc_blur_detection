@@ -17,14 +17,13 @@ from cv_bridge import CvBridge, CvBridgeError
 import cv2
 import numpy as np
 from PIL import Image
-#from sensor_msgs.msg import Image
 from std_msgs.msg import Int32
 from success_apc_blur_detection.srv import BlurOutput, BlurOutputRequest, BlurOutputResponse
 import time
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import sys
-sys.path.insert(0, rospy.get_param('~unet_location'))
+sys.path.insert(0, '/home/mary/code')
 from U2Net.model import U2NET
 
 # from U2net
@@ -93,7 +92,7 @@ class BlurDetection:
                 # print(masked_image.shape)
             except CvBridgeError as e:
                 print(e)
-            # now run through saliancey model
+            # now run through saliancy model
             test_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image_g = transform.resize(test_image, (320, 320), mode='constant')
             tmpImg = np.zeros((image_g.shape[0], image_g.shape[1], 3))
