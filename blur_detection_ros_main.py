@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rospy
 import tensorflow as tf
-from skimage import transform
+# from skimage import transform
 from skimage.io import imsave
 
 tf.compat.v1.disable_eager_execution()
@@ -16,26 +16,26 @@ from success_apc_blur_detection.srv import BlurOutput, BlurOutputRequest, BlurOu
 # import time
 # import matplotlib.pyplot as plt
 # import matplotlib.image as mpimg
-import sys
-sys.path.insert(0, '/home/mary/code')
-from U2Net.model import U2NET
-from skimage import io, color
+# import sys
+# sys.path.insert(0, '/home/mary/code')
+# from U2Net.model import U2NET
+# from skimage import io, color
 #from sensor_msgs.msg import Image
-from PIL import Image
-from torch.autograd import Variable
+# from PIL import Image
+# from torch.autograd import Variable
 import pickle
 import os
 import torch
 
 # from U2net
 # normalize the predicted SOD probability map
-def normPRED(d):
-    ma = torch.max(d)
-    mi = torch.min(d)
-
-    dn = (d - mi) / (ma - mi)
-
-    return dn
+# def normPRED(d):
+#     ma = torch.max(d)
+#     mi = torch.min(d)
+#
+#     dn = (d - mi) / (ma - mi)
+#
+#     return dn
 
 def get_weights_checkpoint(sess, network, dict_weights_trained):
     # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
@@ -62,8 +62,8 @@ class BlurDetection:
     def __init__(self):
         self.model_checkpoint = rospy.get_param('~model_checkpoint')
 
-        self.unet_location = rospy.get_param('~unet_location')
-        self.define_and_get_unet()
+        # self.unet_location = rospy.get_param('~unet_location')
+        # self.define_and_get_unet()
 
         self.vgg_mean = np.array(([103.939, 116.779, 123.68])).reshape([1, 1, 3])
         # initialize the model and its weights
@@ -75,15 +75,15 @@ class BlurDetection:
         self.count = 0
         rospy.loginfo("Done Setting up Blur Detection")
 
-    def define_and_get_unet(self):
-        model_dir = os.path.join(self.unet_location, 'U2Net', 'saved_models', 'u2net', 'u2net.pth')
-        self.net = U2NET(3, 1)
-        if torch.cuda.is_available():
-            self.net.load_state_dict(torch.load(model_dir))
-            self.net.cuda()
-        else:
-            self.net.load_state_dict(torch.load(model_dir, map_location='cpu'))
-        self.net.eval()
+    # def define_and_get_unet(self):
+    #     model_dir = os.path.join(self.unet_location, 'U2Net', 'saved_models', 'u2net', 'u2net.pth')
+    #     self.net = U2NET(3, 1)
+    #     if torch.cuda.is_available():
+    #         self.net.load_state_dict(torch.load(model_dir))
+    #         self.net.cuda()
+    #     else:
+    #         self.net.load_state_dict(torch.load(model_dir, map_location='cpu'))
+    #     self.net.eval()
 
     def blurdetection_callback(self, req):
         try:
@@ -94,31 +94,31 @@ class BlurDetection:
             except CvBridgeError as e:
                 print(e)
             # now run through saliancy model
-            test_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            image_g = transform.resize(test_image, (320, 320), mode='constant')
-            tmpImg = np.zeros((image_g.shape[0], image_g.shape[1], 3))
-            image_g = image_g / np.max(image_g)
-            tmpImg[:, :, 0] = (image_g[:, :, 0] - 0.485) / 0.229
-            tmpImg[:, :, 1] = (image_g[:, :, 1] - 0.456) / 0.224
-            tmpImg[:, :, 2] = (image_g[:, :, 2] - 0.406) / 0.225
-            tmpImg = tmpImg.transpose((2, 0, 1))
-            inputs_test = torch.from_numpy(tmpImg).type(torch.FloatTensor)
-
-            if torch.cuda.is_available():
-                inputs_test = Variable(inputs_test.cuda().unsqueeze(0))
-            else:
-                inputs_test = Variable(inputs_test.unsqueeze(0))
-
-            d1, _, _, _, _, _, _ = self.net(inputs_test)
-
-            # normalization
-            pred = d1[:, 0, :, :]
-            pred = normPRED(pred)
-
-            predict = pred.squeeze().cpu().data.numpy()
-            im = Image.fromarray(predict * 255 > 1).convert('RGB')  # 1e-3
-            mask_main = np.array(im.resize((test_image.shape[1], test_image.shape[0]), resample=Image.BILINEAR))
-            mask_main = (mask_main[:, :, 0]).astype(np.uint8)
+            # test_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            # image_g = transform.resize(test_image, (320, 320), mode='constant')
+            # tmpImg = np.zeros((image_g.shape[0], image_g.shape[1], 3))
+            # image_g = image_g / np.max(image_g)
+            # tmpImg[:, :, 0] = (image_g[:, :, 0] - 0.485) / 0.229
+            # tmpImg[:, :, 1] = (image_g[:, :, 1] - 0.456) / 0.224
+            # tmpImg[:, :, 2] = (image_g[:, :, 2] - 0.406) / 0.225
+            # tmpImg = tmpImg.transpose((2, 0, 1))
+            # inputs_test = torch.from_numpy(tmpImg).type(torch.FloatTensor)
+            #
+            # if torch.cuda.is_available():
+            #     inputs_test = Variable(inputs_test.cuda().unsqueeze(0))
+            # else:
+            #     inputs_test = Variable(inputs_test.unsqueeze(0))
+            #
+            # d1, _, _, _, _, _, _ = self.net(inputs_test)
+            #
+            # # normalization
+            # pred = d1[:, 0, :, :]
+            # pred = normPRED(pred)
+            #
+            # predict = pred.squeeze().cpu().data.numpy()
+            # im = Image.fromarray(predict * 255 > 1).convert('RGB')  # 1e-3
+            # mask_main = np.array(im.resize((test_image.shape[1], test_image.shape[0]), resample=Image.BILINEAR))
+            # mask_main = (mask_main[:, :, 0]).astype(np.uint8)
 
             rgb = np.expand_dims(image * 1. - self.vgg_mean, axis=0)
             blurMap = np.squeeze(self.sess.run([self.net_outputs], {self.net_regression.inputs: rgb}))
@@ -127,17 +127,17 @@ class BlurDetection:
             blur_map = np.argmax(blurMap, axis=2)
 
             # masked with salience image
-            blur_map_labels = np.squeeze(blur_map)
-            blur_map_labels[mask_main < 1e-3] = 10
-            blurmap_flap = blur_map_labels.flatten()
-            blurmap_flap = blurmap_flap[blurmap_flap != 10]
+            # blur_map_labels = np.squeeze(blur_map)
+            # blur_map_labels[mask_main < 1e-3] = 10
+            # blurmap_flap = blur_map_labels.flatten()
+            # blurmap_flap = blurmap_flap[blurmap_flap != 10]
 
             # run through threshold and determine blur type
-            num_0 = np.sum(blurmap_flap == 0)
-            num_1 = np.sum(blurmap_flap == 1)
-            num_2 = np.sum(blurmap_flap == 2)
-            num_3 = np.sum(blurmap_flap == 3)
-            num_4 = np.sum(blurmap_flap == 4)
+            num_0 = np.sum(blur_map == 0)
+            num_1 = np.sum(blur_map == 1)
+            num_2 = np.sum(blur_map == 2)
+            num_3 = np.sum(blur_map == 3)
+            num_4 = np.sum(blur_map == 4)
             label = np.argmax([num_0, num_1, num_2, num_3, num_4])
 
             blur_map = blur_map.astype(np.uint8)

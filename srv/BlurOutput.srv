@@ -1,5 +1,4 @@
 sensor_msgs/Image bgr
-sensor_msgs/Image mask
 string save_name
 ---
 bool success
