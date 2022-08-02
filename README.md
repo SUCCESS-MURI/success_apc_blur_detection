@@ -1,4 +1,4 @@
-# Blur Detection and Classifcation 
+# Blur Detection and Classification 
 
 This repository contains the training and test code for running our blur detection model based on the Kim et al. model. This repo was updated to run with tensorflow 2.0 and python 3.8
 
