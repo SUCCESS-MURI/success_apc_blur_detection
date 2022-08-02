@@ -33,8 +33,8 @@ def train_with_CHUK():
     tl.files.exists_or_mkdir(checkpoint_dir)
     log_config(checkpoint_dir + '/config', config)
 
-    input_path = config.TRAIN.CUHK_blur_path
-    gt_path = config.TRAIN.CUHK_gt_path
+    input_path = config.TRAIN.blur_path
+    gt_path = config.TRAIN.gt_path
     list_file = 'dataset/train_list.txt'
     train_blur_img_list = sorted(
         tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(jpg|JPG)', printable=False))
@@ -258,8 +258,8 @@ def train_with_synthetic():
     tl.files.exists_or_mkdir(checkpoint_dir)
     log_config(checkpoint_dir + '/config', config)
 
-    input_path = config.TRAIN.synthetic_blur_path
-    gt_path = config.TRAIN.synthetic_gt_path
+    input_path = config.TRAIN.blur_path
+    gt_path = config.TRAIN.gt_path
     train_blur_img_list = sorted(
         tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(jpg|JPG)', printable=False))
     train_mask_img_list = []

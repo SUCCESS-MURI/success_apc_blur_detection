@@ -1,13 +1,12 @@
-
 import tensorlayer as tl
 from config import config
 import cv2
 import random
 import imageio
 import numpy as np
+from PIL import Image
 
 VGG_MEAN = [103.939, 116.779, 123.68]
-
 
 def read_all_imgs(img_list, path='', n_threads=32, mode='RGB'):
     """ Returns all images in array by given path and name of each image file. """
@@ -15,25 +14,31 @@ def read_all_imgs(img_list, path='', n_threads=32, mode='RGB'):
     for idx in range(0, len(img_list), n_threads):
         b_imgs_list = img_list[idx: idx + n_threads]
         if mode == 'RGB':
-            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGB, path=path)
+            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGB_fn, path=path)
         elif mode == 'GRAY':
+            b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_GRAY_fn, path=path)
+        elif mode == 'RGB2GRAY':
             b_imgs = tl.prepro.threading_data(b_imgs_list, fn=get_imgs_RGB2GRAY, path=path)
         imgs.extend(b_imgs)
         print('read %d from %s' % (len(imgs), path))
     return imgs
 
-
-def get_imgs_RGB(file_name, path):
+def get_imgs_RGB_fn(file_name, path):
     """ Input an image path and name, return an image array """
     # https://www.codementor.io/@innat_2k14/image-data-analysis-using-numpy-opencv-part-1-kfadbafx6
     return imageio.imread(path + file_name)
 
+def get_imgs_GRAY_fn(file_name, path):
+    """ Input an image path and name, return an image array """
+    # return scipy.misc.imread(path + file_name).astype(np.float)
+    # https://www.geeksforgeeks.org/python-pil-image-convert-method/
+    image = Image.open(path + file_name)
+    return np.array(image.convert("L"))[:,:,np.newaxis]/255
 
 def get_imgs_RGB2GRAY(file_name, path):
     """ Input an image path and name, return an image array """
     image = cv2.imread(path + file_name, cv2.IMREAD_GRAYSCALE)
     return np.asarray(image)[:, :, np.newaxis]
-
 
 # crop image, flip and rotate and convert to numpy
 def crop_sub_img_and_classification_fn_aug(data):
@@ -92,9 +97,10 @@ def crop_sub_img_and_classification_fn(data):
 
 
 def format_VGG_image(image):
-    red = image[:, :, 0]
-    green = image[:, :, 1]
-    blue = image[:, :, 2]
+    rgb_scaled = image * 1.0
+    red = rgb_scaled[:, :, 0]
+    green = rgb_scaled[:, :, 1]
+    blue = rgb_scaled[:, :, 2]
     bgr = np.zeros(image.shape)
     bgr[:, :, 0] = blue - VGG_MEAN[0]
     bgr[:, :, 1] = green - VGG_MEAN[1]

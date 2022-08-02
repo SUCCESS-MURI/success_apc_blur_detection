@@ -2,17 +2,18 @@
 import csv
 import multiprocessing
 
+import numpy as np
 from PIL import Image
 from matplotlib import pyplot as plt
 from sklearn.metrics import f1_score, confusion_matrix, accuracy_score
+from tensorflow.python.training import py_checkpoint_reader
+
 from utils import *
 from model import *
 import cv2
 import os
 
 VGG_MEAN = [103.939, 116.779, 123.68]
-g_mean = np.array(([126.88, 120.24, 112.19])).reshape([1, 1, 3])
-
 
 # original .npy file from old tensorflow version of pretrained weights
 def get_weights(sess, network):
@@ -38,7 +39,6 @@ def get_weights(sess, network):
 
     sess.run(tl.files.assign_weights(params, network))
 
-
 def get_weights_checkpoint(sess, network, dict_weights_trained):
     # https://github.com/TreB1eN/InsightFace_Pytorch/issues/137
     params = []
@@ -56,7 +56,6 @@ def get_weights_checkpoint(sess, network, dict_weights_trained):
                 break
 
     sess.run(tl.files.assign_weights(params, network))
-
 
 ## IOU in pure numpy
 # https://github.com/hipiphock/Mean-IOU-in-Numpy-TensorFlow/blob/master/main.py
@@ -78,7 +77,6 @@ def numpy_iou(y_true, y_pred, n_class=5):
         IOU.append(iou)
 
     return np.mean(IOU)
-
 
 # our test
 def test():
@@ -177,7 +175,6 @@ def test():
         test_gt_image_blur_no_blur[test_gt_image > 0] = 1
 
         # https://github.com/tensorflow/tensorflow/issues/36465
-        # might use this for process above
         # https://newbedev.com/how-can-i-recover-the-return-value-of-a-function-passed-to-multiprocessing-process
         manager = multiprocessing.Manager()
         return_dict = manager.dict()
@@ -185,14 +182,14 @@ def test():
                                     args=(bgr, test_gt_image, test_gt_image_blur_no_blur, return_dict))
         p.start()
         p.join()
-        # run_session(bgr,test_gt_image,return_dict)
         blur_map, o1, o2, o3, accuracy, blur_map_binary, accuracy_binary = return_dict.values()
 
         blur_map = np.squeeze(blur_map)
         blur_map_binary = np.squeeze(blur_map_binary)
-        o1 = np.squeeze(o1)
-        o2 = np.squeeze(o2)
-        o3 = np.squeeze(o3)
+        if tl.global_flag['output_levels']:
+            o1 = np.squeeze(o1)
+            o2 = np.squeeze(o2)
+            o3 = np.squeeze(o3)
 
         all_image_results.append(blur_map)
         all_gt_binary_image_results.append(test_gt_image_blur_no_blur)
@@ -243,46 +240,52 @@ def test():
 
         # now color code
         rgb_blur_map = np.zeros(test_image.shape).astype(np.uint8)
-        rgb_blur_map_1 = np.zeros((o1.shape[0], o1.shape[1], 3)).astype(np.uint8)
-        rgb_blur_map_2 = np.zeros((o2.shape[0], o2.shape[1], 3)).astype(np.uint8)
-        rgb_blur_map_3 = np.zeros((o3.shape[0], o3.shape[1], 3)).astype(np.uint8)
         rgb_gt_map = np.zeros(test_image.shape).astype(np.uint8)
-        rgb_gt_map_1 = np.zeros((o1.shape[0], o1.shape[1], 3)).astype(np.uint8)
-        rgb_gt_map_2 = np.zeros((o2.shape[0], o2.shape[1], 3)).astype(np.uint8)
-        rgb_gt_map_3 = np.zeros((o3.shape[0], o3.shape[1], 3)).astype(np.uint8)
-        gt_o1 = np.squeeze(cv2.resize(test_gt_image, (o1.shape[1], o1.shape[0]), interpolation=cv2.INTER_NEAREST))
-        gt_o2 = np.squeeze(cv2.resize(test_gt_image, (o2.shape[1], o2.shape[0]), interpolation=cv2.INTER_NEAREST))
-        gt_o3 = np.squeeze(cv2.resize(test_gt_image, (o3.shape[1], o3.shape[0]), interpolation=cv2.INTER_NEAREST))
         # red motion blur
         rgb_blur_map[blur_map == 1] = [255, 0, 0]
-        rgb_blur_map_1[o1 == 1] = [255, 0, 0]
-        rgb_blur_map_2[o2 == 1] = [255, 0, 0]
-        rgb_blur_map_3[o3 == 1] = [255, 0, 0]
         rgb_gt_map[test_gt_image == 1] = [255, 0, 0]
-        rgb_gt_map_1[gt_o1 == 1] = [255, 0, 0]
-        rgb_gt_map_2[gt_o2 == 1] = [255, 0, 0]
-        rgb_gt_map_3[gt_o3 == 1] = [255, 0, 0]
         # green focus blur
         rgb_blur_map[blur_map == 2] = [0, 255, 0]
-        rgb_blur_map_1[o1 == 2] = [0, 255, 0]
-        rgb_blur_map_2[o2 == 2] = [0, 255, 0]
-        rgb_blur_map_3[o3 == 2] = [0, 255, 0]
         rgb_gt_map[test_gt_image == 2] = [0, 255, 0]
-        rgb_gt_map_1[gt_o1 == 2] = [0, 255, 0]
-        rgb_gt_map_2[gt_o2 == 2] = [0, 255, 0]
-        rgb_gt_map_3[gt_o3 == 2] = [0, 255, 0]
+
+        if tl.global_flag['output_levels']:
+            rgb_blur_map_1 = np.zeros((o1.shape[0], o1.shape[1], 3)).astype(np.uint8)
+            rgb_blur_map_2 = np.zeros((o2.shape[0], o2.shape[1], 3)).astype(np.uint8)
+            rgb_blur_map_3 = np.zeros((o3.shape[0], o3.shape[1], 3)).astype(np.uint8)
+            rgb_gt_map_1 = np.zeros((o1.shape[0], o1.shape[1], 3)).astype(np.uint8)
+            rgb_gt_map_2 = np.zeros((o2.shape[0], o2.shape[1], 3)).astype(np.uint8)
+            rgb_gt_map_3 = np.zeros((o3.shape[0], o3.shape[1], 3)).astype(np.uint8)
+            gt_o1 = np.squeeze(cv2.resize(test_gt_image, (o1.shape[1], o1.shape[0]), interpolation=cv2.INTER_NEAREST))
+            gt_o2 = np.squeeze(cv2.resize(test_gt_image, (o2.shape[1], o2.shape[0]), interpolation=cv2.INTER_NEAREST))
+            gt_o3 = np.squeeze(cv2.resize(test_gt_image, (o3.shape[1], o3.shape[0]), interpolation=cv2.INTER_NEAREST))
+            rgb_blur_map_1[o1 == 1] = [255, 0, 0]
+            rgb_blur_map_2[o2 == 1] = [255, 0, 0]
+            rgb_blur_map_3[o3 == 1] = [255, 0, 0]
+            rgb_gt_map_1[gt_o1 == 1] = [255, 0, 0]
+            rgb_gt_map_2[gt_o2 == 1] = [255, 0, 0]
+            rgb_gt_map_3[gt_o3 == 1] = [255, 0, 0]
+            rgb_blur_map_1[o1 == 2] = [0, 255, 0]
+            rgb_blur_map_2[o2 == 2] = [0, 255, 0]
+            rgb_blur_map_3[o3 == 2] = [0, 255, 0]
+            rgb_gt_map_1[gt_o1 == 2] = [0, 255, 0]
+            rgb_gt_map_2[gt_o2 == 2] = [0, 255, 0]
+            rgb_gt_map_3[gt_o3 == 2] = [0, 255, 0]
 
         image_name = image
         if ".jpg" in image_name:
             image_name.replace(".jpg", ".png")
             imageio.imwrite(save_dir_sample + '/' + image_name.replace(".jpg", ".png"), rgb_blur_map)
             imageio.imwrite(save_dir_sample + '/gt/gt_' + image_name.replace(".jpg", ".png"), rgb_gt_map)
-            imageio.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_1)
-            imageio.imwrite(save_dir_sample + '/gt/gt_m1_results' + image_name.replace(".jpg", ".png"), rgb_gt_map_1)
-            imageio.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_2)
-            imageio.imwrite(save_dir_sample + '/gt/gt_m2_results' + image_name.replace(".jpg", ".png"), rgb_gt_map_2)
-            imageio.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_3)
-            imageio.imwrite(save_dir_sample + '/gt/gt_m3_results' + image_name.replace(".jpg", ".png"), rgb_gt_map_3)
+            if tl.global_flag['output_levels']:
+                imageio.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_1)
+                imageio.imwrite(save_dir_sample + '/gt/gt_m1_results' + image_name.replace(".jpg", ".png"),
+                                rgb_gt_map_1)
+                imageio.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_2)
+                imageio.imwrite(save_dir_sample + '/gt/gt_m2_results' + image_name.replace(".jpg", ".png"),
+                                rgb_gt_map_2)
+                imageio.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_3)
+                imageio.imwrite(save_dir_sample + '/gt/gt_m3_results' + image_name.replace(".jpg", ".png"),
+                                rgb_gt_map_3)
             cv2.imwrite(save_dir_sample + '/binary_result/' + image_name.replace(".jpg", ".png"), blur_map_binary * 255)
             cv2.imwrite(save_dir_sample + '/binary_result/gt/' + image_name.replace(".jpg", ".png"),
                         test_gt_image_blur_no_blur * 255)
@@ -290,12 +293,16 @@ def test():
             image_name.replace(".JPG", ".png")
             imageio.imwrite(save_dir_sample + '/' + image_name.replace(".JPG", ".png"), rgb_blur_map)
             imageio.imwrite(save_dir_sample + '/gt/gt_' + image_name.replace(".JPG", ".png"), rgb_gt_map)
-            imageio.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".JPG", ".png"), rgb_blur_map_1)
-            imageio.imwrite(save_dir_sample + '/gt/gt_m1_results' + image_name.replace(".JPG", ".png"), rgb_gt_map_1)
-            imageio.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".JPG", ".png"), rgb_blur_map_2)
-            imageio.imwrite(save_dir_sample + '/gt/gt_m2_results' + image_name.replace(".JPG", ".png"), rgb_gt_map_2)
-            imageio.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".JPG", ".png"), rgb_blur_map_3)
-            imageio.imwrite(save_dir_sample + '/gt/gt_m3_results' + image_name.replace(".JPG", ".png"), rgb_gt_map_3)
+            if tl.global_flag['output_levels']:
+                imageio.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".JPG", ".png"), rgb_blur_map_1)
+                imageio.imwrite(save_dir_sample + '/gt/gt_m1_results' + image_name.replace(".JPG", ".png"),
+                                rgb_gt_map_1)
+                imageio.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".JPG", ".png"), rgb_blur_map_2)
+                imageio.imwrite(save_dir_sample + '/gt/gt_m2_results' + image_name.replace(".JPG", ".png"),
+                                rgb_gt_map_2)
+                imageio.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".JPG", ".png"), rgb_blur_map_3)
+                imageio.imwrite(save_dir_sample + '/gt/gt_m3_results' + image_name.replace(".JPG", ".png"),
+                                rgb_gt_map_3)
             cv2.imwrite(save_dir_sample + '/binary_result/' + image_name.replace(".JPG", ".png"), blur_map_binary * 255)
             cv2.imwrite(save_dir_sample + '/binary_result/gt/' + image_name.replace(".JPG", ".png"),
                         test_gt_image_blur_no_blur * 255)
@@ -303,12 +310,16 @@ def test():
             image_name.replace(".jpg", ".png")
             imageio.imwrite(save_dir_sample + '/' + image_name.replace(".jpg", ".png"), rgb_blur_map)
             imageio.imwrite(save_dir_sample + '/gt/gt_' + image_name.replace(".jpg", ".png"), rgb_gt_map)
-            imageio.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_1)
-            imageio.imwrite(save_dir_sample + '/gt/gt_m1_results' + image_name.replace(".jpg", ".png"), rgb_gt_map_1)
-            imageio.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_2)
-            imageio.imwrite(save_dir_sample + '/gt/gt_m2_results' + image_name.replace(".jpg", ".png"), rgb_gt_map_2)
-            imageio.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_3)
-            imageio.imwrite(save_dir_sample + '/gt/gt_m3_results' + image_name.replace(".jpg", ".png"), rgb_gt_map_3)
+            if tl.global_flag['output_levels']:
+                imageio.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_1)
+                imageio.imwrite(save_dir_sample + '/gt/gt_m1_results' + image_name.replace(".jpg", ".png"),
+                                rgb_gt_map_1)
+                imageio.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_2)
+                imageio.imwrite(save_dir_sample + '/gt/gt_m2_results' + image_name.replace(".jpg", ".png"),
+                                rgb_gt_map_2)
+                imageio.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_3)
+                imageio.imwrite(save_dir_sample + '/gt/gt_m3_results' + image_name.replace(".jpg", ".png"),
+                                rgb_gt_map_3)
             cv2.imwrite(save_dir_sample + '/binary_result/' + image_name.replace(".jpg", ".png"), blur_map_binary * 255)
             cv2.imwrite(save_dir_sample + '/binary_result/gt/' + image_name.replace(".jpg", ".png"),
                         test_gt_image_blur_no_blur * 255)
@@ -316,12 +327,16 @@ def test():
             image_name.replace(".jpg", ".png")
             imageio.imwrite(save_dir_sample + '/' + image_name.replace(".jpg", ".png"), rgb_blur_map)
             imageio.imwrite(save_dir_sample + '/gt/gt_' + image_name.replace(".jpg", ".png"), rgb_gt_map)
-            imageio.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_1)
-            imageio.imwrite(save_dir_sample + '/gt/gt_m1_results' + image_name.replace(".jpg", ".png"), rgb_gt_map_1)
-            imageio.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_2)
-            imageio.imwrite(save_dir_sample + '/gt/gt_m2_results' + image_name.replace(".jpg", ".png"), rgb_gt_map_2)
-            imageio.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_3)
-            imageio.imwrite(save_dir_sample + '/gt/gt_m3_results' + image_name.replace(".jpg", ".png"), rgb_gt_map_3)
+            if tl.global_flag['output_levels']:
+                imageio.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_1)
+                imageio.imwrite(save_dir_sample + '/gt/gt_m1_results' + image_name.replace(".jpg", ".png"),
+                                rgb_gt_map_1)
+                imageio.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_2)
+                imageio.imwrite(save_dir_sample + '/gt/gt_m2_results' + image_name.replace(".jpg", ".png"),
+                                rgb_gt_map_2)
+                imageio.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_3)
+                imageio.imwrite(save_dir_sample + '/gt/gt_m3_results' + image_name.replace(".jpg", ".png"),
+                                rgb_gt_map_3)
             cv2.imwrite(save_dir_sample + '/binary_result/' + image_name.replace(".jpg", ".png"), blur_map_binary * 255)
             cv2.imwrite(save_dir_sample + '/binary_result/gt/' + image_name.replace(".jpg", ".png"),
                         test_gt_image_blur_no_blur * 255)
@@ -361,8 +376,9 @@ def test():
         patches_blurred, labels, net_regression, input, n, f0, f0_1, f1_2, f2_3, m1, m2, m3, output_map, loss1, sess, \
         scope, scope1, scope3, configTf, blur_map, bgr, rgb_blur_map, rgb_gt_map, f1score, miou, perclass_accuracy, \
         writer, f, string_list, log, perclass_accuracy_conf_matrix, accuracy0, red, green, blue = None, None, None, \
-                                                                                                  None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, \
-                                                                                                  None, None, None, None, None, None, None, None, None, None, None, None, None, None
+                        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, \
+                        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, \
+                                                                                                  None, None
 
     log = "[*] Testing Max Overall Accuracy: %.8f Max Accuracy Class 0: %.8f Max Accuracy Class 1: %.8f " \
           "Max Accuracy Class 2: %.8f Max IoU: %.8f Variance: %.8f Max F1_score: %.8f\n" % (
@@ -472,7 +488,6 @@ def test():
     plt.savefig('conf_matrix_binary.png')
     plt.show()
 
-
 # multiprocessing run session
 def run_session(image, gt, gt_binary, return_dict):
     # Model
@@ -497,16 +512,20 @@ def run_session(image, gt, gt_binary, return_dict):
     print("loaded all the weights")
 
     output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
-    output_map_1 = tf.expand_dims(tf.math.argmax(tf.nn.softmax(m1.outputs), axis=3), axis=3)
-    output_map_2 = tf.expand_dims(tf.math.argmax(tf.nn.softmax(m2.outputs), axis=3), axis=3)
-    output_map_3 = tf.expand_dims(tf.math.argmax(tf.nn.softmax(m3.outputs), axis=3), axis=3)
+    if tl.global_flag['output_levels']:
+        output_map_1 = tf.expand_dims(tf.math.argmax(tf.nn.softmax(m1.outputs), axis=3), axis=3)
+        output_map_2 = tf.expand_dims(tf.math.argmax(tf.nn.softmax(m2.outputs), axis=3), axis=3)
+        output_map_3 = tf.expand_dims(tf.math.argmax(tf.nn.softmax(m3.outputs), axis=3), axis=3)
 
     ### DEFINE LOSS ###
     loss1 = tf.cast(tf.math.reduce_sum(1 - tf.math.abs(tf.math.subtract(output_map, labels))),
                     dtype=tf.float32) * (1 / (image.shape[0] * image.shape[1]))
 
-    blur_map0, outmap1, outmap2, outmap3 = sess.run([output_map, output_map_1, output_map_2, output_map_3],
+    if tl.global_flag['output_levels']:
+        blur_map0, outmap1, outmap2, outmap3 = sess.run([output_map, output_map_1, output_map_2, output_map_3],
                                                     {net_regression.inputs: np.expand_dims((image), axis=0)})
+    else:
+        blur_map0 = sess.run([output_map],{net_regression.inputs: np.expand_dims((image), axis=0)})[0]
     accuracy0 = accuracy_score(np.squeeze(gt).flatten(), np.squeeze(blur_map0).flatten(), normalize=True)
     # compare binary map
     blur_map_binary = np.copy(blur_map0)
@@ -518,9 +537,176 @@ def run_session(image, gt, gt_binary, return_dict):
 
     sess.close()
     return_dict['blur_map'] = blur_map0
-    return_dict['blur_map_1'] = outmap1
-    return_dict['blur_map_2'] = outmap2
-    return_dict['blur_map_3'] = outmap3
+    if tl.global_flag['output_levels']:
+        return_dict['blur_map_1'] = outmap1
+        return_dict['blur_map_2'] = outmap2
+        return_dict['blur_map_3'] = outmap3
+    else:
+        return_dict['blur_map_1'] = 0
+        return_dict['blur_map_2'] = 0
+        return_dict['blur_map_3'] = 0
     return_dict['accuracy'] = accuracy0
     return_dict['blur_map_binary'] = blur_map_binary
     return_dict['accuracy_binary'] = accuracy1
+
+# main test function for real images without ground truth
+def test_with_no_gt():
+    print("Real BD Testing")
+
+    save_dir_sample = 'output_{}'.format(tl.global_flag['mode'])
+    tl.files.exists_or_mkdir(save_dir_sample)
+    tl.files.exists_or_mkdir(save_dir_sample + '/binary')
+
+    test_blur_img_list = sorted(tl.files.load_file_list(path=config.TEST.blur_path, regx='/*.(jpg|JPG)',
+                                                        printable=False))
+    # # Load checkpoint
+    # # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
+    file_name = './model/SA_net_{}.ckpt'.format(tl.global_flag['mode'])
+    reader = py_checkpoint_reader.NewCheckpointReader(file_name)
+    state_dict = {v: reader.get_tensor(v) for v in reader.get_variable_to_shape_map()}
+
+    for i in range(len(test_blur_img_list)):
+        image_name = test_blur_img_list[i]
+        image_file_location = os.path.join(config.TEST.real_blur_path, image_name)
+        test_image = imageio.imread(image_file_location)
+
+        sharp_image = np.asarray(test_image, dtype="float32")
+
+        if len(sharp_image.shape) < 3:
+            sharp_image = np.expand_dims(np.asarray(sharp_image), 3)
+            sharp_image = np.concatenate([sharp_image, sharp_image, sharp_image], axis=2)
+
+        if sharp_image.shape[2] == 4:
+            print(sharp_image.shape)
+            sharp_image = np.expand_dims(np.asarray(sharp_image), 3)
+
+            print(sharp_image.shape)
+            sharp_image = np.concatenate((sharp_image[:, :, 0], sharp_image[:, :, 1], sharp_image[:, :, 2]), axis=2)
+
+        print(sharp_image.shape)
+
+        image_h, image_w = sharp_image.shape[0:2]
+        print(image_h, image_w)
+
+        test_image = sharp_image[0: image_h - (image_h % 16), 0: 0 + image_w - (image_w % 16), :]
+        red = test_image[:, :, 0]
+        green = test_image[:, :, 1]
+        blue = test_image[:, :, 2]
+        test_image = np.zeros(test_image.shape)
+        test_image[:, :, 0] = blue - VGG_MEAN[0]
+        test_image[:, :, 1] = green - VGG_MEAN[1]
+        test_image[:, :, 2] = red - VGG_MEAN[2]
+
+        # Model
+        manager = multiprocessing.Manager()
+        return_dict = manager.dict()
+        p = multiprocessing.Process(target=run_session_no_gt,args=(test_image, state_dict, return_dict))
+        p.start()
+        p.join()
+        if tl.global_flag['output_levels']:
+            blur_map, o1,o2,o3, blur_map_binary = return_dict.values()
+            o1 = np.squeeze(o1)
+            o2 = np.squeeze(o2)
+            o3 = np.squeeze(o3)
+        else:
+            blur_map, blur_map_binary = return_dict.values()
+        blur_map = np.squeeze(blur_map)
+
+        # now color code
+        rgb_blur_map = np.zeros(test_image.shape)
+        rgb_blur_map_blur_no_blur = np.zeros(test_image.shape)
+        # blur no blur
+        rgb_blur_map_blur_no_blur[blur_map_binary == 1] = [255, 255, 255]
+        # blue motion blur
+        rgb_blur_map[blur_map == 1] = [255,0,0]
+        # green focus blur
+        rgb_blur_map[blur_map == 2] = [0, 255, 0]
+        if tl.global_flag['output_levels']:
+            rgb_blur_map_1 = np.zeros((o1.shape[0], o1.shape[1], 3)).astype(np.uint8)
+            rgb_blur_map_2 = np.zeros((o2.shape[0], o2.shape[1], 3)).astype(np.uint8)
+            rgb_blur_map_3 = np.zeros((o3.shape[0], o3.shape[1], 3)).astype(np.uint8)
+            rgb_blur_map_1[o1 == 1] = [255, 0, 0]
+            rgb_blur_map_2[o2 == 1] = [255, 0, 0]
+            rgb_blur_map_3[o3 == 1] = [255, 0, 0]
+            rgb_blur_map_1[o1 == 2] = [0, 255, 0]
+            rgb_blur_map_2[o2 == 2] = [0, 255, 0]
+            rgb_blur_map_3[o3 == 2] = [0, 255, 0]
+
+        if ".jpg" in image_name:
+            image_name.replace(".jpg", ".png")
+            imageio.imwrite(save_dir_sample + '/' + image_name.replace(".jpg", ".png"), rgb_blur_map)
+            if tl.global_flag['output_levels']:
+                imageio.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_1)
+                imageio.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_2)
+                imageio.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_3)
+            cv2.imwrite(save_dir_sample + '/binary/' + image_name.replace(".jpg", ".png"), blur_map_binary * 255)
+        if ".JPG" in image_name:
+            image_name.replace(".JPG", ".png")
+            imageio.imwrite(save_dir_sample + '/' + image_name.replace(".JPG", ".png"), rgb_blur_map)
+            if tl.global_flag['output_levels']:
+                imageio.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".JPG", ".png"), rgb_blur_map_1)
+                imageio.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".JPG", ".png"), rgb_blur_map_2)
+                imageio.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".JPG", ".png"), rgb_blur_map_3)
+            cv2.imwrite(save_dir_sample + '/binary/' + image_name.replace(".JPG", ".png"), blur_map_binary * 255)
+        if ".PNG" in image_name:
+            image_name.replace(".jpg", ".png")
+            imageio.imwrite(save_dir_sample + '/' + image_name.replace(".jpg", ".png"), rgb_blur_map)
+            if tl.global_flag['output_levels']:
+                imageio.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_1)
+                imageio.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_2)
+                imageio.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_3)
+            cv2.imwrite(save_dir_sample + '/binary/' + image_name.replace(".jpg", ".png"), blur_map_binary * 255)
+        if ".png" in image_name:
+            image_name.replace(".jpg", ".png")
+            imageio.imwrite(save_dir_sample + '/' + image_name.replace(".jpg", ".png"), rgb_blur_map)
+            if tl.global_flag['output_levels']:
+                imageio.imwrite(save_dir_sample + '/m1_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_1)
+                imageio.imwrite(save_dir_sample + '/m2_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_2)
+                imageio.imwrite(save_dir_sample + '/m3_results' + image_name.replace(".jpg", ".png"), rgb_blur_map_3)
+            cv2.imwrite(save_dir_sample + '/binary/' + image_name.replace(".jpg", ".png"), blur_map_binary * 255)
+
+    print("Finished")
+
+# multiprocessing run session
+def run_session_no_gt(image, state_dict, return_dict):
+    # Model
+    patches_blurred = tf.compat.v1.placeholder('float32', [1, image.shape[0], image.shape[1], 3],
+                                               name='input_patches')
+    with tf.compat.v1.variable_scope('Unified') as scope:
+        with tf.compat.v1.variable_scope('VGG') as scope3:
+            input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope3)
+        with tf.compat.v1.variable_scope('UNet') as scope1:
+            net_regression, m1, m2, m3 = Decoder_Network_classification(input, n, f0, f0_1, f1_2, f2_3,
+                                                                        reuse=False, scope=scope1)
+
+    configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+    configTf.gpu_options.allow_growth = True
+    sess = tf.compat.v1.Session(config=configTf)
+    tl.layers.initialize_global_variables(sess)
+
+    # Load checkpoint
+    get_weights_checkpoint(sess, net_regression, state_dict)
+    print("loaded all the weights")
+
+    output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
+    # if you want to see each level output
+    if tl.global_flag['output_levels']:
+        output_map_1 = tf.expand_dims(tf.math.argmax(tf.nn.softmax(m1.outputs), axis=3), axis=3)
+        output_map_2 = tf.expand_dims(tf.math.argmax(tf.nn.softmax(m2.outputs), axis=3), axis=3)
+        output_map_3 = tf.expand_dims(tf.math.argmax(tf.nn.softmax(m3.outputs), axis=3), axis=3)
+        blur_map0, outmap1, outmap2, outmap3  = sess.run([output_map,output_map_1,output_map_2,output_map_3],
+                                                         {net_regression.inputs: np.expand_dims(image, axis=0)})
+    else:
+        blur_map0 = sess.run([output_map],{net_regression.inputs: np.expand_dims(image, axis=0)})[0]
+    # compare binary map
+    blur_map_binary = np.copy(blur_map0)
+    blur_map_binary[blur_map0 > 0] = 1
+    blur_map_binary = np.squeeze(blur_map_binary)
+
+    sess.close()
+    return_dict['blur_map'] = blur_map0
+    if tl.global_flag['output_levels']:
+        return_dict['blur_map_1'] = outmap1
+        return_dict['blur_map_2'] = outmap2
+        return_dict['blur_map_3'] = outmap3
+    return_dict['blur_map_binary'] = blur_map_binary
