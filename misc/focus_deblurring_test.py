@@ -20,7 +20,7 @@ from scipy.ndimage import convolve
 # https://stackoverflow.com/questions/29731726/how-to-calculate-a-gaussian-kernel-matrix-efficiently-in-numpy
 from tensorflow.python.training import py_checkpoint_reader
 
-from model import VGG19_pretrained, Origional_Decoder_Network_classification
+from updated_decoder_model import VGG19_pretrained, Origional_Decoder_Network_classification
 
 VGG_MEAN = [103.939, 116.779, 123.68]
 

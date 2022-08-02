@@ -11,7 +11,7 @@ conda activate name_of_env
 Step 3: follow upgrading and installing packages as follows:
 pip install --upgrade pip
 conda install -c conda-forge easydict
-#dont use conda install for opencv install incompatable libraries for tensorflow#
+#dont use conda install for opencv install incompatible libraries for tensorflow#
 pip install opencv-contrib-python
 conda install -c anaconda pillow
 conda install -c anaconda numpy

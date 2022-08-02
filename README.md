@@ -1,54 +1,42 @@
-## NEED TO UPDATE THIS 
-previous project's readme 
+# Blur Detection and Classification with Exposure Blur Labels
 
-# MURI Deep Blur Detection and Classification
-# Update images 
-%![input2](./input/out_of_focus0607.jpg) ![output2](./output/out_of_focus0607.png)
+This repository contains the training and test code for running Kim et al. blur detection model with the additional 2 classification labels for over-and underexposure. This repo was updated to run with tensorflow 2.0 and python 3.8
 
-This repository contains the code and dataset locations for the muri integration project and the origional datasets used by the origional project https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.
+## Kim et al. Train and Testing Details from [Original Repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git)
+## Prerequisites 
+- Please clone the release branch [Deep_Blur_Detection_and_Classification_w_Tensorflow2_Python3.8](https://github.com/SUCCESS-MURI/success_apc_blur_detection.git) which is the original model branch updated to use tensorflow 2.0 and python 3.8. 
+- Follow all instructions for env and libraries in workplace_setup folder and from [Deep_Blur_Detection_and_Classification_w_Tensorflow2_Python3.8](https://github.com/SUCCESS-MURI/success_apc_blur_detection.git)
+- Our [exposure blur detection datasets](XXXX) was used for training and testing our network and generating our synthetic dataset
+- Train and test set details are [here](XXXX). 
 
---------------------------
+## Training Details
+- You will need to modify some options and paths in 'new_main.py' and 'config.py' for training
+- Same input/config arguments as in [Deep_Blur_Detection_and_Classification_w_Tensorflow2_Python3.8](https://github.com/SUCCESS-MURI/success_apc_blur_detection.git) 
+- Please modify config.py with updated dataset locations for training where it is located in local directory
+- new_main.py has the following new input options:
+  - --exposure (true,false): running exposure classification or not
 
-## Prerequisites (tested)
-- Ubuntu 20.04
-- Tensorflow-gpu 2.2.0
-- Tensorlayer 2.2.3
-- OpenCV2
-- Listed in the document Packages_Requirements
-- Using Ananconda Virtual Enviornment
-
-install anaconda and packages from the commands found in the doc XXXXX
-
-## Model Pre-Trained Weights Training Details
-- ## CHUK Dataset
-- We used [CUHK blur detection dataset](http://www.cse.cuhk.edu.hk/~leojia/projects/dblurdetect/dataset.html) for training our network and generating our synthetic dataset
-- Train and test set lists are uploaded in 'dataset' folder
-- Need to modify some options and paths in 'main.py' and 'config.py' for training
-- ## Synthetic Dataset
-- download [synthetic train set](https://drive.google.com/file/d/1QUygL2nalHldcJMwFJPfPFWokMoIbI9L/view?usp=sharing)(337MB) and [synthetic test set](https://drive.google.com/file/d/1-lV3CS_6rI_by6StkGQYsdn0SeOxwepu/view?usp=sharing)(11.5MB) from google drive
-- Note that sharp pixels, motion-blurred pixels, and defocus-blurred pixels in GT blur maps are labeled as 0, 100, and 200, respectively, in the [0,255] range.
+Run the following example command after all of your input parameters are set in config.py 
+```bash
+python new_main.py --is_train true --exposure true
+```
 
 ## Test Details
 - download [model weights](https://drive.google.com/file/d/11FBVmAIfeHDHpOjLXewzpA2lgcOOqo2_/view?usp=sharing) from google drive and save the model into 'model' folder.
-- specify a path of input folder in 'main.py' at line #39
-- run 'main.py'
+- Can use the converted .npy weights on XXX from the [original repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git).
+- new_main.py has the following new input options for testing:
+  - --exposure (true,false): running exposure classification or not
+  - 
 
 ```bash
 python main.py
 ```
 
-## Sample output 
-in the folder sample_blur_output there are 3 folders:
+## Running Real Time with ROS
+ROSService
 
-gt_images - rgb ground truth images for blur detection (pink-brightness, red - darkness, green - focus, blue - motion)
-
-output_images - rgb images for that were outputed by blur detection (pink-brightness, red - darkness, green - focus, blue - motion) 
-
-raw_npy_output - softmax blur output (size (256,256,5)) the indexs indicate the following: 0: no blur 1: motion blur 2: focus blur 3: darkness blur 4: brightness blur
 
 ## License ##
-NEED to Update for MURI/CMU
-
 This software is being made available under the terms in the [LICENSE](LICENSE) file.
 Any exemptions to these terms requires a license from the Pohang University of Science and Technology.
 
