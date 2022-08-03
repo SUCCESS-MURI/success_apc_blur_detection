@@ -25,10 +25,11 @@ if __name__ == '__main__':
     parser.add_argument('--exposure', type=str, default='false', help='whether using exposure classifcation or not')
     parser.add_argument('--exposure_dataset', type=str, default='false', help='whether using exposure dataset or not. '
                                     'Only needed if using kim et al testing with exposure labeled images')
+    parser.add_argument('--image_extension', type=str, default='.jpg', help='image input extension, default .jpg can '
+                                                                            'also use .png. those 2 options.'
+                                                                            ' Caps not sensitive')
     parser.add_argument('--start_from', type=int, default='0', help='start from')
     parser.add_argument('--gpu', type=str, default='false', help='whether synthetic training or not')
-    parser.add_argument('--uncertainty_label', type=str, default='false', help='whether testing result should have an '
-                                                                               'uncertanity label. default is false')
     parser.add_argument('--output_levels', type=str, default='false', help='output each of the levels for testing')
     parser.add_argument('--test_wo_gt', type=str, default='false', help='testing images without gt')
     args = parser.parse_args()
@@ -36,7 +37,6 @@ if __name__ == '__main__':
     tl.global_flag['mode'] = args.mode
     tl.global_flag['is_train'] = t_or_f(args.is_train)
     tl.global_flag['start_from'] = int(args.start_from)
-    tl.global_flag['uncertainty_label'] = t_or_f(args.uncertainty_label)
     tl.global_flag['gpu'] = t_or_f(args.gpu)
     tl.global_flag['exposure'] = t_or_f(args.exposure)
     tl.global_flag['is_synthetic'] = t_or_f(args.is_synthetic)

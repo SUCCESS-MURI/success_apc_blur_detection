@@ -1,8 +1,6 @@
 <launch>
 	<node pkg="success_apc_blur_detection" type="blur_detection_ros_main.py" name="BlurDetection">
-        <param name="model_checkpoint" value="/home/mary/code/blur_outputs/models/SA_net_ips_dataset_3_run_1_best_model.ckpt" />
-        <!-- <param name="save_output_blur" value="/home/mary/code/local_success_dataset/ips_output/blur_output" /> -->
-        <!-- <param name="unet_location" value="/home/mary/code/U2Net" /> -->
+        <param name="model_checkpoint" value="/location/weight/.ckpt" />
         <param name="height" value="480" />
         <param name="width" value="640" />
     </node>

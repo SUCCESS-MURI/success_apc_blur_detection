@@ -12,7 +12,6 @@ import numpy as np
 import math
 
 from config import config, log_config
-from setup.load_kim_weights_and_save import get_weights
 from utils import *
 from model import VGG19_pretrained
 from updated_decoder_model import Decoder_Network_classification
@@ -25,6 +24,7 @@ import os
 from os import path
 # we need the other repo for this to work
 from train import unison_shuffled_copies
+from test import get_weights
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.DEBUG)
 tl.logging.set_verbosity(tl.logging.DEBUG)
@@ -50,8 +50,12 @@ def exposure_training():
 
     input_path = config.TRAIN.blur_path
     gt_path = config.TRAIN.gt_path
-    train_blur_img_list = sorted(tl.files.load_file_list(path=input_path, regx='/*.(png|PNG)', printable=False))
-    train_mask_img_list = sorted(tl.files.load_file_list(path=gt_path, regx='/*.(png|PNG)', printable=False))
+    if '.jpg' in tl.global_flag['image_extension']:
+        train_blur_img_list = sorted(tl.files.load_file_list(path=input_path, regx='/*.(jpg|JPG)', printable=False))
+        train_mask_img_list = sorted(tl.files.load_file_list(path=gt_path, regx='/*.(jpg|JPG)', printable=False))
+    else:
+        train_blur_img_list = sorted(tl.files.load_file_list(path=input_path, regx='/*.(png|PNG)', printable=False))
+        train_mask_img_list = sorted(tl.files.load_file_list(path=gt_path, regx='/*.(png|PNG)', printable=False))
 
     ###Load Training Data ####
     train_blur_imgs = read_all_imgs(train_blur_img_list, path=input_path, n_threads=100, mode='RGB')
