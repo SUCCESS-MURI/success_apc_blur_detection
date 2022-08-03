@@ -82,7 +82,7 @@ def numpy_iou(y_true, y_pred, n_class=5):
 def test():
     print("Blurmap Generation")
 
-    save_dir_sample = 'output_origional'
+    save_dir_sample = 'output_original'
     tl.files.exists_or_mkdir(save_dir_sample)
     tl.files.exists_or_mkdir(save_dir_sample + '/gt')
     tl.files.exists_or_mkdir(save_dir_sample + '/binary_result/')
@@ -557,8 +557,12 @@ def test_with_no_gt():
     tl.files.exists_or_mkdir(save_dir_sample)
     tl.files.exists_or_mkdir(save_dir_sample + '/binary')
 
-    test_blur_img_list = sorted(tl.files.load_file_list(path=config.TEST.blur_path, regx='/*.(jpg|JPG)',
+    if '.jpg' in tl.global_flag['image_extension']:
+        test_blur_img_list = sorted(tl.files.load_file_list(path=config.TEST.blur_path, regx='/*.(jpg|JPG)',
                                                         printable=False))
+    else:
+        test_blur_img_list = sorted(tl.files.load_file_list(path=config.TEST.blur_path, regx='/*.(png|PNG)',
+                                                                printable=False))
     # # Load checkpoint
     # # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
     file_name = './model/SA_net_{}.ckpt'.format(tl.global_flag['mode'])

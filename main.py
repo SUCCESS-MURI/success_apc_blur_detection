@@ -21,6 +21,9 @@ if __name__ == '__main__':
     parser.add_argument('--is_train', type=str , default='false', help='whether train or not')
     parser.add_argument('--is_synthetic', type=str, default='false', help='synthetic training')
     parser.add_argument('--output_levels', type=str, default='false', help='output each of the levels for testing')
+    parser.add_argument('--image_extension', type=str, default='.jpg', help='image input extension, default .jpg can '
+                                                                            'also use .png. those 2 options.'
+                                                                            ' Caps not sensitive')
     parser.add_argument('--start_from', type=int, default='0', help='if training was paused start from an index and '
                                                                     'init weights')
     parser.add_argument('--test_wo_gt', type=str, default='false', help='testing images without gt')

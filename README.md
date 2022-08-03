@@ -26,6 +26,7 @@ read the tensorflow_issues_and_solutions document for code solutions for errors 
   - --mode (any name default PG_CUHK): name of training you want to use
   - --is_synthetic (true,false default false): running training or testing for syntheic kim et al images 
   - --start_from (int default 0): starting training from certain point - start from last frequency that the weights were saved at
+  - --image_extension (.png or .jpg default .jpg): image extension for images input
 - options for config.py include 
   - config.TRAIN.batch_size: batch size for training
   - config.TRAIN.lr_init: inital training learning rate
@@ -57,6 +58,7 @@ python main.py --is_train true --is_synthetic true
   - --mode (any name default PG_CUHK): name of weights saved from training (same as mode from above) you want to use
   - --output_levels (true/false default false): outputs the individual level images from each decoder layer in network
   - --test_wo_gt (true/false default false): version of testing where we do not have ground truth. Useful for testing recorded images that do not have a ground truth assigned to them
+  - --image_extension (.png or .jpg default .jpg): image extension for images input
 - options for config.py include
   - config.TEST.blur_path: location of testing images 
   - config.TEST.gt_path: location of ground truth images

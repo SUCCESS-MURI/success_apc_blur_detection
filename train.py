@@ -36,8 +36,12 @@ def train_with_CHUK():
     input_path = config.TRAIN.blur_path
     gt_path = config.TRAIN.gt_path
     list_file = 'dataset/train_list.txt'
-    train_blur_img_list = sorted(
+    if '.jpg' in tl.global_flag['image_extension']:
+        train_blur_img_list = sorted(
         tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(jpg|JPG)', printable=False))
+    else:
+        train_blur_img_list = sorted(
+            tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(png|PNG)', printable=False))
     train_mask_img_list = []
 
     for name in train_blur_img_list:
@@ -260,8 +264,12 @@ def train_with_synthetic():
 
     input_path = config.TRAIN.blur_path
     gt_path = config.TRAIN.gt_path
-    train_blur_img_list = sorted(
-        tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(jpg|JPG)', printable=False))
+    if '.jpg' in tl.global_flag['image_extension']:
+        train_blur_img_list = sorted(
+            tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(jpg|JPG)', printable=False))
+    else:
+        train_blur_img_list = sorted(
+            tl.files.load_file_list(path=input_path, regx='(out_of_focus|motion).*.(png|PNG)', printable=False))
     train_mask_img_list = []
 
     for name in train_blur_img_list:
@@ -290,8 +298,13 @@ def train_with_synthetic():
         index = index + 1
 
     input_path2 = config.TRAIN.CUHK_blur_path
-    ori_train_blur_img_list = sorted(
-        tl.files.load_file_list(path=input_path2, regx='(out_of_focus|motion).*.(jpg|JPG)', printable=False))
+
+    if '.jpg' in tl.global_flag['image_extension']:
+        ori_train_blur_img_list = sorted(
+            tl.files.load_file_list(path=input_path2, regx='(out_of_focus|motion).*.(jpg|JPG)', printable=False))
+    else:
+        ori_train_blur_img_list = sorted(
+            tl.files.load_file_list(path=input_path2, regx='(out_of_focus|motion).*.(png|PNG)', printable=False))
     ori_train_mask_img_list = []
 
     for name in ori_train_blur_img_list:
@@ -303,7 +316,8 @@ def train_with_synthetic():
 
     # augmented dataset read
     gt_path2 = config.TRAIN.CUHK_gt_path
-    origional_train_blur_imgs = read_all_imgs(ori_train_blur_img_list, path=input_path2, n_threads=batch_size, mode='RGB')
+    origional_train_blur_imgs = read_all_imgs(ori_train_blur_img_list, path=input_path2, n_threads=batch_size,
+                                              mode='RGB')
     origional_train_mask_imgs = read_all_imgs(ori_train_mask_img_list, path=gt_path2, n_threads=batch_size, mode='GRAY')
 
     ori_train_blur_imgs = []
