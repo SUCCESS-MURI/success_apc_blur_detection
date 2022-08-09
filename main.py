@@ -27,15 +27,18 @@ if __name__ == '__main__':
     parser.add_argument('--start_from', type=int, default='0', help='if training was paused start from an index and '
                                                                     'init weights')
     parser.add_argument('--test_wo_gt', type=str, default='false', help='testing images without gt')
+    parser.add_argument('--gpu', type=str, default='false', help='using gpu')
 
     args = parser.parse_args()
 
     tl.global_flag['mode'] = args.mode
+    tl.global_flag['image_extension'] = args.image_extension
     tl.global_flag['is_train'] = t_or_f(args.is_train)
     tl.global_flag['is_synthetic'] = t_or_f(args.is_synthetic)
     tl.global_flag['start_from'] = int(args.start_from)
-    tl.global_flag['output_levels'] = int(args.output_levels)
-    tl.global_flag['test_wo_gt'] = int(args.test_wo_gt)
+    tl.global_flag['output_levels'] = t_or_f(args.output_levels)
+    tl.global_flag['test_wo_gt'] = t_or_f(args.test_wo_gt)
+    tl.global_flag['gpu'] = t_or_f(args.gpu)
 
     if tl.global_flag['is_train']:
         if not tl.global_flag['is_synthetic']:

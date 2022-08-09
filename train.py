@@ -56,7 +56,7 @@ def train_with_CHUK():
 
     train_blur_imgs = []
     train_mask_imgs = []
-
+    
     # get the chuk image list that is used for training 
     with open(list_file) as f:
         lines = f.readlines()
@@ -72,7 +72,7 @@ def train_with_CHUK():
     train_classification_mask = []
     # img_n = 0
     for img in train_mask_imgs:
-        if index < 236:
+        if index < 236: 
             tmp_class = img
             tmp_classification = np.concatenate((img, img, img), axis=2)
             tmp_class[np.where(tmp_classification[:, :, 0] == 0)] = 0  # sharp
@@ -115,7 +115,6 @@ def train_with_CHUK():
                                                              method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)),
                                   name='loss4')
     out = net_regression.outputs
-    #output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
     loss = loss1 + loss2 + loss3 + loss4
 
     with tf.compat.v1.variable_scope('learning_rate'):
@@ -138,15 +137,16 @@ def train_with_CHUK():
     configTf = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)
     configTf.gpu_options.allow_growth = True
     # uncomment if on a gpu machine
-    # gpus = tf.config.experimental.list_physical_devices('GPU')
-    # if gpus:
-    #     try:
-    #         for gpu in gpus:
-    #             tf.config.experimental.set_memory_growth(gpu, True)
-    
-    #     except RuntimeError as e:
-    #         print(e)
-    #####################################
+    if tl.global_flag['gpu']:
+        gpus = tf.config.experimental.list_physical_devices('GPU')
+        if gpus:
+            try:
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+        
+            except RuntimeError as e:
+                print(e)
+        #####################################
     sess = tf.compat.v1.Session(config=configTf)
 
     print("initializing global variable...")
