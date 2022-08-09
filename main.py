@@ -18,6 +18,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # from kim et al.
     parser.add_argument('--mode', type=str, default='PG_CUHK', help='model name')
+    parser.add_argument('--prev_weights', type=str, default='PG_CUHK', help='CHUK prev weights model name')
     parser.add_argument('--is_train', type=str , default='false', help='whether train or not')
     parser.add_argument('--is_synthetic', type=str, default='false', help='synthetic training')
     parser.add_argument('--output_levels', type=str, default='false', help='output each of the levels for testing')
@@ -33,6 +34,7 @@ if __name__ == '__main__':
 
     tl.global_flag['mode'] = args.mode
     tl.global_flag['image_extension'] = args.image_extension
+    tl.global_flag['prev_weights'] = args.prev_weights
     tl.global_flag['is_train'] = t_or_f(args.is_train)
     tl.global_flag['is_synthetic'] = t_or_f(args.is_synthetic)
     tl.global_flag['start_from'] = int(args.start_from)

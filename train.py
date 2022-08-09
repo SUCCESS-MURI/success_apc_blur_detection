@@ -340,9 +340,8 @@ def train_with_synthetic():
 
     index = 0
     ori_train_classification_mask = []
-    # img_n = 0
     for img in ori_train_mask_imgs:
-        if index < 236:
+        if index < 236: 
             tmp_class = img
             tmp_classification = np.concatenate((img, img, img), axis=2)
 
@@ -441,9 +440,9 @@ def train_with_synthetic():
                            save_dir=checkpoint_dir, var_list=a_vars, is_latest=True, printable=True)
     else:
         ### initial checkpoint ###
-        checkpoint_dir2 = "test_checkpoint/PG_CUHK/"
-        tl.files.load_ckpt(sess=sess, mode_name='SA_net_PG_CUHK.ckpt', save_dir=checkpoint_dir2, var_list=a_vars,
-                           is_latest=True)
+        checkpoint_dir2 = "test_checkpoint/{}/".format(tl.global_flag['prev_weights'])
+        tl.files.load_ckpt(sess=sess, mode_name='SA_net_{}.ckpt'.format(tl.global_flag['prev_weights']), 
+            save_dir=checkpoint_dir2, var_list=a_vars, is_latest=True)
 
     global_step = 0
     new_lr_decay = 1
