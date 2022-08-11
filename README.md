@@ -13,9 +13,8 @@ This repository contains the training and test code for running Kim et al. blur 
 - You will need to modify some options and paths in 'new_main.py' and 'config.py' for training
 - Same input/config arguments as in [Deep_Blur_Detection_and_Classification_w_Tensorflow2_Python3.8](https://github.com/SUCCESS-MURI/success_apc_blur_detection.git) 
 - Please modify config.py with updated dataset locations for training where it is located in local directory
-- new_main.py has the following new input options (old inputs from [updated repo](https://github.com/SUCCESS-MURI/success_apc_blur_detection.git) are still valid):
+- new_main.py has the following new input options (old inputs from [updated repo](https://github.com/SUCCESS-MURI/success_apc_blur_detection.git) except for --prev_weights are still valid):
   - --exposure (true,false default false): running exposure classification or not
-  - --gpu (true,false deafult false): using gpus for running
 
 Run the following example command after all of your input parameters are set in config.py 
 ```bash
