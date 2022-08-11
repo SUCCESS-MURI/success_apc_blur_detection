@@ -27,6 +27,7 @@ read the tensorflow_issues_and_solutions document for code solutions for errors 
   - --is_synthetic (true,false default false): running training or testing for syntheic kim et al images 
   - --start_from (int default 0): starting training from certain point - start from last frequency that the weights were saved at
   - --image_extension (.png or .jpg default .jpg): image extension for images input
+  - --gpu (true,false default false): using gpu to run
 - options for config.py include 
   - config.TRAIN.batch_size: batch size for training
   - config.TRAIN.lr_init: inital training learning rate
@@ -45,10 +46,11 @@ python main.py --is_train true
 ## Synthetic Dataset
 - download [synthetic train set](https://drive.google.com/file/d/1QUygL2nalHldcJMwFJPfPFWokMoIbI9L/view?usp=sharing)(337MB) and [synthetic test set](https://drive.google.com/file/d/1-lV3CS_6rI_by6StkGQYsdn0SeOxwepu/view?usp=sharing)(11.5MB) from google drive
 - Note that sharp pixels, motion-blurred pixels, and defocus-blurred pixels in GT blur maps are labeled as 0, 100, and 200, respectively, in the [0,255] range.
-- Same inputs as above but now use --is_synthetic true
+- Same inputs as above but now use --is_synthetic true and new input 
+--prev_weights (name of mode): mode used for chuk training. need to perform chuk training before doing syntheic training as per kim et al. 
 
 ```bash
-python main.py --is_train true --is_synthetic true
+python main.py --is_train true --is_synthetic true --prev_weights PG_CUHK
 ```
 
 ## Test Details
