@@ -55,7 +55,7 @@ python main.py --is_train true --is_synthetic true --prev_weights PG_CUHK
 
 ## Test Details
 - download [model weights](https://drive.google.com/file/d/11FBVmAIfeHDHpOjLXewzpA2lgcOOqo2_/view?usp=sharing) from google drive and save the model into 'model' folder.
-- Can use the converted .npy weights on XXX from the [original repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git).
+- Can use the converted [.npy weights](https://bridge.apt.ri.cmu.edu/exposure/npy_kim_weights) from the [original repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git).
 - main.py has the following input testing options:
   - --mode (any name default PG_CUHK): name of weights saved from training (same as mode from above) you want to use
   - --output_levels (true/false default false): outputs the individual level images from each decoder layer in network
