@@ -563,15 +563,10 @@ def test_with_no_gt():
     else:
         test_blur_img_list = sorted(tl.files.load_file_list(path=config.TEST.blur_path, regx='/*.(png|PNG)',
                                                                 printable=False))
-    # # Load checkpoint
-    # # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
-    file_name = './model/SA_net_{}.ckpt'.format(tl.global_flag['mode'])
-    reader = py_checkpoint_reader.NewCheckpointReader(file_name)
-    state_dict = {v: reader.get_tensor(v) for v in reader.get_variable_to_shape_map()}
 
     for i in range(len(test_blur_img_list)):
         image_name = test_blur_img_list[i]
-        image_file_location = os.path.join(config.TEST.real_blur_path, image_name)
+        image_file_location = os.path.join(config.TEST.blur_path, image_name)
         test_image = imageio.imread(image_file_location)
 
         sharp_image = np.asarray(test_image, dtype="float32")
@@ -604,7 +599,7 @@ def test_with_no_gt():
         # Model
         manager = multiprocessing.Manager()
         return_dict = manager.dict()
-        p = multiprocessing.Process(target=run_session_no_gt,args=(test_image, state_dict, return_dict))
+        p = multiprocessing.Process(target=run_session_no_gt,args=(test_image, return_dict))
         p.start()
         p.join()
         if tl.global_flag['output_levels']:
@@ -672,7 +667,7 @@ def test_with_no_gt():
     print("Finished")
 
 # multiprocessing run session
-def run_session_no_gt(image, state_dict, return_dict):
+def run_session_no_gt(image, return_dict):
     # Model
     patches_blurred = tf.compat.v1.placeholder('float32', [1, image.shape[0], image.shape[1], 3],
                                                name='input_patches')
@@ -689,7 +684,7 @@ def run_session_no_gt(image, state_dict, return_dict):
     tl.layers.initialize_global_variables(sess)
 
     # Load checkpoint
-    get_weights_checkpoint(sess, net_regression, state_dict)
+    get_weights(sess, net_regression)
     print("loaded all the weights")
 
     output_map = tf.expand_dims(tf.math.argmax(tf.nn.softmax(net_regression.outputs), axis=3), axis=3)
