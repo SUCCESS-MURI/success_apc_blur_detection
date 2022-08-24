@@ -97,7 +97,7 @@ IPS Real Exposure Training and Testing Datasets [here](https://bridge.apt.ri.cmu
 
 Real and Syntheic Exposure Weights [here](https://bridge.apt.ri.cmu.edu/exposure/real_synthetic_weights)
 
-IPS Real Exposure WEights [here](https://bridge.apt.ri.cmu.edu/exposure/ips_real_weights)
+IPS Real Exposure Weights [here](https://bridge.apt.ri.cmu.edu/exposure/ips_real_weights)
 
 ## License ##
 TODO correct licence 
