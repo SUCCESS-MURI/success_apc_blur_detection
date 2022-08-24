@@ -35,6 +35,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     tl.global_flag['mode'] = args.mode
+    tl.global_flag['image_extension'] = args.image_extension
     tl.global_flag['is_train'] = t_or_f(args.is_train)
     tl.global_flag['start_from'] = int(args.start_from)
     tl.global_flag['gpu'] = t_or_f(args.gpu)

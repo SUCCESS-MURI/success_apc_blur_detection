@@ -5,8 +5,6 @@ import multiprocessing
 import random
 
 import tensorflow as tf
-# tf.compat.v1.enable_eager_execution()
-# tf.disable_v2_behavior()
 import tensorlayer as tl
 import numpy as np
 import math
@@ -31,9 +29,8 @@ tl.logging.set_verbosity(tl.logging.DEBUG)
 
 batch_size = config.TRAIN.batch_size
 lr_init = config.TRAIN.lr_init
-# beta1 = config.TRAIN.beta1
-do_validation_every = config.TRAIN.valid_every
-n_epoch = config.TRAIN.n_epochs
+
+n_epoch = config.TRAIN.n_epoch
 lr_decay = config.TRAIN.lr_decay
 decay_every = config.TRAIN.decay_every
 

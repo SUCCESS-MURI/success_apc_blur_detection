@@ -13,7 +13,7 @@ import numpy as np
 from tensorflow.python.training import py_checkpoint_reader
 from sklearn.metrics import f1_score, confusion_matrix, accuracy_score
 from config import config
-from utils import read_all_imgs, crop_img_and_classification_fn_val
+from utils import read_all_imgs
 from model import VGG19_pretrained
 from test import *
 
@@ -898,6 +898,8 @@ def exposure_test_with_no_gt():
                                                         printable=False))
 
     from updated_decoder_model import Decoder_Network_classification
+    h = config.TEST.height
+    w = config.TEST.width
 
     ### DEFINE MODEL ###
     patches_blurred = tf.compat.v1.placeholder('float32', [1, h, w, 3], name='input_patches')
@@ -936,7 +938,7 @@ def exposure_test_with_no_gt():
 
     for i in range(len(test_blur_img_list)):
         image_name = test_blur_img_list[i]
-        image_file_location = os.path.join(config.TEST.real_blur_path, image_name)
+        image_file_location = os.path.join(config.TEST.blur_path, image_name)
         test_image = imageio.imread(image_file_location)
 
         sharp_image = np.asarray(test_image, dtype="float32")
@@ -1010,6 +1012,10 @@ def exposure_test_with_no_gt():
             rgb_blur_map_1[o1 == 4] = [255, 192, 203]
             rgb_blur_map_2[o2 == 4] = [255, 192, 203]
             rgb_blur_map_3[o3 == 4] = [255, 192, 203]
+            rgb_blur_map_1 = rgb_blur_map_1.astype(np.uint8)
+            rgb_blur_map_2 = rgb_blur_map_2.astype(np.uint8)
+            rgb_blur_map_3 = rgb_blur_map_3.astype(np.uint8)
+        rgb_blur_map = rgb_blur_map.astype(np.uint8)
 
 
         if ".jpg" in image_name:
