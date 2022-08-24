@@ -22,7 +22,7 @@ python new_main.py --is_train true --exposure true
 ```
 
 ## Test Details
-- download [model weights](https://bridge.apt.ri.cmu.edu/exposure/real_synthetic_weights) from google drive and save the model into 'model' folder.
+- download [model weights](https://bridge.apt.ri.cmu.edu/exposure/real_synthetic_weights) and save the model into 'model' folder.
 - Can use the converted [.npy weights](https://bridge.apt.ri.cmu.edu/exposure/npy_kim_weights) from the [original repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git).
 - new_main.py has the following new input options for testing (old inputs from [updated repo](https://github.com/SUCCESS-MURI/success_apc_blur_detection.git) are still valid):
   - --exposure (true,false default false): running exposure classification or not
