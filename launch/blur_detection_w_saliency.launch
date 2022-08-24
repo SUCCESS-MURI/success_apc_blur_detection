@@ -1,5 +1,5 @@
 <launch>
-	<node pkg="success_apc_blur_detection_w_saliency" type="blur_detection_ros_main.py" name="BlurDetection">
+	<node pkg="success_apc_blur_detection_w_saliency" type="blur_detection_ros_main_saliency.py" name="BlurDetection">
         <param name="model_checkpoint" value="/location/weight/.ckpt" />
         <param name="height" value="480" />
         <param name="width" value="640" />
