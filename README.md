@@ -92,8 +92,11 @@ rospy.ServiceProxy('/success_apc_blur_detection/blurdetection', BlurMaskOutput)
 
 ## Avaliable Datasets and Weights 
 Real and Syntheic Exposure Training and Testing Datasets [here](https://bridge.apt.ri.cmu.edu/exposure/real_synthetic_dataset)
+
 IPS Real Exposure Training and Testing Datasets [here](https://bridge.apt.ri.cmu.edu/exposure/ips_real_dataset)
+
 Real and Syntheic Exposure Weights [here](https://bridge.apt.ri.cmu.edu/exposure/real_synthetic_weights)
+
 IPS Real Exposure WEights [here](https://bridge.apt.ri.cmu.edu/exposure/ips_real_weights)
 
 ## License ##
