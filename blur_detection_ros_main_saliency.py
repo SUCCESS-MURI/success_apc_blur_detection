@@ -19,7 +19,7 @@ import cv2
 import numpy as np
 from sensor_msgs.msg import Image
 from std_msgs.msg import Int32
-from success_apc_blur_detection.srv import BlurOutput, BlurOutputRequest, BlurOutputResponse
+from success_apc_blur_detection.srv import BlurMaskOutput, BlurMaskOutputRequest, BlurMaskOutputResponse
 import time
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -53,7 +53,7 @@ class BlurDetection:
         # self.define_and_get_unet(int(rospy.get_param('~unet_location')))
         # setup the callback for the blur detection model
         self.bridge = CvBridge()
-        self.blur_srv = rospy.Service('~blurdetection', BlurOutput, self.blurdetection_callback)
+        self.blur_srv = rospy.Service('~blurdetection', BlurMaskOutput, self.blurdetection_callback)
         self.count = 0
         rospy.loginfo("Done Setting up Blur Detection")
 
@@ -107,12 +107,12 @@ class BlurDetection:
             msg_label = Int32()
             msg_label.data = label
             # publish softmax output and image labeling
-            return BlurOutputResponse(success=True, label=msg_label)
+            return BlurMaskOutputResponse(success=True, label=msg_label)
 
         except Exception as e:
             rospy.logerr("Error - " + str(e))
 
-        return BlurOutputResponse(success=False, msg=str(e))
+        return BlurMaskOutputResponse(success=False, msg=str(e))
 
     def setup_model(self, h, w):
         self.height = h
