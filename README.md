@@ -102,7 +102,7 @@ IPS Real Exposure Weights [here](https://bridge.apt.ri.cmu.edu/exposure/ips_real
 ## License ##
 MIT License
 
-Copyright (c) 2022 SUCCESS-MURI
+Copyright (c) 2022 Carnegie Mellon University
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
