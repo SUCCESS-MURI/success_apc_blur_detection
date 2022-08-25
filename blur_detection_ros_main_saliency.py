@@ -12,7 +12,8 @@ from skimage.io import imsave
 tf.compat.v1.disable_eager_execution()
 import tensorlayer as tl
 from tensorflow.python.training import py_checkpoint_reader
-from model import Updated_Decoder_Network_classification, VGG19_pretrained
+from model import VGG19_pretrained
+from updated_decoder_model import Decoder_Network_classification
 from cv_bridge import CvBridge, CvBridgeError
 # from success_apc_blur_detection.msg import BlurDetectionOutput
 import cv2
@@ -123,7 +124,7 @@ class BlurDetection:
             with tf.compat.v1.variable_scope('VGG') as scope1:
                 input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
             with tf.compat.v1.variable_scope('UNet') as scope2:
-                self.net_regression, _, _, _ = Updated_Decoder_Network_classification(input, n, f0, f0_1, f1_2, f2_3,
+                self.net_regression, _, _, _, _, _, _, _ = Decoder_Network_classification(input, n, f0, f0_1, f1_2, f2_3,
                                                                                      reuse=False,scope=scope2)
         # Load checkpoint
         # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file

@@ -85,7 +85,7 @@ class BlurDetection:
             with tf.compat.v1.variable_scope('VGG') as scope1:
                 input, n, f0, f0_1, f1_2, f2_3 = VGG19_pretrained(patches_blurred, reuse=False, scope=scope1)
             with tf.compat.v1.variable_scope('UNet') as scope2:
-                self.net_regression, _, _, _, _, _, _ = Decoder_Network_classification(input, n, f0, f0_1, f1_2, f2_3,
+                self.net_regression, _, _, _,_, _, _, _ = Decoder_Network_classification(input, n, f0, f0_1, f1_2, f2_3,
                                                                                      reuse=False,scope=scope2)
         # Load checkpoint
         # https://stackoverflow.com/questions/40118062/how-to-read-weights-saved-in-tensorflow-checkpoint-file
