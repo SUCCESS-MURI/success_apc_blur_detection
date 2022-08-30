@@ -37,6 +37,7 @@ def apply_motion_blur(image, size, angle):
     cv2.normalize(blurred, blurred, 0, 255, cv2.NORM_MINMAX)
     return blurred
 
+## These two scripts are from somehwere - idk where doing random choice
 def normalvariate_random_int(mean, variance, dmin, dmax):
     r = dmax + 1
     while r < dmin or r > dmax:

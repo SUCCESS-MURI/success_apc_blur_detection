@@ -141,3 +141,4 @@ model/
 checkpoint
 config
 output*
+U2Net/
