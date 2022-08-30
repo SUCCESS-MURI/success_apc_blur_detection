@@ -1,6 +1,6 @@
 # Blur Detection and Classification with Exposure Blur Labels
 
-This repository contains the training and test code for running our modifed Kim et al. blur detection model with the additional 2 classification labels for over-and underexposure. This repo was updated to run with tensorflow 2.0 and python 3.8
+This repository contains the training and test code for running our modifed Kim et al. blur detection model with the additional 2 classification labels for over-and underexposure. This repo was updated to run with the updated tensorflow 2.0 and python 3.8 version [repo](https://github.com/SUCCESS-MURI/success_apc_blur_detection/releases/tag/v2.0.0)
 
 ## Kim et al. Train and Testing Details from [Original Repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git)
 ## Prerequisites 
