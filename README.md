@@ -18,7 +18,7 @@ read the tensorflow_issues_and_solutions document for code solutions for errors 
 ## Kim et al. Train and Testing Details from [Original Repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git)
 ## Train Details
 - We used [CUHK blur detection dataset](http://www.cse.cuhk.edu.hk/~leojia/projects/dblurdetect/dataset.html) for training our network and generating our synthetic dataset
-- Train and test set lists are uploaded in 'dataset' folder in [repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git)
+- Train and test set lists are uploaded in 'dataset' folder
 - Need to modify some options and paths in 'main.py' and 'config.py' for training
 - Please modify config.py with updated dataset locations for training where it is located in local directory
 - main.py has the following input options:
