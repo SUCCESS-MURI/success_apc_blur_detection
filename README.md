@@ -4,16 +4,16 @@ This repository contains the training and test code for running our modifed Kim 
 
 ## Kim et al. Train and Testing Details from [Original Repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git)
 ## Prerequisites 
-- Please clone the release branch [Deep_Blur_Detection_and_Classification_w_Tensorflow2_Python3.8](https://github.com/SUCCESS-MURI/success_apc_blur_detection.git) which is the original model branch updated to use tensorflow 2.0 and python 3.8. 
-- Follow all instructions for env and libraries in workplace_setup folder and from [Deep_Blur_Detection_and_Classification_w_Tensorflow2_Python3.8](https://github.com/SUCCESS-MURI/success_apc_blur_detection.git)
+- Please clone the release branch [Deep_Blur_Detection_and_Classification_w_Tensorflow2_Python3.8](https://github.com/SUCCESS-MURI/success_apc_blur_detection/releases/tag/v2.0.0) which is the original model branch updated to use tensorflow 2.0 and python 3.8. 
+- Follow all instructions for env and libraries in workplace_setup folder and from [Deep_Blur_Detection_and_Classification_w_Tensorflow2_Python3.8](https://github.com/SUCCESS-MURI/success_apc_blur_detection/releases/tag/v2.0.0)
 - Our [exposure blur detection datasets](https://bridge.apt.ri.cmu.edu/exposure/real_synthetic_dataset) was used for training and testing our network 
 - Train and test set details are in the readme in the dataset download
 
 ## Training Details
 - You will need to modify some options and paths in 'new_main.py' and 'config.py' for training
-- Same input/config arguments as in [Deep_Blur_Detection_and_Classification_w_Tensorflow2_Python3.8](https://github.com/SUCCESS-MURI/success_apc_blur_detection.git) 
+- Same input/config arguments as in [Deep_Blur_Detection_and_Classification_w_Tensorflow2_Python3.8](https://github.com/SUCCESS-MURI/success_apc_blur_detection/releases/tag/v2.0.0) 
 - Please modify config.py with updated dataset locations for training where it is located in local directory
-- new_main.py has the following new input options (old inputs from [updated repo](https://github.com/SUCCESS-MURI/success_apc_blur_detection.git) except for --prev_weights are still valid):
+- new_main.py has the following new input options (old inputs from [updated repo](https://github.com/SUCCESS-MURI/success_apc_blur_detection/releases/tag/v2.0.0) except for --prev_weights are still valid):
   - --exposure (true,false default false): running exposure classification or not
 
 Run the following example command after all of your input parameters are set in config.py 
@@ -24,7 +24,7 @@ python new_main.py --is_train true --exposure true
 ## Test Details
 - download [model weights](https://bridge.apt.ri.cmu.edu/exposure/real_synthetic_weights) and save the model into 'model' folder.
 - Can use the converted [.npy weights](https://bridge.apt.ri.cmu.edu/exposure/npy_kim_weights) from the [original repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git).
-- new_main.py has the following new input options for testing (old inputs from [updated repo](https://github.com/SUCCESS-MURI/success_apc_blur_detection.git) are still valid):
+- new_main.py has the following new input options for testing (old inputs from [updated repo](https://github.com/SUCCESS-MURI/success_apc_blur_detection/releases/tag/v2.0.0) are still valid):
   - --exposure (true,false default false): running exposure classification or not
   - --exposure_dataset (true, false, default false): use this boolean if you want to test origional kim et al. model with exposure blur images
 
