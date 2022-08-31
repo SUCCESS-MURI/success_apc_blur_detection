@@ -6,7 +6,7 @@ This repository contains the training and test code for running our modifed Kim 
 ## Prerequisites 
 - Please clone the release branch [Deep_Blur_Detection_and_Classification_w_Tensorflow2_Python3.8](https://github.com/SUCCESS-MURI/success_apc_blur_detection/releases/tag/v2.0.0) which is the original model branch updated to use tensorflow 2.0 and python 3.8. 
 - Follow all instructions for env and libraries in workplace_setup folder and from [Deep_Blur_Detection_and_Classification_w_Tensorflow2_Python3.8](https://github.com/SUCCESS-MURI/success_apc_blur_detection/releases/tag/v2.0.0)
-- Our [exposure blur detection datasets](https://bridge.apt.ri.cmu.edu/exposure/real_synthetic_dataset) was used for training and testing our network 
+- Our [exposure blur detection datasets](https://bridge.apt.ri.cmu.edu/exposure/real_synthetic_dataset) was used for training and testing our network (This download is 4.3 GBs)
 - Train and test set details are in the readme in the dataset download
 
 ## Training Details
