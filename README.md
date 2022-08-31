@@ -26,7 +26,7 @@ python new_main.py --is_train true --exposure true
 - Can use the converted [.npy weights](https://bridge.apt.ri.cmu.edu/exposure/npy_kim_weights) from the [original repo](https://github.com/HyeongseokSon1/deep_blur_detection_and_classification.git).
 - new_main.py has the following new input options for testing (old inputs from [updated repo](https://github.com/SUCCESS-MURI/success_apc_blur_detection/releases/tag/v2.0.0) are still valid):
   - --exposure (true,false default false): running exposure classification or not
-  - --exposure_dataset (true, false, default false): use this boolean if you want to test origional kim et al. model with exposure blur images
+  - --exposure_dataset (true, false, default false): use this boolean if you want to test origional kim et al. model weights with exposure blur images
 
 ```bash
 python main.py --exposure true
@@ -35,7 +35,7 @@ python main.py --exposure true
 ## Running Real Time with ROS
 ROSService for real time implementation in ros 
 
-### Normal Blur DEtection and Classifcation
+### Normal Blur Detection and Classifcation
 Sevice message called BlurOutput.srv
 Input
 - sensor_msgs/Image bgr : bgr image input 
