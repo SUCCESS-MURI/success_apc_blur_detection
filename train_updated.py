@@ -78,8 +78,8 @@ def exposure_training():
         tmp_class[np.where(tmp_classification[:, :, 0] == 0)] = 0  # sharp
         tmp_class[np.where(tmp_classification[:, :, 0] == 64)] = 1  # motion blur
         tmp_class[np.where(tmp_classification[:, :, 0] == 128)] = 2  # out of focus blur
-        tmp_class[np.where(tmp_classification[:, :, 0] == 192)] = 3  # darkness blur
-        tmp_class[np.where(tmp_classification[:, :, 0] == 255)] = 4  # brightness blur
+        tmp_class[np.where(tmp_classification[:, :, 0] == 192)] = 3  # underexposure blur
+        tmp_class[np.where(tmp_classification[:, :, 0] == 255)] = 4  # overexposure blur
 
         train_classification_mask.append(tmp_class)
 
