@@ -45,8 +45,6 @@ output_images - rgb images for that were outputed by blur detection (pink-bright
 raw_npy_output - softmax blur output (size (256,256,5)) the indexs indicate the following: 0: no blur 1: motion blur 2: focus blur 3: darkness blur 4: brightness blur
 
 ## License ##
-NEED to Update for MURI/CMU
 
 This software is being made available under the terms in the [LICENSE](LICENSE) file.
-Any exemptions to these terms requires a license from the Pohang University of Science and Technology.
 
