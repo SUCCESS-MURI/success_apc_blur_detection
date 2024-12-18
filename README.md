@@ -1,6 +1,3 @@
-## NEED TO UPDATE THIS 
-previous project's readme 
-
 # deep_blur_detection_and_classification
 
 
